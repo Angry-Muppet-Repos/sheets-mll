@@ -160,7 +160,8 @@ function buildTransactions_(sheet, mode) {
   var headerRow = r;
   sheet.getRange(headerRow, 1, 1, 7).setValues([hdr]).setFontWeight('bold')
     .setBackground(BRAND.FOREST).setFontColor(BRAND.PARCHMENT).setFontFamily(FONT.BODY).setFontSize(10);
-  sheet.setFrozenRows(headerRow);
+  SpreadsheetApp.flush();  // commit chrome merges before freezing
+  try { sheet.setFrozenRows(headerRow); } catch (e) {}
 
   var firstData = headerRow + 1;
   var ledger = (mode === 'mock') ? generateMockLedger_() : [];

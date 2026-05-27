@@ -531,8 +531,13 @@ function buildWorkbook(mode) {
   // 4. Named ranges (catalog from 06_data_model.md, trimmed to what's wired).
   setNamedRanges_(ss);
 
-  // 5. Order, color, hide.
+  // 5. Order, color, hide. Remove any stray sheets (e.g. default Sheet1).
   reorderTabs_(ss);
+  ss.getSheets().forEach(function (sh) {
+    if (TAB_ORDER.indexOf(sh.getName()) === -1) {
+      try { ss.deleteSheet(sh); } catch (e) {}
+    }
+  });
   SYSTEM_TABS.forEach(function (n) { ss.getSheetByName(n).hideSheet(); });
 
   // 6. Persist build state.
@@ -754,7 +759,8 @@ function buildTransactions_(sheet, mode) {
   var headerRow = r;
   sheet.getRange(headerRow, 1, 1, 7).setValues([hdr]).setFontWeight('bold')
     .setBackground(BRAND.FOREST).setFontColor(BRAND.PARCHMENT).setFontFamily(FONT.BODY).setFontSize(10);
-  sheet.setFrozenRows(headerRow);
+  SpreadsheetApp.flush();  // commit chrome merges before freezing
+  try { sheet.setFrozenRows(headerRow); } catch (e) {}
 
   var firstData = headerRow + 1;
   var ledger = (mode === 'mock') ? generateMockLedger_() : [];
