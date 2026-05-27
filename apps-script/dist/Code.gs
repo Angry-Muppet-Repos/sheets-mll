@@ -556,11 +556,11 @@ function buildWorkbook(mode) {
 function getOrCreateSheet_(ss, name) {
   var sh = ss.getSheetByName(name);
   if (!sh) sh = ss.insertSheet(name);
+  // Fully unmerge the whole grid first — clear() does NOT remove merges, and
+  // leftover merges from a prior build collide with the new chrome merges.
+  try { sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).breakApart(); } catch (e) {}
   sh.clear();
   sh.clearConditionalFormatRules();
-  // unmerge everything from a prior build
-  try { sh.getDataRange().breakApart(); } catch (e) {}
-  // strip any leftover charts
   sh.getCharts().forEach(function (c) { sh.removeChart(c); });
   sh.setHiddenGridlines(true);
   return sh;
