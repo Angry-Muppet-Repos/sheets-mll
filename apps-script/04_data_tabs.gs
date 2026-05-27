@@ -95,9 +95,10 @@ function buildCategories_(sheet, mode) {
     }
   }
 
-  // Keyword rules region (cols E-G)
-  sectionLabel_(sheet, 'E' + (CONTENT_START_ROW), 'G' + (CONTENT_START_ROW), 'KEYWORD RULES · AUTO-CATEGORIZATION');
-  var kr = CONTENT_START_ROW + 1;
+  // Keyword rules region (cols E-G) — start at row 9 so it clears the
+  // title row (rows 6-7 are merged full-width by titleRow_).
+  sectionLabel_(sheet, 'E9', 'G9', 'KEYWORD RULES · AUTO-CATEGORIZATION');
+  var kr = 10;
   sheet.getRange(kr, 5, 1, 3).setValues([['Keyword', 'Category', 'Note']])
     .setFontWeight('bold').setFontColor(BRAND.BODY).setFontFamily(FONT.BODY).setFontSize(10);
   sheet.getRange(kr + 1, 5, KEYWORD_RULES.length, 3).setValues(KEYWORD_RULES);

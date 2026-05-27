@@ -581,7 +581,7 @@ function setNamedRanges_(ss) {
     'cc_palettes':        TABS.CONFIG + '!A3:I18',
     'cc_profiles':        TABS.CONFIG + '!C22:X31',
     'cc_categories':      TABS.CATEGORIES + '!A11:A30',
-    'cc_keyword_rules':   TABS.CATEGORIES + '!E8:G200',
+    'cc_keyword_rules':   TABS.CATEGORIES + '!E11:G200',
     'cc_budget_income':   TABS.BUDGET + '!C13',
     'cc_budget_targets':  TABS.BUDGET + '!C17:C36',
     'cc_engine_months':   TABS.ENGINE + '!B1:Y1',
@@ -694,9 +694,10 @@ function buildCategories_(sheet, mode) {
     }
   }
 
-  // Keyword rules region (cols E-G)
-  sectionLabel_(sheet, 'E' + (CONTENT_START_ROW), 'G' + (CONTENT_START_ROW), 'KEYWORD RULES · AUTO-CATEGORIZATION');
-  var kr = CONTENT_START_ROW + 1;
+  // Keyword rules region (cols E-G) — start at row 9 so it clears the
+  // title row (rows 6-7 are merged full-width by titleRow_).
+  sectionLabel_(sheet, 'E9', 'G9', 'KEYWORD RULES · AUTO-CATEGORIZATION');
+  var kr = 10;
   sheet.getRange(kr, 5, 1, 3).setValues([['Keyword', 'Category', 'Note']])
     .setFontWeight('bold').setFontColor(BRAND.BODY).setFontFamily(FONT.BODY).setFontSize(10);
   sheet.getRange(kr + 1, 5, KEYWORD_RULES.length, 3).setValues(KEYWORD_RULES);
@@ -1864,7 +1865,7 @@ function categorize_(desc, rules) {
 
 function loadKeywordRules_(ss) {
   var cats = ss.getSheetByName(TABS.CATEGORIES);
-  var values = cats.getRange('E8:F200').getValues();
+  var values = cats.getRange('E11:F200').getValues();
   var rules = [];
   values.forEach(function (row) {
     if (row[0]) rules.push({ keyword: String(row[0]).toUpperCase(), category: row[1] || 'Misc' });

@@ -151,7 +151,7 @@ function categorize_(desc, rules) {
 
 function loadKeywordRules_(ss) {
   var cats = ss.getSheetByName(TABS.CATEGORIES);
-  var values = cats.getRange('E8:F200').getValues();
+  var values = cats.getRange('E11:F200').getValues();
   var rules = [];
   values.forEach(function (row) {
     if (row[0]) rules.push({ keyword: String(row[0]).toUpperCase(), category: row[1] || 'Misc' });
