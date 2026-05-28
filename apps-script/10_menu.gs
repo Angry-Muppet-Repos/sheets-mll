@@ -82,11 +82,11 @@ function onSelectionChange(e) {
     }
   }
 
-  // Trends window pills (cols I/J/K on the title row)
+  // Trends window pills (cols J/K/L on the title row)
   if (name === TABS.TRENDS) {
     var c = e.range.getColumn();
-    if (c >= 9 && c <= 11) {
-      sheet.getRange('N7').setValue([6, 12, 24][c - 9]);
+    if (c >= 10 && c <= 12) {
+      sheet.getRange('N7').setValue([6, 12, 24][c - 10]);
     }
   }
 }

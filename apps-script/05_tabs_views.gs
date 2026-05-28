@@ -206,16 +206,19 @@ function buildTrends_(sheet, mode) {
   var r = titleRow_(sheet, 'L', 'Trends',
     'Six months in, twenty-four months out. Where your money has gone.');
 
-  // window selector (cc_trends_window at N7) + 3 pills
+  // window selector (cc_trends_window at N7) + 3 pills.
+  // Pills sit at cols J-L (10-12), to the right of the 3 KPI cards which
+  // occupy A-I (3 cards × 3 cols). kpiCard_ renders after this, so anything
+  // in cols A-I would get clobbered when the AVG NET card merges G:I.
   sheet.getRange('N7').setValue(6);
   sheet.getRange('N6').setValue('window (6/12/24)').setFontColor(BRAND.CAPTION).setFontSize(8);
   var wins = [6, 12, 24];
   for (var i = 0; i < 3; i++) {
     var active = (wins[i] === 6);
-    setCell_(sheet, sheet.getRange(r, 9 + i).getA1Notation(), { value: wins[i] + ' mo',
+    setCell_(sheet, sheet.getRange(r, 10 + i).getA1Notation(), { value: wins[i] + ' mo',
       font: FONT.BODY, size: 11, bold: true, h: 'center', v: 'middle',
       bg: active ? BRAND.FOREST : BRAND.CREAM, color: active ? BRAND.PARCHMENT : BRAND.BODY });
-    if (active) themable_(sheet.getName(), 'primary', sheet.getRange(r, 9 + i).getA1Notation());
+    if (active) themable_(sheet.getName(), 'primary', sheet.getRange(r, 10 + i).getA1Notation());
   }
 
   // KPI strip — averages over the window

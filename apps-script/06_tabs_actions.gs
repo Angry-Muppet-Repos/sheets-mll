@@ -39,7 +39,9 @@ function buildMonthlyBudget_(sheet, mode) {
   // income + picker input cells
   setCell_(sheet, 'A13', { value: 'Monthly income', font: FONT.BODY, size: 11, bold: true, color: BRAND.BODY });
   setCell_(sheet, 'A14', { value: 'Active profile', font: FONT.BODY, size: 9, color: BRAND.CAPTION });
-  sheet.getRange(BUDGET_INCOME_CELL).setNumberFormat('$#,##0').setBackground(BRAND.YELLOW)
+  sheet.getRange(BUDGET_INCOME_CELL)
+    .setFormula("=INDEX('" + TABS.ENGINE + "'!$B$22:$Y$22,1,24)")
+    .setNumberFormat('$#,##0').setBackground(BRAND.YELLOW)
     .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
   sheet.getRange(BUDGET_PICKER_CELL).setFontColor(BRAND.CAPTION).setFontSize(9);
 

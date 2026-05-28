@@ -31,7 +31,8 @@ function writeProfileToBudget_(sheet, profileId) {
   if (!p) throw new Error('Unknown profile: ' + profileId);
 
   sheet.getRange(BUDGET_PICKER_CELL).setValue(profileId);
-  sheet.getRange(BUDGET_INCOME_CELL).setValue(p.income);
+  // BUDGET_INCOME_CELL is a live formula pointing at the engine — leave it
+  // alone so picking a profile doesn't blow away the actual-from-TX value.
   sheet.getRange(BUDGET_NAME_CELL).setValue(p.name);
   sheet.getRange(BUDGET_SUB_CELL).setValue(p.sub);
   sheet.getRange(BUDGET_BLURB_CELL).setValue(p.blurb);

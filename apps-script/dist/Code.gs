@@ -1113,16 +1113,19 @@ function buildTrends_(sheet, mode) {
   var r = titleRow_(sheet, 'L', 'Trends',
     'Six months in, twenty-four months out. Where your money has gone.');
 
-  // window selector (cc_trends_window at N7) + 3 pills
+  // window selector (cc_trends_window at N7) + 3 pills.
+  // Pills sit at cols J-L (10-12), to the right of the 3 KPI cards which
+  // occupy A-I (3 cards × 3 cols). kpiCard_ renders after this, so anything
+  // in cols A-I would get clobbered when the AVG NET card merges G:I.
   sheet.getRange('N7').setValue(6);
   sheet.getRange('N6').setValue('window (6/12/24)').setFontColor(BRAND.CAPTION).setFontSize(8);
   var wins = [6, 12, 24];
   for (var i = 0; i < 3; i++) {
     var active = (wins[i] === 6);
-    setCell_(sheet, sheet.getRange(r, 9 + i).getA1Notation(), { value: wins[i] + ' mo',
+    setCell_(sheet, sheet.getRange(r, 10 + i).getA1Notation(), { value: wins[i] + ' mo',
       font: FONT.BODY, size: 11, bold: true, h: 'center', v: 'middle',
       bg: active ? BRAND.FOREST : BRAND.CREAM, color: active ? BRAND.PARCHMENT : BRAND.BODY });
-    if (active) themable_(sheet.getName(), 'primary', sheet.getRange(r, 9 + i).getA1Notation());
+    if (active) themable_(sheet.getName(), 'primary', sheet.getRange(r, 10 + i).getA1Notation());
   }
 
   // KPI strip — averages over the window
@@ -1335,7 +1338,9 @@ function buildMonthlyBudget_(sheet, mode) {
   // income + picker input cells
   setCell_(sheet, 'A13', { value: 'Monthly income', font: FONT.BODY, size: 11, bold: true, color: BRAND.BODY });
   setCell_(sheet, 'A14', { value: 'Active profile', font: FONT.BODY, size: 9, color: BRAND.CAPTION });
-  sheet.getRange(BUDGET_INCOME_CELL).setNumberFormat('$#,##0').setBackground(BRAND.YELLOW)
+  sheet.getRange(BUDGET_INCOME_CELL)
+    .setFormula("=INDEX('" + TABS.ENGINE + "'!$B$22:$Y$22,1,24)")
+    .setNumberFormat('$#,##0').setBackground(BRAND.YELLOW)
     .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
   sheet.getRange(BUDGET_PICKER_CELL).setFontColor(BRAND.CAPTION).setFontSize(9);
 
@@ -1615,11 +1620,11 @@ function onSelectionChange(e) {
     }
   }
 
-  // Trends window pills (cols I/J/K on the title row)
+  // Trends window pills (cols J/K/L on the title row)
   if (name === TABS.TRENDS) {
     var c = e.range.getColumn();
-    if (c >= 9 && c <= 11) {
-      sheet.getRange('N7').setValue([6, 12, 24][c - 9]);
+    if (c >= 10 && c <= 12) {
+      sheet.getRange('N7').setValue([6, 12, 24][c - 10]);
     }
   }
 }
@@ -1730,7 +1735,8 @@ function writeProfileToBudget_(sheet, profileId) {
   if (!p) throw new Error('Unknown profile: ' + profileId);
 
   sheet.getRange(BUDGET_PICKER_CELL).setValue(profileId);
-  sheet.getRange(BUDGET_INCOME_CELL).setValue(p.income);
+  // BUDGET_INCOME_CELL is a live formula pointing at the engine — leave it
+  // alone so picking a profile doesn't blow away the actual-from-TX value.
   sheet.getRange(BUDGET_NAME_CELL).setValue(p.name);
   sheet.getRange(BUDGET_SUB_CELL).setValue(p.sub);
   sheet.getRange(BUDGET_BLURB_CELL).setValue(p.blurb);
