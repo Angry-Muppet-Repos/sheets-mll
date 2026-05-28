@@ -12,33 +12,39 @@
 function chrome_(sheet, tabName, lastColLetter, subLabel) {
   var lastCol = columnLetterToNumber_(lastColLetter);
   var splitCol = Math.max(2, lastCol - 3);
+  var name = sheet.getName();
 
   // Row 1-2 Forest header. Left = nameplate, right = breadcrumb.
-  sheet.getRange(1, 1, 2, splitCol - 1).merge()
-    .setBackground(BRAND.FOREST).setVerticalAlignment('middle')
+  var left = sheet.getRange(1, 1, 2, splitCol - 1).merge();
+  left.setBackground(BRAND.FOREST).setVerticalAlignment('middle')
     .setHorizontalAlignment('left').setFontColor(BRAND.PARCHMENT)
     .setFontFamily(FONT.DISPLAY).setFontSize(20).setFontWeight('bold')
     .setValue('  ' + CC.BRAND);
+  themable_(name, 'primary', left.getA1Notation());
 
-  sheet.getRange(1, splitCol, 2, lastCol - splitCol + 1).merge()
-    .setBackground(BRAND.FOREST).setVerticalAlignment('middle')
+  var right = sheet.getRange(1, splitCol, 2, lastCol - splitCol + 1).merge();
+  right.setBackground(BRAND.FOREST).setVerticalAlignment('middle')
     .setHorizontalAlignment('right').setFontColor(BRAND.PARCHMENT)
     .setFontFamily(FONT.BODY).setFontSize(11)
     .setValue(CC.PRODUCT + ' ' + CC.VERSION + '  ·  ' + tabName + '  ');
+  themable_(name, 'primary', right.getA1Notation());
 
   sheet.setRowHeight(1, 30);
   sheet.setRowHeight(2, 30);
 
   // Row 3 — Canopy sub-band + optional gold tracked sub-label (right).
-  sheet.getRange(3, 1, 1, lastCol).merge()
-    .setBackground(BRAND.CANOPY).setVerticalAlignment('middle')
+  var band = sheet.getRange(3, 1, 1, lastCol).merge();
+  band.setBackground(BRAND.CANOPY).setVerticalAlignment('middle')
     .setHorizontalAlignment('right').setFontColor(BRAND.GOLD)
     .setFontFamily(FONT.BODY).setFontSize(9).setFontWeight('bold')
     .setValue(subLabel ? (subLabel + '  ') : '');
+  themable_(name, 'mid', band.getA1Notation());
   sheet.setRowHeight(3, 26);
 
   // Row 4 — Harvest Gold accent rule, exactly 3px.
-  sheet.getRange(4, 1, 1, lastCol).merge().setBackground(BRAND.GOLD);
+  var rule = sheet.getRange(4, 1, 1, lastCol).merge();
+  rule.setBackground(BRAND.GOLD);
+  themable_(name, 'accent', rule.getA1Notation());
   sheet.setRowHeight(4, 3);
 
   // Row 5 — spacer.
@@ -49,11 +55,12 @@ function chrome_(sheet, tabName, lastColLetter, subLabel) {
 // Footer — thin Forest bar with the brand line at the given row.
 function footer_(sheet, row, lastColLetter) {
   var lastCol = columnLetterToNumber_(lastColLetter);
-  sheet.getRange(row, 1, 1, lastCol).merge()
-    .setBackground(BRAND.FOREST).setFontColor(BRAND.PARCHMENT_60)
+  var bar = sheet.getRange(row, 1, 1, lastCol).merge();
+  bar.setBackground(BRAND.FOREST).setFontColor(BRAND.PARCHMENT_60)
     .setFontFamily(FONT.BODY).setFontSize(10)
     .setHorizontalAlignment('center').setVerticalAlignment('middle')
     .setValue(CC.FOOTER);
+  themable_(sheet.getName(), 'primary', bar.getA1Notation());
   sheet.setRowHeight(row, 28);
 }
 

@@ -431,33 +431,39 @@ function money_(n) {
 function chrome_(sheet, tabName, lastColLetter, subLabel) {
   var lastCol = columnLetterToNumber_(lastColLetter);
   var splitCol = Math.max(2, lastCol - 3);
+  var name = sheet.getName();
 
   // Row 1-2 Forest header. Left = nameplate, right = breadcrumb.
-  sheet.getRange(1, 1, 2, splitCol - 1).merge()
-    .setBackground(BRAND.FOREST).setVerticalAlignment('middle')
+  var left = sheet.getRange(1, 1, 2, splitCol - 1).merge();
+  left.setBackground(BRAND.FOREST).setVerticalAlignment('middle')
     .setHorizontalAlignment('left').setFontColor(BRAND.PARCHMENT)
     .setFontFamily(FONT.DISPLAY).setFontSize(20).setFontWeight('bold')
     .setValue('  ' + CC.BRAND);
+  themable_(name, 'primary', left.getA1Notation());
 
-  sheet.getRange(1, splitCol, 2, lastCol - splitCol + 1).merge()
-    .setBackground(BRAND.FOREST).setVerticalAlignment('middle')
+  var right = sheet.getRange(1, splitCol, 2, lastCol - splitCol + 1).merge();
+  right.setBackground(BRAND.FOREST).setVerticalAlignment('middle')
     .setHorizontalAlignment('right').setFontColor(BRAND.PARCHMENT)
     .setFontFamily(FONT.BODY).setFontSize(11)
     .setValue(CC.PRODUCT + ' ' + CC.VERSION + '  ·  ' + tabName + '  ');
+  themable_(name, 'primary', right.getA1Notation());
 
   sheet.setRowHeight(1, 30);
   sheet.setRowHeight(2, 30);
 
   // Row 3 — Canopy sub-band + optional gold tracked sub-label (right).
-  sheet.getRange(3, 1, 1, lastCol).merge()
-    .setBackground(BRAND.CANOPY).setVerticalAlignment('middle')
+  var band = sheet.getRange(3, 1, 1, lastCol).merge();
+  band.setBackground(BRAND.CANOPY).setVerticalAlignment('middle')
     .setHorizontalAlignment('right').setFontColor(BRAND.GOLD)
     .setFontFamily(FONT.BODY).setFontSize(9).setFontWeight('bold')
     .setValue(subLabel ? (subLabel + '  ') : '');
+  themable_(name, 'mid', band.getA1Notation());
   sheet.setRowHeight(3, 26);
 
   // Row 4 — Harvest Gold accent rule, exactly 3px.
-  sheet.getRange(4, 1, 1, lastCol).merge().setBackground(BRAND.GOLD);
+  var rule = sheet.getRange(4, 1, 1, lastCol).merge();
+  rule.setBackground(BRAND.GOLD);
+  themable_(name, 'accent', rule.getA1Notation());
   sheet.setRowHeight(4, 3);
 
   // Row 5 — spacer.
@@ -468,11 +474,12 @@ function chrome_(sheet, tabName, lastColLetter, subLabel) {
 // Footer — thin Forest bar with the brand line at the given row.
 function footer_(sheet, row, lastColLetter) {
   var lastCol = columnLetterToNumber_(lastColLetter);
-  sheet.getRange(row, 1, 1, lastCol).merge()
-    .setBackground(BRAND.FOREST).setFontColor(BRAND.PARCHMENT_60)
+  var bar = sheet.getRange(row, 1, 1, lastCol).merge();
+  bar.setBackground(BRAND.FOREST).setFontColor(BRAND.PARCHMENT_60)
     .setFontFamily(FONT.BODY).setFontSize(10)
     .setHorizontalAlignment('center').setVerticalAlignment('middle')
     .setValue(CC.FOOTER);
+  themable_(sheet.getName(), 'primary', bar.getA1Notation());
   sheet.setRowHeight(row, 28);
 }
 
@@ -722,6 +729,7 @@ function buildAccounts_(sheet, mode) {
   var hdr = ['Account Name', 'Type', 'Owner', 'Starting Balance', 'Current Balance', 'Last Updated', 'Notes'];
   sheet.getRange(r, 1, 1, hdr.length).setValues([hdr]).setFontWeight('bold')
     .setBackground(BRAND.FOREST).setFontColor(BRAND.PARCHMENT).setFontFamily(FONT.BODY).setFontSize(10);
+  themable_(sheet.getName(), 'primary', sheet.getRange(r, 1, 1, hdr.length).getA1Notation());
 
   var firstRow = r + 1;
   var rows = (mode === 'mock')
@@ -760,6 +768,7 @@ function buildTransactions_(sheet, mode) {
   var headerRow = r;
   sheet.getRange(headerRow, 1, 1, 7).setValues([hdr]).setFontWeight('bold')
     .setBackground(BRAND.FOREST).setFontColor(BRAND.PARCHMENT).setFontFamily(FONT.BODY).setFontSize(10);
+  themable_(sheet.getName(), 'primary', sheet.getRange(headerRow, 1, 1, 7).getA1Notation());
   SpreadsheetApp.flush();  // commit chrome merges before freezing
   try { sheet.setFrozenRows(headerRow); } catch (e) {}
 
@@ -955,6 +964,7 @@ function buildStartHere_(sheet) {
     setCell_(sheet, sheet.getRange(r, c0).getA1Notation(),
       { value: steps[s][0], merge: sheet.getRange(r, c0 + 1).getA1Notation(),
         font: FONT.DISPLAY, size: 18, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: 'center', v: 'middle' });
+    themable_(sheet.getName(), 'primary', sheet.getRange(r, c0, 1, 2).getA1Notation());
     setCell_(sheet, sheet.getRange(r + 1, c0).getA1Notation(),
       { value: steps[s][1], merge: sheet.getRange(r + 1, c0 + 1).getA1Notation(),
         font: FONT.DISPLAY, size: 12, italic: true, color: BRAND.FOREST, h: 'left', v: 'middle' });
@@ -967,6 +977,7 @@ function buildStartHere_(sheet) {
   // LLM-ready callout — full-bleed Forest panel (paint, don't pre-merge)
   r += 4;
   sheet.getRange(r, 1, 5, 12).setBackground(BRAND.FOREST).setVerticalAlignment('top');
+  themable_(sheet.getName(), 'primary', sheet.getRange(r, 1, 5, 12).getA1Notation());
   setCell_(sheet, 'A' + r, { value: 'Ask Claude or ChatGPT to read your sheet.', merge: 'F' + r,
     font: FONT.DISPLAY, size: 18, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
   setCell_(sheet, 'A' + (r + 1), {
@@ -976,6 +987,7 @@ function buildStartHere_(sheet) {
   code.setBackground(BRAND.FOREST_HI).setFontFamily('Roboto Mono').setFontSize(10)
     .setFontColor(BRAND.CREAM).setWrap(true).setVerticalAlignment('middle').setHorizontalAlignment('left')
     .setValue('Find every category where I\'m trending over budget for three or more months in a row. Estimate the annual cost of that drift. List the top three subscriptions I should cancel.');
+  themable_(sheet.getName(), 'primary', code.getA1Notation());
 
   footer_(sheet, r + 6, 'L');
   setColWidths_(sheet, [78, 78, 78, 78, 78, 78, 78, 78, 70, 70, 70, 70]);
@@ -1000,6 +1012,7 @@ function buildDashboard_(sheet, mode) {
     setCell_(sheet, sheet.getRange(r, col).getA1Notation(), {
       value: pillMonths[i], font: FONT.BODY, size: 11, bold: true, h: 'center', v: 'middle',
       bg: active ? BRAND.FOREST : BRAND.CREAM, color: active ? BRAND.PARCHMENT : BRAND.BODY });
+    if (active) themable_(sheet.getName(), 'primary', sheet.getRange(r, col).getA1Notation());
   }
   r += 2;
 
@@ -1067,8 +1080,10 @@ function buildDashboard_(sheet, mode) {
     var ar = bdStart + a * 2;
     setCell_(sheet, sheet.getRange(ar, 7).getA1Notation(), { value: MOCK.ai_insights[a][0], merge: sheet.getRange(ar, 12).getA1Notation(),
       font: FONT.BODY, size: 10, bold: true, color: BRAND.GOLD, bg: BRAND.FOREST, h: 'left', v: 'middle' });
+    themable_(sheet.getName(), 'primary', sheet.getRange(ar, 7, 1, 6).getA1Notation());
     setCell_(sheet, sheet.getRange(ar + 1, 7).getA1Notation(), { value: MOCK.ai_insights[a][1], merge: sheet.getRange(ar + 1, 12).getA1Notation(),
       font: FONT.BODY, size: 12, color: BRAND.PARCHMENT, bg: BRAND.FOREST, wrap: true, v: 'top' });
+    themable_(sheet.getName(), 'primary', sheet.getRange(ar + 1, 7, 1, 6).getA1Notation());
     sheet.setRowHeight(ar + 1, 34);
   }
 
@@ -1104,6 +1119,7 @@ function buildTrends_(sheet, mode) {
     setCell_(sheet, sheet.getRange(r, 9 + i).getA1Notation(), { value: wins[i] + ' mo',
       font: FONT.BODY, size: 11, bold: true, h: 'center', v: 'middle',
       bg: active ? BRAND.FOREST : BRAND.CREAM, color: active ? BRAND.PARCHMENT : BRAND.BODY });
+    if (active) themable_(sheet.getName(), 'primary', sheet.getRange(r, 9 + i).getA1Notation());
   }
 
   // KPI strip — averages over the window
@@ -1206,6 +1222,7 @@ function buildHealthScore_(sheet, mode) {
 
   // Biggest Opportunity callout — Forest panel + delta arrow (paint, don't pre-merge)
   sheet.getRange(r, 1, 3, 12).setBackground(BRAND.FOREST).setVerticalAlignment('middle');
+  themable_(sheet.getName(), 'primary', sheet.getRange(r, 1, 3, 12).getA1Notation());
   setCell_(sheet, 'A' + r, { value: '⚡ BIGGEST OPPORTUNITY', merge: 'D' + r,
     font: FONT.BODY, size: 10, bold: true, color: BRAND.GOLD, bg: BRAND.FOREST, v: 'middle' });
   setCell_(sheet, 'E' + r, { value: h.delta_from + ' → ' + h.delta_to, merge: 'F' + r,
@@ -1227,6 +1244,7 @@ function buildNetWorth_(sheet, mode) {
 
   // Hero Forest panel (rows r..r+5) — paint, don't pre-merge
   sheet.getRange(r, 1, 6, 12).setBackground(BRAND.FOREST);
+  themable_(sheet.getName(), 'primary', sheet.getRange(r, 1, 6, 12).getA1Notation());
   setCell_(sheet, 'A' + r, { value: 'TOTAL NET WORTH', merge: 'F' + r, font: FONT.BODY, size: 10, bold: true, color: BRAND.GOLD, bg: BRAND.FOREST });
   setCell_(sheet, 'A' + (r + 1), { value: nw.total, merge: 'F' + (r + 2), font: FONT.DISPLAY, size: 48, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST, v: 'middle' });
   sheet.getRange(r + 1, 1).setNumberFormat('$#,##0');
@@ -1235,7 +1253,9 @@ function buildNetWorth_(sheet, mode) {
   sheet.getRange(r + 1, 8, 6, 1).setValues(nw.history.map(function (v) { return [v]; }));
   sheet.hideColumns(8);
   setCell_(sheet, 'I' + r, { value: 'NET WORTH · 6 MO', merge: 'L' + r, font: FONT.BODY, size: 10, bold: true, color: BRAND.GOLD, bg: BRAND.FOREST });
-  sheet.getRange(r + 1, 9, 1, 4).merge().setFormula(sparkLine_('H' + (r + 1) + ':H' + (r + 6), BRAND.GOLD)).setBackground(BRAND.FOREST);
+  var spark = sheet.getRange(r + 1, 9, 1, 4).merge();
+  spark.setFormula(sparkLine_('H' + (r + 1) + ':H' + (r + 6), BRAND.GOLD)).setBackground(BRAND.FOREST);
+  themable_(sheet.getName(), 'primary', spark.getA1Notation());
   // asset / liability cards
   setCell_(sheet, 'I' + (r + 3), { value: 'Assets ' + money_(nw.assets) + '   ·   Liabilities ' + money_(nw.liabilities),
     merge: 'L' + (r + 4), font: FONT.DISPLAY, size: 14, color: BRAND.PARCHMENT, bg: BRAND.FOREST, wrap: true, v: 'middle' });
@@ -1343,6 +1363,7 @@ function buildMonthlyBudget_(sheet, mode) {
   // Footer summary bar (Forest)
   var sumRow = BUDGET_TARGETS_FIRST_ROW + 20 + 1;
   sheet.getRange(sumRow, 1, 1, 12).setBackground(BRAND.FOREST);
+  themable_(sheet.getName(), 'primary', sheet.getRange(sumRow, 1, 1, 12).getA1Notation());
   var parts = [
     ['MONTHLY INCOME', '=' + BUDGET_INCOME_CELL, '$#,##0'],
     ['TOTAL BUDGETED', '=SUM(C17:C36)', '$#,##0'],
@@ -1364,6 +1385,7 @@ function buildMonthlyBudget_(sheet, mode) {
       .setFontWeight('bold').setFontColor(BRAND.PARCHMENT).setBackground(BRAND.FOREST).setHorizontalAlignment('left');
   }
   sheet.getRange(valRow, 1, 1, 12).setBackground(BRAND.FOREST);
+  themable_(sheet.getName(), 'primary', sheet.getRange(valRow, 1, 1, 12).getA1Notation());
 
   setCell_(sheet, 'A' + (valRow + 1), { value: "Targets feed Dashboard's % of Budget and Health Score's Budget Adherence.",
     merge: 'L' + (valRow + 1), font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION });
@@ -1384,6 +1406,7 @@ function buildGoals_(sheet, mode) {
   var hdr = ['Goal Name', 'Type', 'Target', 'Current', '% Complete', 'Deadline', 'Status', 'Note'];
   sheet.getRange(r, 1, 1, 8).setValues([hdr]).setFontWeight('bold').setBackground(BRAND.FOREST)
     .setFontColor(BRAND.PARCHMENT).setFontFamily(FONT.BODY).setFontSize(10);
+  themable_(sheet.getName(), 'primary', sheet.getRange(r, 1, 1, 8).getA1Notation());
   var start = r + 1;
   var goals = (mode === 'mock') ? MOCK.goals : [];
   for (var i = 0; i < Math.max(goals.length, 7); i++) {
@@ -1411,9 +1434,11 @@ function buildGoals_(sheet, mode) {
   var fr = start + Math.max(goals.length, 7) + 1;
   setCell_(sheet, 'A' + fr, { value: 'FORECAST', merge: 'L' + fr,
     font: FONT.BODY, size: 10, bold: true, color: BRAND.GOLD, bg: BRAND.FOREST, v: 'middle' });
+  themable_(sheet.getName(), 'primary', sheet.getRange(fr, 1, 1, 12).getA1Notation());
   setCell_(sheet, 'A' + (fr + 1), {
     value: 'Japan Trip Fund hits target by Oct 2026 — one month late. Bump the monthly transfer from $200 to $275 and you hit September.',
     merge: 'L' + (fr + 2), font: FONT.BODY, size: 13, color: BRAND.PARCHMENT, bg: BRAND.FOREST, wrap: true, v: 'middle' });
+  themable_(sheet.getName(), 'primary', sheet.getRange(fr + 1, 1, 2, 12).getA1Notation());
 
   footer_(sheet, fr + 4, 'L');
   setColWidths_(sheet, [170, 130, 90, 90, 120, 90, 80, 220, 60, 60, 60, 60]);
@@ -1434,6 +1459,7 @@ function buildBankImport_(sheet) {
     var c0 = 1 + s * 4;
     setCell_(sheet, sheet.getRange(r, c0).getA1Notation(), { value: steps[s][0],
       font: FONT.DISPLAY, size: 16, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: 'center', v: 'middle' });
+    themable_(sheet.getName(), 'primary', sheet.getRange(r, c0).getA1Notation());
     setCell_(sheet, sheet.getRange(r, c0 + 1).getA1Notation(), { value: steps[s][1],
       merge: sheet.getRange(r, c0 + 3).getA1Notation(), font: FONT.BODY, size: 11, color: BRAND.BODY, wrap: true, v: 'middle' });
   }
@@ -1589,6 +1615,9 @@ function applyTheme(paletteId) {
     paintRole_(sh, roles.bg, pal.bg);
     paintRole_(sh, roles.zebra, pal.zebra);
     paintRole_(sh, roles.section, pal.accentLight);
+    paintRole_(sh, roles.primary, pal.primary);
+    paintRole_(sh, roles.mid,     pal.mid);
+    paintRole_(sh, roles.accent,  pal.accent);
   });
 
   PropertiesService.getDocumentProperties().setProperty('cc_active_palette', paletteId);

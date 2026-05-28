@@ -30,6 +30,9 @@ function applyTheme(paletteId) {
     paintRole_(sh, roles.bg, pal.bg);
     paintRole_(sh, roles.zebra, pal.zebra);
     paintRole_(sh, roles.section, pal.accentLight);
+    paintRole_(sh, roles.primary, pal.primary);
+    paintRole_(sh, roles.mid,     pal.mid);
+    paintRole_(sh, roles.accent,  pal.accent);
   });
 
   PropertiesService.getDocumentProperties().setProperty('cc_active_palette', paletteId);

@@ -70,6 +70,7 @@ function buildMonthlyBudget_(sheet, mode) {
   // Footer summary bar (Forest)
   var sumRow = BUDGET_TARGETS_FIRST_ROW + 20 + 1;
   sheet.getRange(sumRow, 1, 1, 12).setBackground(BRAND.FOREST);
+  themable_(sheet.getName(), 'primary', sheet.getRange(sumRow, 1, 1, 12).getA1Notation());
   var parts = [
     ['MONTHLY INCOME', '=' + BUDGET_INCOME_CELL, '$#,##0'],
     ['TOTAL BUDGETED', '=SUM(C17:C36)', '$#,##0'],
@@ -91,6 +92,7 @@ function buildMonthlyBudget_(sheet, mode) {
       .setFontWeight('bold').setFontColor(BRAND.PARCHMENT).setBackground(BRAND.FOREST).setHorizontalAlignment('left');
   }
   sheet.getRange(valRow, 1, 1, 12).setBackground(BRAND.FOREST);
+  themable_(sheet.getName(), 'primary', sheet.getRange(valRow, 1, 1, 12).getA1Notation());
 
   setCell_(sheet, 'A' + (valRow + 1), { value: "Targets feed Dashboard's % of Budget and Health Score's Budget Adherence.",
     merge: 'L' + (valRow + 1), font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION });
@@ -111,6 +113,7 @@ function buildGoals_(sheet, mode) {
   var hdr = ['Goal Name', 'Type', 'Target', 'Current', '% Complete', 'Deadline', 'Status', 'Note'];
   sheet.getRange(r, 1, 1, 8).setValues([hdr]).setFontWeight('bold').setBackground(BRAND.FOREST)
     .setFontColor(BRAND.PARCHMENT).setFontFamily(FONT.BODY).setFontSize(10);
+  themable_(sheet.getName(), 'primary', sheet.getRange(r, 1, 1, 8).getA1Notation());
   var start = r + 1;
   var goals = (mode === 'mock') ? MOCK.goals : [];
   for (var i = 0; i < Math.max(goals.length, 7); i++) {
@@ -138,9 +141,11 @@ function buildGoals_(sheet, mode) {
   var fr = start + Math.max(goals.length, 7) + 1;
   setCell_(sheet, 'A' + fr, { value: 'FORECAST', merge: 'L' + fr,
     font: FONT.BODY, size: 10, bold: true, color: BRAND.GOLD, bg: BRAND.FOREST, v: 'middle' });
+  themable_(sheet.getName(), 'primary', sheet.getRange(fr, 1, 1, 12).getA1Notation());
   setCell_(sheet, 'A' + (fr + 1), {
     value: 'Japan Trip Fund hits target by Oct 2026 — one month late. Bump the monthly transfer from $200 to $275 and you hit September.',
     merge: 'L' + (fr + 2), font: FONT.BODY, size: 13, color: BRAND.PARCHMENT, bg: BRAND.FOREST, wrap: true, v: 'middle' });
+  themable_(sheet.getName(), 'primary', sheet.getRange(fr + 1, 1, 2, 12).getA1Notation());
 
   footer_(sheet, fr + 4, 'L');
   setColWidths_(sheet, [170, 130, 90, 90, 120, 90, 80, 220, 60, 60, 60, 60]);
@@ -161,6 +166,7 @@ function buildBankImport_(sheet) {
     var c0 = 1 + s * 4;
     setCell_(sheet, sheet.getRange(r, c0).getA1Notation(), { value: steps[s][0],
       font: FONT.DISPLAY, size: 16, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: 'center', v: 'middle' });
+    themable_(sheet.getName(), 'primary', sheet.getRange(r, c0).getA1Notation());
     setCell_(sheet, sheet.getRange(r, c0 + 1).getA1Notation(), { value: steps[s][1],
       merge: sheet.getRange(r, c0 + 3).getA1Notation(), font: FONT.BODY, size: 11, color: BRAND.BODY, wrap: true, v: 'middle' });
   }

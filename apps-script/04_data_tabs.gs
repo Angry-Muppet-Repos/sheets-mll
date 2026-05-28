@@ -123,6 +123,7 @@ function buildAccounts_(sheet, mode) {
   var hdr = ['Account Name', 'Type', 'Owner', 'Starting Balance', 'Current Balance', 'Last Updated', 'Notes'];
   sheet.getRange(r, 1, 1, hdr.length).setValues([hdr]).setFontWeight('bold')
     .setBackground(BRAND.FOREST).setFontColor(BRAND.PARCHMENT).setFontFamily(FONT.BODY).setFontSize(10);
+  themable_(sheet.getName(), 'primary', sheet.getRange(r, 1, 1, hdr.length).getA1Notation());
 
   var firstRow = r + 1;
   var rows = (mode === 'mock')
@@ -161,6 +162,7 @@ function buildTransactions_(sheet, mode) {
   var headerRow = r;
   sheet.getRange(headerRow, 1, 1, 7).setValues([hdr]).setFontWeight('bold')
     .setBackground(BRAND.FOREST).setFontColor(BRAND.PARCHMENT).setFontFamily(FONT.BODY).setFontSize(10);
+  themable_(sheet.getName(), 'primary', sheet.getRange(headerRow, 1, 1, 7).getA1Notation());
   SpreadsheetApp.flush();  // commit chrome merges before freezing
   try { sheet.setFrozenRows(headerRow); } catch (e) {}
 
