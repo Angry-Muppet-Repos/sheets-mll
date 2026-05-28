@@ -72,6 +72,9 @@ function getOrCreateSheet_(ss, name) {
   // Fully unmerge the whole grid first — clear() does NOT remove merges, and
   // leftover merges from a prior build collide with the new chrome merges.
   try { sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).breakApart(); } catch (e) {}
+  // Same story for data validations: clear() leaves them in place, so dropdowns
+  // from a previous build (e.g. the old Review Income block) would linger.
+  sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearDataValidations();
   sh.clear();
   sh.clearConditionalFormatRules();
   sh.getCharts().forEach(function (c) { sh.removeChart(c); });
