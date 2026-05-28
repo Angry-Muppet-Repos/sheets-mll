@@ -41,11 +41,15 @@ function importTransactions() {
   var firstEmpty = findFirstEmptyTxRow_(tx);
   tx.getRange(firstEmpty, 1, out.length, 6).setValues(out);
 
-  // surface income rows in the Review block (Bank Import row 26+)
+  // Review Income block: headers live on row 26, data + Yes/No dropdowns on
+  // rows 27-34. Clear any prior review rows so stale data doesn't linger,
+  // then write the freshly-imported income rows starting at row 27.
+  imp.getRange(27, 1, 8, 5).clearContent();
   if (income.length) {
-    imp.getRange(26, 1, income.length, 3).setValues(income);
-    imp.getRange(26, 1, income.length, 1).setNumberFormat('mmm d, yyyy');
-    imp.getRange(26, 3, income.length, 1).setNumberFormat('$#,##0.00');
+    var n = Math.min(income.length, 8);
+    imp.getRange(27, 1, n, 3).setValues(income.slice(0, n));
+    imp.getRange(27, 1, n, 1).setNumberFormat('mmm d, yyyy');
+    imp.getRange(27, 3, n, 1).setNumberFormat('$#,##0.00');
   }
 
   renumberLedger();
@@ -54,10 +58,10 @@ function importTransactions() {
 
 function clearPasteZone() {
   var ui = SpreadsheetApp.getUi();
-  var resp = ui.alert('Clear Paste Zone', 'Reset the paste zone to the placeholder CSV?', ui.ButtonSet.YES_NO);
+  var resp = ui.alert('Clear Paste Zone', 'Empty the paste zone?', ui.ButtonSet.YES_NO);
   if (resp !== ui.Button.YES) return;
   var imp = SpreadsheetApp.getActive().getSheetByName(TABS.IMPORT);
-  imp.getRange(IMPORT_PASTE_ANCHOR).setValue(DEFAULT_PASTE_CSV);
+  imp.getRange(IMPORT_PASTE_ANCHOR).setValue('');
 }
 
 function renumberLedger() {
