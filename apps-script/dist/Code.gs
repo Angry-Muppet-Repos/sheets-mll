@@ -590,7 +590,7 @@ function setNamedRanges_(ss) {
     'cc_categories':      TABS.CATEGORIES + '!A11:A30',
     'cc_keyword_rules':   TABS.CATEGORIES + '!E11:G200',
     'cc_budget_income':   TABS.BUDGET + '!C13',
-    'cc_budget_targets':  TABS.BUDGET + '!C17:C36',
+    'cc_budget_targets':  TABS.BUDGET + '!E17:E36',
     'cc_engine_months':   TABS.ENGINE + '!B1:Y1',
     'cc_engine_data':     TABS.ENGINE + '!B2:Y23',
     'cc_dashboard_month': TABS.DASHBOARD + '!N4',
@@ -690,7 +690,7 @@ function buildCategories_(sheet, mode) {
   sheet.getRange(r + 1, 1, 20, 1).setValues(CATEGORIES.map(function (c) { return [c]; }));
   sheet.getRange(r + 1, 2, 20, 1).setValue('Expense');
   for (var i = 0; i < 20; i++) {
-    sheet.getRange(r + 1 + i, 3).setFormula("='" + TABS.BUDGET + "'!C" + (17 + i)).setNumberFormat('$#,##0');
+    sheet.getRange(r + 1 + i, 3).setFormula("='" + TABS.BUDGET + "'!E" + (17 + i)).setNumberFormat('$#,##0');
   }
   // zebra
   for (var z = 0; z < 20; z++) {
@@ -1311,8 +1311,10 @@ var IMPORT_ACCOUNT_CELL = 'C10';
 var IMPORT_PASTE_ANCHOR = 'A12';     // merged A12:L23 green paste zone
 
 // ── Monthly Budget ────────────────────────────────────────────────────
+// Columns: B Category · C Preset (locked) · D Override (yellow editable)
+// · E Target (= override or preset) · F %Inc · G Δ · H Share
 function buildMonthlyBudget_(sheet, mode) {
-  chrome_(sheet, TABS.BUDGET, 'L', 'PICK A PROFILE OR SET YOUR OWN');
+  chrome_(sheet, TABS.BUDGET, 'L', 'PICK A PROFILE · TWEAK ANY CATEGORY');
 
   // Hero (left) — section label, profile name/sub/blurb (written by writeProfileToBudget_)
   sectionLabel_(sheet, 'A6', 'F6', 'DESIRED FINANCIAL PROFILE');
@@ -1329,35 +1331,50 @@ function buildMonthlyBudget_(sheet, mode) {
   sheet.getRange(BUDGET_PICKER_CELL).setFontColor(BRAND.CAPTION).setFontSize(9);
 
   // hero KPI cards (right, cols H-L) at row 6
-  kpiCard_(sheet, 'H6', 2, 'MONTHLY INCOME', '=' + BUDGET_INCOME_CELL, '', BRAND.FOREST);
-  kpiCard_(sheet, 'J6', 3, 'TOTAL BUDGETED', '=SUM(C17:C36)',
-    '=IF(C13-SUM(C17:C36)>=0,"$"&TEXT(C13-SUM(C17:C36),"#,##0")&" free","$"&TEXT(SUM(C17:C36)-C13,"#,##0")&" over")', BRAND.GOLD);
+  kpiCard_(sheet, 'H6', 2, 'PRESET TOTAL', '=SUM(C17:C36)', '', BRAND.FOREST);
+  kpiCard_(sheet, 'J6', 3, 'WITH OVERRIDES', '=SUM(E17:E36)',
+    '=IF(SUM(E17:E36)-SUM(C17:C36)=0,"on preset",IF(SUM(E17:E36)>SUM(C17:C36),"+$"&TEXT(SUM(E17:E36)-SUM(C17:C36),"#,##0")&" above preset","$"&TEXT(SUM(C17:C36)-SUM(E17:E36),"#,##0")&" below preset"))', BRAND.GOLD);
   sheet.getRange(7, 8).setNumberFormat('$#,##0');
   sheet.getRange(7, 10).setNumberFormat('$#,##0');
 
   // Category targets table
   sectionLabel_(sheet, 'A15', 'F15', 'CATEGORY TARGETS · 20 CATEGORIES');
-  setCell_(sheet, 'G15', { value: 'EDIT ANY YELLOW CELL IN CUSTOM MODE', merge: 'L15',
+  setCell_(sheet, 'G15', { value: 'PRESET LOCKED · TYPE INTO OVERRIDE TO TWEAK', merge: 'L15',
     font: FONT.BODY, size: 9, bold: true, color: BRAND.GOLD, bg: BRAND.CREAM, h: 'right', v: 'middle' });
-  sheet.getRange(16, 2, 1, 4).setValues([['Category', 'Target', '% Inc', 'Share']])
+  sheet.getRange(16, 2, 1, 7).setValues([['Category', 'Preset', 'Override', 'Target', '% Inc', 'Δ', 'Share']])
     .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
   for (var i = 0; i < CATEGORIES.length; i++) {
     var rr = BUDGET_TARGETS_FIRST_ROW + i;
     sheet.getRange(rr, 2).setValue(CATEGORIES[i]).setFontFamily(FONT.BODY).setFontSize(11).setFontColor(BRAND.BODY);
-    sheet.getRange(rr, 3).setNumberFormat('$#,##0');
-    sheet.getRange(rr, 4).setFormula('=IF($C$13=0,0,C' + rr + '/$C$13)').setNumberFormat('0.0%');
-    sheet.getRange(rr, 5).setFormula(
-      '=SPARKLINE(C' + rr + ',{"charttype","bar";"max",MAX($C$17:$C$36);"color1",SWITCH(B' + rr +
+    // Preset col (locked, cream — themable as section so it follows palette)
+    sheet.getRange(rr, 3).setNumberFormat('$#,##0').setBackground(BRAND.CREAM).setFontColor(BRAND.CAPTION);
+    themable_(sheet.getName(), 'section', sheet.getRange(rr, 3).getA1Notation());
+    // Override col (yellow editable always)
+    sheet.getRange(rr, 4).setNumberFormat('$#,##0').setBackground(BRAND.YELLOW)
+      .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
+    // Effective Target
+    sheet.getRange(rr, 5).setFormula('=IF(D' + rr + '="",C' + rr + ',D' + rr + ')')
+      .setNumberFormat('$#,##0').setFontWeight('bold');
+    // % Inc
+    sheet.getRange(rr, 6).setFormula('=IF($C$13=0,0,E' + rr + '/$C$13)').setNumberFormat('0.0%');
+    // Δ from preset (signed)
+    sheet.getRange(rr, 7).setFormula('=IF(D' + rr + '="",0,D' + rr + '-C' + rr + ')')
+      .setNumberFormat('+$#,##0;−$#,##0;"—"');
+    // Share bar based on effective Target
+    sheet.getRange(rr, 8).setFormula(
+      '=SPARKLINE(E' + rr + ',{"charttype","bar";"max",MAX($E$17:$E$36);"color1",SWITCH(B' + rr +
       ',"Savings","' + BRAND.GOLD + '","Debt Payments","' + BRAND.GARNET + '","' + BRAND.FOREST + '")})');
-    if (i % 2 === 1) { var z = sheet.getRange(rr, 2, 1, 4).getA1Notation(); sheet.getRange(z).setBackground(PALETTE_BY_ID.light.zebra); themable_(sheet.getName(), 'zebra', z); }
   }
 
-  // Custom-mode yellow highlight via conditional formatting
+  // Δ column color: red over preset, green under preset, neutral at zero/blank
   var rules = sheet.getConditionalFormatRules();
+  var deltaRange = sheet.getRange('G17:G36');
   rules.push(SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=$C$14="custom"')
-    .setBackground(BRAND.YELLOW)
-    .setRanges([sheet.getRange('C17:C36')]).build());
+    .whenNumberGreaterThan(0).setFontColor(BRAND.GARNET).setRanges([deltaRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule()
+    .whenNumberLessThan(0).setFontColor(BRAND.CANOPY).setRanges([deltaRange]).build());
+  rules.push(SpreadsheetApp.newConditionalFormatRule()
+    .whenNumberEqualTo(0).setFontColor(BRAND.CAPTION).setRanges([deltaRange]).build());
   sheet.setConditionalFormatRules(rules);
 
   // Footer summary bar (Forest)
@@ -1366,9 +1383,9 @@ function buildMonthlyBudget_(sheet, mode) {
   themable_(sheet.getName(), 'primary', sheet.getRange(sumRow, 1, 1, 12).getA1Notation());
   var parts = [
     ['MONTHLY INCOME', '=' + BUDGET_INCOME_CELL, '$#,##0'],
-    ['TOTAL BUDGETED', '=SUM(C17:C36)', '$#,##0'],
-    ['UNALLOCATED', '=C13-SUM(C17:C36)', '$#,##0'],
-    ['SAVINGS RATE', '=C' + BUDGET_SAVINGS_ROW + '/C13', '0.0%']
+    ['PRESET TOTAL', '=SUM(C17:C36)', '$#,##0'],
+    ['WITH OVERRIDES', '=SUM(E17:E36)', '$#,##0'],
+    ['SAVINGS RATE', '=E' + BUDGET_SAVINGS_ROW + '/C13', '0.0%']
   ];
   for (var p = 0; p < 4; p++) {
     var c0 = 1 + p * 3;
@@ -1376,7 +1393,6 @@ function buildMonthlyBudget_(sheet, mode) {
       merge: sheet.getRange(sumRow, c0 + 2).getA1Notation(), font: FONT.BODY, size: 9, bold: true,
       color: BRAND.GOLD, bg: BRAND.FOREST, h: 'left', v: 'middle' });
   }
-  // values one row below (overlay): place value cells on next row
   var valRow = sumRow + 1;
   for (var q = 0; q < 4; q++) {
     var cc = 1 + q * 3;
@@ -1387,11 +1403,11 @@ function buildMonthlyBudget_(sheet, mode) {
   sheet.getRange(valRow, 1, 1, 12).setBackground(BRAND.FOREST);
   themable_(sheet.getName(), 'primary', sheet.getRange(valRow, 1, 1, 12).getA1Notation());
 
-  setCell_(sheet, 'A' + (valRow + 1), { value: "Targets feed Dashboard's % of Budget and Health Score's Budget Adherence.",
+  setCell_(sheet, 'A' + (valRow + 1), { value: "Override cells are yellow. Target feeds Dashboard, Health Score, and Categories.",
     merge: 'L' + (valRow + 1), font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION });
 
   footer_(sheet, valRow + 3, 'L');
-  setColWidths_(sheet, [40, 150, 100, 70, 120, 40, 60, 90, 90, 70, 70, 70]);
+  setColWidths_(sheet, [40, 150, 90, 100, 90, 70, 85, 80, 80, 80, 80, 80]);
 
   // seed the default profile
   writeProfileToBudget_(sheet, DEFAULT_PROFILE);
@@ -1548,11 +1564,11 @@ function onEdit(e) {
     sheet.getRange(e.range.getRow(), 6).setValue(new Date());
   }
 
-  // Monthly Budget: auto-save Custom edits when in custom mode
-  if (name === TABS.BUDGET && e.range.getColumn() === 3 &&
+  // Monthly Budget: auto-save Override-column edits to the active profile
+  if (name === TABS.BUDGET && e.range.getColumn() === 4 &&
       e.range.getRow() >= BUDGET_TARGETS_FIRST_ROW && e.range.getRow() <= BUDGET_TARGETS_FIRST_ROW + 19) {
-    var picker = sheet.getRange(BUDGET_PICKER_CELL).getValue();
-    if (picker === 'custom') saveCustomProfile();
+    var pid = String(sheet.getRange(BUDGET_PICKER_CELL).getValue() || '');
+    if (pid) saveOverrides_(pid);
   }
 }
 
@@ -1657,8 +1673,11 @@ function _applyTheme_custom()        { applyTheme('custom'); }
 // ===================== 12_profile.gs =====================
 /**
  * Column & Co. — The Foundation v2.1
- * 12 · Budget-profile engine. Writes the 20 targets + hero copy into the
- * Monthly Budget tab. Custom mode persists buyer edits to Document Properties.
+ * 12 · Budget-profile engine. Writes the canonical Preset column and
+ * loads per-profile Overrides from Document Properties. Every profile is
+ * customizable via the Override column; each profile's overrides are
+ * stored under `cc_overrides_<profileId>` so switching profiles never
+ * loses your tweaks.
  */
 
 function buildProfileMenu_() {
@@ -1670,11 +1689,16 @@ function buildProfileMenu_() {
     menu.addItem(label, '_applyProfile_' + sanitizeId_(id));
   });
   menu.addSeparator();
-  menu.addItem('Save current values as Custom…', 'saveCustomProfile');
+  menu.addItem('Clear overrides for current profile…', 'clearCurrentOverrides');
   return menu;
 }
 
-// Shared writer used by both buildWorkbook and applyProfile.
+/**
+ * Seed the Monthly Budget tab for a given profile.
+ *  • Preset column (C17:C36) ← PROFILES[id].targets (canonical, locked)
+ *  • Override column (D17:D36) ← saved cc_overrides_<id> (blank if none)
+ *  Target column (E) is a formula and updates automatically.
+ */
 function writeProfileToBudget_(sheet, profileId) {
   var p = PROFILES[profileId];
   if (!p) throw new Error('Unknown profile: ' + profileId);
@@ -1685,17 +1709,19 @@ function writeProfileToBudget_(sheet, profileId) {
   sheet.getRange(BUDGET_SUB_CELL).setValue(p.sub);
   sheet.getRange(BUDGET_BLURB_CELL).setValue(p.blurb);
 
-  var targets = p.targets.slice();
-  if (profileId === 'custom') {
-    var saved = _loadCustomOverrides_();
-    if (saved) {
-      for (var i = 0; i < CATEGORIES.length; i++) {
-        if (saved[CATEGORIES[i]] != null) targets[i] = saved[CATEGORIES[i]];
-      }
-    }
-  }
-  sheet.getRange(BUDGET_TARGETS_FIRST_ROW, 3, targets.length, 1)
-    .setValues(targets.map(function (v) { return [v]; }))
+  // Preset column — canonical values
+  sheet.getRange(BUDGET_TARGETS_FIRST_ROW, 3, p.targets.length, 1)
+    .setValues(p.targets.map(function (v) { return [v]; }))
+    .setNumberFormat('$#,##0');
+
+  // Override column — per-profile saved tweaks, or blank
+  var saved = _loadOverrides_(profileId);
+  var overrideVals = CATEGORIES.map(function (cat) {
+    var v = saved && saved[cat];
+    return [(v === 0 || (v && !isNaN(Number(v)))) ? Number(v) : ''];
+  });
+  sheet.getRange(BUDGET_TARGETS_FIRST_ROW, 4, overrideVals.length, 1)
+    .setValues(overrideVals)
     .setNumberFormat('$#,##0');
 }
 
@@ -1713,22 +1739,50 @@ function applyProfile(profileId) {
   ss.toast('Profile applied: ' + PROFILES[profileId].name, CC.BRAND, 3);
 }
 
-function saveCustomProfile() {
+/**
+ * Snapshot the current Override column (D17:D36) as the saved overrides
+ * for `profileId`. Called by onEdit when the user types into an override
+ * cell.
+ */
+function saveOverrides_(profileId) {
   var sheet = SpreadsheetApp.getActive().getSheetByName(TABS.BUDGET);
-  var values = sheet.getRange(BUDGET_TARGETS_FIRST_ROW, 3, CATEGORIES.length, 1).getValues();
+  var values = sheet.getRange(BUDGET_TARGETS_FIRST_ROW, 4, CATEGORIES.length, 1).getValues();
   var overrides = {};
-  for (var i = 0; i < CATEGORIES.length; i++) overrides[CATEGORIES[i]] = Number(values[i][0]) || 0;
-  PropertiesService.getDocumentProperties().setProperty('cc_custom_profile', JSON.stringify(overrides));
-  SpreadsheetApp.getActive().toast('Custom profile saved', CC.BRAND, 3);
+  for (var i = 0; i < CATEGORIES.length; i++) {
+    var v = values[i][0];
+    if (v !== '' && v !== null && !isNaN(Number(v))) {
+      overrides[CATEGORIES[i]] = Number(v);
+    }
+  }
+  PropertiesService.getDocumentProperties()
+    .setProperty('cc_overrides_' + profileId, JSON.stringify(overrides));
 }
 
-function _loadCustomOverrides_() {
-  var raw = PropertiesService.getDocumentProperties().getProperty('cc_custom_profile');
+/** Menu item: wipe overrides for the currently-active profile. */
+function clearCurrentOverrides() {
+  var ui = SpreadsheetApp.getUi();
+  var ss = SpreadsheetApp.getActive();
+  var sheet = ss.getSheetByName(TABS.BUDGET);
+  var pid = String(sheet.getRange(BUDGET_PICKER_CELL).getValue() || '');
+  if (!pid) return;
+  var p = PROFILES[pid];
+  var resp = ui.alert('Clear overrides',
+    'Wipe all overrides for ' + (p ? p.name : pid) + '? Preset stays; only your tweaks are cleared.',
+    ui.ButtonSet.YES_NO);
+  if (resp !== ui.Button.YES) return;
+  PropertiesService.getDocumentProperties().deleteProperty('cc_overrides_' + pid);
+  sheet.getRange(BUDGET_TARGETS_FIRST_ROW, 4, CATEGORIES.length, 1).clearContent();
+  ss.toast('Overrides cleared for ' + (p ? p.name : pid), CC.BRAND, 3);
+}
+
+function _loadOverrides_(profileId) {
+  var raw = PropertiesService.getDocumentProperties()
+    .getProperty('cc_overrides_' + profileId);
   if (!raw) return null;
   try { return JSON.parse(raw); } catch (e) { return null; }
 }
 
-// Zero-arg menu wrappers
+// Zero-arg menu wrappers (Apps Script menus can't pass arguments)
 function _applyProfile_dave_ramsey()    { applyProfile('dave-ramsey'); }
 function _applyProfile_50_30_20()       { applyProfile('50-30-20'); }
 function _applyProfile_fire()           { applyProfile('fire'); }

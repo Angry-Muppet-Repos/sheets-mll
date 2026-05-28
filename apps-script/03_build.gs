@@ -96,7 +96,7 @@ function setNamedRanges_(ss) {
     'cc_categories':      TABS.CATEGORIES + '!A11:A30',
     'cc_keyword_rules':   TABS.CATEGORIES + '!E11:G200',
     'cc_budget_income':   TABS.BUDGET + '!C13',
-    'cc_budget_targets':  TABS.BUDGET + '!C17:C36',
+    'cc_budget_targets':  TABS.BUDGET + '!E17:E36',
     'cc_engine_months':   TABS.ENGINE + '!B1:Y1',
     'cc_engine_data':     TABS.ENGINE + '!B2:Y23',
     'cc_dashboard_month': TABS.DASHBOARD + '!N4',

@@ -51,11 +51,11 @@ function onEdit(e) {
     sheet.getRange(e.range.getRow(), 6).setValue(new Date());
   }
 
-  // Monthly Budget: auto-save Custom edits when in custom mode
-  if (name === TABS.BUDGET && e.range.getColumn() === 3 &&
+  // Monthly Budget: auto-save Override-column edits to the active profile
+  if (name === TABS.BUDGET && e.range.getColumn() === 4 &&
       e.range.getRow() >= BUDGET_TARGETS_FIRST_ROW && e.range.getRow() <= BUDGET_TARGETS_FIRST_ROW + 19) {
-    var picker = sheet.getRange(BUDGET_PICKER_CELL).getValue();
-    if (picker === 'custom') saveCustomProfile();
+    var pid = String(sheet.getRange(BUDGET_PICKER_CELL).getValue() || '');
+    if (pid) saveOverrides_(pid);
   }
 }
 
