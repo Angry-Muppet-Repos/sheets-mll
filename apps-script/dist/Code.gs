@@ -1491,11 +1491,19 @@ function buildBankImport_(sheet) {
   }
   sheet.setRowHeight(r, 40);
 
-  // account name input
+  // account name input — dropdown sourced from the Accounts list so the
+  // buyer doesn't retype it. Named range may not exist yet (setNamedRanges_
+  // runs after this build); fall back to the literal A10:A41 range.
   setCell_(sheet, 'A' + (r + 2), { value: 'Account name', font: FONT.BODY, size: 11, bold: true, color: BRAND.BODY });
   sheet.getRange(IMPORT_ACCOUNT_CELL).setValue('Chase Joint Checking').setBackground(BRAND.YELLOW)
     .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
   sheet.getRange(IMPORT_ACCOUNT_CELL + ':E10').merge();
+  var ss = SpreadsheetApp.getActive();
+  var acctRange = ss.getRangeByName('cc_accounts_list') ||
+    ss.getRange("'" + TABS.ACCOUNTS + "'!A10:A41");
+  var acctRule = SpreadsheetApp.newDataValidation()
+    .requireValueInRange(acctRange, true).setAllowInvalid(false).build();
+  sheet.getRange(IMPORT_ACCOUNT_CELL).setDataValidation(acctRule);
 
   // paste zone caption (row 11) + unmerged grid (A12:H61)
   setCell_(sheet, 'A11', { value: 'Paste your CSV anywhere below — the first non-empty row is treated as the header.',
