@@ -15,7 +15,13 @@ var BUDGET_SAVINGS_ROW = 28;     // Savings is category index 11 -> row 28
 
 // Bank Import cell contract
 var IMPORT_ACCOUNT_CELL = 'C10';
-var IMPORT_PASTE_ANCHOR = 'A12';     // merged A12:L23 green paste zone
+var IMPORT_PASTE_ANCHOR = 'A12';            // top-left of the unmerged paste grid
+var IMPORT_PASTE_ROW_COUNT = 50;            // 50 rows × 8 cols = paste capacity
+var IMPORT_PASTE_COL_COUNT = 8;
+var IMPORT_PASTE_LAST_ROW = 12 + IMPORT_PASTE_ROW_COUNT - 1;   // 61
+var REVIEW_INCOME_HEADER_ROW = 64;
+var REVIEW_INCOME_FIRST_ROW  = 65;
+var REVIEW_INCOME_ROW_COUNT  = 20;
 
 // ── Monthly Budget ────────────────────────────────────────────────────
 // Columns: B Category · C Preset% (locked) · D Override% (yellow editable)
@@ -195,25 +201,27 @@ function buildBankImport_(sheet) {
     .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
   sheet.getRange(IMPORT_ACCOUNT_CELL + ':E10').merge();
 
-  // paste zone — merged green cell A12:L23
-  var zone = sheet.getRange(IMPORT_PASTE_ANCHOR + ':L23').merge();
-  zone.setBackground(BRAND.GREEN_ZONE).setFontFamily('Roboto Mono').setFontSize(11)
-    .setHorizontalAlignment('left').setVerticalAlignment('top').setWrap(true)
-    .setValue(DEFAULT_PASTE_CSV);
+  // paste zone caption (row 11) + unmerged grid (A12:H61)
+  setCell_(sheet, 'A11', { value: 'Paste your CSV anywhere below — the first non-empty row is treated as the header.',
+    merge: 'L11', font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION });
+  var zone = sheet.getRange(IMPORT_PASTE_ANCHOR + ':H' + IMPORT_PASTE_LAST_ROW);
+  zone.setBackground(BRAND.GREEN_ZONE).setFontFamily('Roboto Mono').setFontSize(10)
+    .setHorizontalAlignment('left').setVerticalAlignment('middle').setWrap(false)
+    .setBorder(true, true, true, true, true, true, BRAND.HAIRLINE, SpreadsheetApp.BorderStyle.SOLID);
 
-  // Review Income block
-  var rr = 25;
-  sectionLabel_(sheet, 'A' + rr, 'L' + rr, 'REVIEW INCOME · CONFIRM POSITIVE-AMOUNT ROWS');
-  rr += 1;
-  sheet.getRange(rr, 1, 1, 5).setValues([['Date', 'Description', 'Amount', 'Income?', 'Notes']])
+  // Review Income block — 20 rows of pre-validated review capacity
+  var sec = REVIEW_INCOME_HEADER_ROW - 1;  // row 63 section label
+  sectionLabel_(sheet, 'A' + sec, 'L' + sec, 'REVIEW INCOME · CONFIRM POSITIVE-AMOUNT ROWS');
+  sheet.getRange(REVIEW_INCOME_HEADER_ROW, 1, 1, 5)
+    .setValues([['Date', 'Description', 'Amount', 'Income?', 'Notes']])
     .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
   var ynRule = SpreadsheetApp.newDataValidation().requireValueInList(['Yes', 'No'], true).build();
-  sheet.getRange(rr + 1, 4, 8, 1).setDataValidation(ynRule);
+  sheet.getRange(REVIEW_INCOME_FIRST_ROW, 4, REVIEW_INCOME_ROW_COUNT, 1).setDataValidation(ynRule);
 
-  rr += 10;
-  setCell_(sheet, 'A' + rr, { value: 'Sniffs headers from Chase, BoA, Wells Fargo, Cap One, Ally, Citi, USAA, Discover, Amex.',
-    merge: 'L' + rr, font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION });
+  var captionRow = REVIEW_INCOME_FIRST_ROW + REVIEW_INCOME_ROW_COUNT + 1;  // row 86
+  setCell_(sheet, 'A' + captionRow, { value: 'Sniffs headers from Chase, BoA, Wells Fargo, Cap One, Ally, Citi, USAA, Discover, Amex. Duplicates (same date + description + amount) are skipped on re-import.',
+    merge: 'L' + captionRow, font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION, wrap: true });
 
-  footer_(sheet, rr + 2, 'L');
-  setColWidths_(sheet, [110, 280, 110, 90, 200, 60, 60, 60, 60, 60, 60, 60]);
+  footer_(sheet, captionRow + 2, 'L');
+  setColWidths_(sheet, [110, 240, 90, 90, 110, 100, 100, 90, 60, 60, 60, 60]);
 }

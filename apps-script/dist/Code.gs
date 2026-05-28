@@ -1308,7 +1308,13 @@ var BUDGET_SAVINGS_ROW = 28;     // Savings is category index 11 -> row 28
 
 // Bank Import cell contract
 var IMPORT_ACCOUNT_CELL = 'C10';
-var IMPORT_PASTE_ANCHOR = 'A12';     // merged A12:L23 green paste zone
+var IMPORT_PASTE_ANCHOR = 'A12';            // top-left of the unmerged paste grid
+var IMPORT_PASTE_ROW_COUNT = 50;            // 50 rows × 8 cols = paste capacity
+var IMPORT_PASTE_COL_COUNT = 8;
+var IMPORT_PASTE_LAST_ROW = 12 + IMPORT_PASTE_ROW_COUNT - 1;   // 61
+var REVIEW_INCOME_HEADER_ROW = 64;
+var REVIEW_INCOME_FIRST_ROW  = 65;
+var REVIEW_INCOME_ROW_COUNT  = 20;
 
 // ── Monthly Budget ────────────────────────────────────────────────────
 // Columns: B Category · C Preset% (locked) · D Override% (yellow editable)
@@ -1488,27 +1494,29 @@ function buildBankImport_(sheet) {
     .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
   sheet.getRange(IMPORT_ACCOUNT_CELL + ':E10').merge();
 
-  // paste zone — merged green cell A12:L23
-  var zone = sheet.getRange(IMPORT_PASTE_ANCHOR + ':L23').merge();
-  zone.setBackground(BRAND.GREEN_ZONE).setFontFamily('Roboto Mono').setFontSize(11)
-    .setHorizontalAlignment('left').setVerticalAlignment('top').setWrap(true)
-    .setValue(DEFAULT_PASTE_CSV);
+  // paste zone caption (row 11) + unmerged grid (A12:H61)
+  setCell_(sheet, 'A11', { value: 'Paste your CSV anywhere below — the first non-empty row is treated as the header.',
+    merge: 'L11', font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION });
+  var zone = sheet.getRange(IMPORT_PASTE_ANCHOR + ':H' + IMPORT_PASTE_LAST_ROW);
+  zone.setBackground(BRAND.GREEN_ZONE).setFontFamily('Roboto Mono').setFontSize(10)
+    .setHorizontalAlignment('left').setVerticalAlignment('middle').setWrap(false)
+    .setBorder(true, true, true, true, true, true, BRAND.HAIRLINE, SpreadsheetApp.BorderStyle.SOLID);
 
-  // Review Income block
-  var rr = 25;
-  sectionLabel_(sheet, 'A' + rr, 'L' + rr, 'REVIEW INCOME · CONFIRM POSITIVE-AMOUNT ROWS');
-  rr += 1;
-  sheet.getRange(rr, 1, 1, 5).setValues([['Date', 'Description', 'Amount', 'Income?', 'Notes']])
+  // Review Income block — 20 rows of pre-validated review capacity
+  var sec = REVIEW_INCOME_HEADER_ROW - 1;  // row 63 section label
+  sectionLabel_(sheet, 'A' + sec, 'L' + sec, 'REVIEW INCOME · CONFIRM POSITIVE-AMOUNT ROWS');
+  sheet.getRange(REVIEW_INCOME_HEADER_ROW, 1, 1, 5)
+    .setValues([['Date', 'Description', 'Amount', 'Income?', 'Notes']])
     .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
   var ynRule = SpreadsheetApp.newDataValidation().requireValueInList(['Yes', 'No'], true).build();
-  sheet.getRange(rr + 1, 4, 8, 1).setDataValidation(ynRule);
+  sheet.getRange(REVIEW_INCOME_FIRST_ROW, 4, REVIEW_INCOME_ROW_COUNT, 1).setDataValidation(ynRule);
 
-  rr += 10;
-  setCell_(sheet, 'A' + rr, { value: 'Sniffs headers from Chase, BoA, Wells Fargo, Cap One, Ally, Citi, USAA, Discover, Amex.',
-    merge: 'L' + rr, font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION });
+  var captionRow = REVIEW_INCOME_FIRST_ROW + REVIEW_INCOME_ROW_COUNT + 1;  // row 86
+  setCell_(sheet, 'A' + captionRow, { value: 'Sniffs headers from Chase, BoA, Wells Fargo, Cap One, Ally, Citi, USAA, Discover, Amex. Duplicates (same date + description + amount) are skipped on re-import.',
+    merge: 'L' + captionRow, font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION, wrap: true });
 
-  footer_(sheet, rr + 2, 'L');
-  setColWidths_(sheet, [110, 280, 110, 90, 200, 60, 60, 60, 60, 60, 60, 60]);
+  footer_(sheet, captionRow + 2, 'L');
+  setColWidths_(sheet, [110, 240, 90, 90, 110, 100, 100, 90, 60, 60, 60, 60]);
 }
 
 // ===================== 10_menu.gs =====================
@@ -1817,50 +1825,118 @@ function importTransactions() {
   if (!imp || !tx) return;
 
   var account = String(imp.getRange(IMPORT_ACCOUNT_CELL).getValue() || '').trim();
-  var raw = String(imp.getRange(IMPORT_PASTE_ANCHOR).getValue() || '').trim();
-  if (!raw) { ss.toast('Paste a CSV into the green zone first.', CC.BRAND, 4); return; }
+  if (!account) { ss.toast('Type an account name in C10 first.', CC.BRAND, 4); return; }
 
-  var lines = raw.split(/\r?\n/).filter(function (l) { return l.trim() !== ''; });
-  if (lines.length < 2) { ss.toast('No data rows found.', CC.BRAND, 4); return; }
+  // Account-name validation against the Accounts list (cc_accounts_list)
+  var acctNamed = ss.getRangeByName('cc_accounts_list');
+  if (acctNamed) {
+    var accounts = acctNamed.getValues()
+      .map(function (r) { return String(r[0] || '').trim(); })
+      .filter(Boolean);
+    if (accounts.indexOf(account) === -1) {
+      ss.toast('Account "' + account + '" not in Accounts list. Add it there or fix C10.', CC.BRAND, 6);
+      return;
+    }
+  }
 
-  var header = parseCsvLine_(lines[0]);
-  var cols = sniffColumns_(header);
-  if (cols.amount < 0 || cols.date < 0) {
-    ss.toast('Could not detect Date/Amount columns. Supported: Chase, BoA, Wells, Cap One, Ally, Citi, USAA, Discover, Amex.', CC.BRAND, 6);
+  // Read the paste zone. If A12 contains a multi-line string the buyer
+  // pasted plain text — use the legacy CSV-text path. Otherwise read the
+  // unmerged 50×8 grid that tabular paste lands into.
+  var firstCell = imp.getRange(12, 1).getValue();
+  var rowsAsArrays;
+  if (typeof firstCell === 'string' && firstCell.indexOf('\n') !== -1) {
+    // Legacy text paste: A12 contains the whole CSV as one string.
+    var lines = String(firstCell).split(/\r?\n/).filter(function (l) { return l.trim() !== ''; });
+    rowsAsArrays = lines.map(parseCsvLine_);
+  } else {
+    var raw = imp.getRange(12, 1, IMPORT_PASTE_ROW_COUNT, IMPORT_PASTE_COL_COUNT).getValues();
+    rowsAsArrays = raw
+      .map(function (r) { return r.map(function (c) { return c === null ? '' : c; }); })
+      .filter(function (r) { return r.some(function (c) { return String(c).trim() !== ''; }); });
+  }
+  if (rowsAsArrays.length < 2) {
+    ss.toast('Paste a CSV into the green zone first (header row + at least one data row).', CC.BRAND, 5);
     return;
   }
 
+  var header = rowsAsArrays[0].map(function (c) { return String(c); });
+  var cols = sniffColumns_(header);
+  if (cols.amount < 0 || cols.date < 0) {
+    ss.toast('Could not detect Date/Amount columns. Supported headers: Date, Description/Memo/Payee, Amount (or Debit/Credit pair).', CC.BRAND, 6);
+    return;
+  }
+
+  // Build existing-row dedup index from the live ledger.
+  var tz = ss.getSpreadsheetTimeZone();
+  var dedupKey = function (d, desc, amt) {
+    var ds = (d instanceof Date) ? Utilities.formatDate(d, tz, 'yyyy-MM-dd') : String(d || '').trim();
+    return ds + '|' + String(desc || '').trim() + '|' + Number(amt).toFixed(2);
+  };
+  var seen = {};
+  var existing = readExistingTx_(tx);
+  for (var e = 0; e < existing.length; e++) {
+    seen[dedupKey(existing[e][0], existing[e][1], existing[e][2])] = true;
+  }
+
   var rules = loadKeywordRules_(ss);
-  var out = [], income = [];
-  for (var i = 1; i < lines.length; i++) {
-    var f = parseCsvLine_(lines[i]);
-    if (f.length < 2) continue;
+  var out = [], income = [], skipped = 0, misc = 0;
+  for (var i = 1; i < rowsAsArrays.length; i++) {
+    var f = rowsAsArrays[i];
+    if (!f || f.length < 2) continue;
     var date = parseDate_(f[cols.date]);
-    var desc = (f[cols.desc] || '').trim();
+    var desc = String(f[cols.desc] != null ? f[cols.desc] : '').trim();
     var amount = parseAmount_(f, cols);
     if (amount === null) continue;
-    var category = (amount > 0) ? 'Income' : categorize_(desc, rules);
+    var key = dedupKey(date, desc, amount);
+    if (seen[key]) { skipped++; continue; }
+    seen[key] = true;
+    var category;
+    if (amount > 0) {
+      category = 'Income';
+    } else {
+      category = categorize_(desc, rules);
+      if (category === 'Misc') misc++;
+    }
     out.push([date, desc, amount, category, account, '']);
     if (amount > 0) income.push([date, desc, amount]);
   }
-  if (!out.length) { ss.toast('No valid rows parsed.', CC.BRAND, 4); return; }
+  if (!out.length && !skipped) { ss.toast('No valid rows parsed.', CC.BRAND, 4); return; }
 
-  var firstEmpty = findFirstEmptyTxRow_(tx);
-  tx.getRange(firstEmpty, 1, out.length, 6).setValues(out);
+  if (out.length) {
+    var firstEmpty = findFirstEmptyTxRow_(tx);
+    tx.getRange(firstEmpty, 1, out.length, 6).setValues(out);
+  }
 
-  // Review Income block: headers live on row 26, data + Yes/No dropdowns on
-  // rows 27-34. Clear any prior review rows so stale data doesn't linger,
-  // then write the freshly-imported income rows starting at row 27.
-  imp.getRange(27, 1, 8, 5).clearContent();
+  // Refresh the Review Income block (REVIEW_INCOME_FIRST_ROW × 5 cols).
+  imp.getRange(REVIEW_INCOME_FIRST_ROW, 1, REVIEW_INCOME_ROW_COUNT, 5).clearContent();
+  var shown = 0;
   if (income.length) {
-    var n = Math.min(income.length, 8);
-    imp.getRange(27, 1, n, 3).setValues(income.slice(0, n));
-    imp.getRange(27, 1, n, 1).setNumberFormat('mmm d, yyyy');
-    imp.getRange(27, 3, n, 1).setNumberFormat('$#,##0.00');
+    shown = Math.min(income.length, REVIEW_INCOME_ROW_COUNT);
+    imp.getRange(REVIEW_INCOME_FIRST_ROW, 1, shown, 3).setValues(income.slice(0, shown));
+    imp.getRange(REVIEW_INCOME_FIRST_ROW, 1, shown, 1).setNumberFormat('mmm d, yyyy');
+    imp.getRange(REVIEW_INCOME_FIRST_ROW, 3, shown, 1).setNumberFormat('$#,##0.00');
   }
 
   renumberLedger();
-  ss.toast('Imported ' + out.length + ' transactions', CC.BRAND, 4);
+
+  var parts = ['Imported ' + out.length];
+  if (skipped) parts.push(skipped + ' duplicates skipped');
+  if (misc) parts.push(misc + ' fell to Misc');
+  if (income.length) parts.push(income.length + ' income row' + (income.length === 1 ? '' : 's') + ' for review');
+  if (income.length > REVIEW_INCOME_ROW_COUNT) {
+    parts.push('(' + (income.length - REVIEW_INCOME_ROW_COUNT) + ' beyond the review block)');
+  }
+  ss.toast(parts.join(' · '), CC.BRAND, 6);
+}
+
+function readExistingTx_(tx) {
+  var finder = tx.getRange(1, 1, 12, 1).getValues();
+  var headerRow = 9;
+  for (var i = 0; i < finder.length; i++) { if (finder[i][0] === 'Date') { headerRow = i + 1; break; } }
+  var lastRow = tx.getLastRow();
+  if (lastRow <= headerRow) return [];
+  return tx.getRange(headerRow + 1, 1, lastRow - headerRow, 3).getValues()
+    .filter(function (r) { return r[0] !== '' && r[0] !== null; });
 }
 
 function clearPasteZone() {
@@ -1868,7 +1944,9 @@ function clearPasteZone() {
   var resp = ui.alert('Clear Paste Zone', 'Empty the paste zone?', ui.ButtonSet.YES_NO);
   if (resp !== ui.Button.YES) return;
   var imp = SpreadsheetApp.getActive().getSheetByName(TABS.IMPORT);
-  imp.getRange(IMPORT_PASTE_ANCHOR).setValue('');
+  var zone = imp.getRange(12, 1, IMPORT_PASTE_ROW_COUNT, IMPORT_PASTE_COL_COUNT);
+  zone.clearContent();
+  zone.setBackground(BRAND.GREEN_ZONE);
 }
 
 function renumberLedger() {
