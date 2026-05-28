@@ -51,9 +51,15 @@ function onEdit(e) {
     sheet.getRange(e.range.getRow(), 6).setValue(new Date());
   }
 
-  // Monthly Budget: auto-save Override-column edits to the active profile
+  // Monthly Budget: auto-save Override-column edits (% of income) to the active profile.
+  // Normalize bare numbers > 1 — typing "10" in a percent cell stores 10 (= 1000%);
+  // assume the buyer meant 10% and rewrite as 0.10.
   if (name === TABS.BUDGET && e.range.getColumn() === 4 &&
       e.range.getRow() >= BUDGET_TARGETS_FIRST_ROW && e.range.getRow() <= BUDGET_TARGETS_FIRST_ROW + 19) {
+    var v = e.range.getValue();
+    if (typeof v === 'number' && v > 1) {
+      e.range.setValue(v / 100);
+    }
     var pid = String(sheet.getRange(BUDGET_PICKER_CELL).getValue() || '');
     if (pid) saveOverrides_(pid);
   }

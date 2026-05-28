@@ -84,7 +84,7 @@ function buildCategories_(sheet, mode) {
   sheet.getRange(r + 1, 1, 20, 1).setValues(CATEGORIES.map(function (c) { return [c]; }));
   sheet.getRange(r + 1, 2, 20, 1).setValue('Expense');
   for (var i = 0; i < 20; i++) {
-    sheet.getRange(r + 1 + i, 3).setFormula("='" + TABS.BUDGET + "'!E" + (17 + i)).setNumberFormat('$#,##0');
+    sheet.getRange(r + 1 + i, 3).setFormula("='" + TABS.BUDGET + "'!F" + (17 + i)).setNumberFormat('$#,##0');
   }
   // zebra
   for (var z = 0; z < 20; z++) {

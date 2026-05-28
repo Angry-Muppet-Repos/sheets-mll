@@ -22,9 +22,9 @@ function buildProfileMenu_() {
 
 /**
  * Seed the Monthly Budget tab for a given profile.
- *  • Preset column (C17:C36) ← PROFILES[id].targets (canonical, locked)
- *  • Override column (D17:D36) ← saved cc_overrides_<id> (blank if none)
- *  Target column (E) is a formula and updates automatically.
+ *  • Preset column (C17:C36) ← PROFILES[id].targets / income (as fractions)
+ *  • Override column (D17:D36) ← saved cc_overrides_<id> as fractions (blank if none)
+ *  Target % (E), Target $ (F), Δ % (G) are formulas and update automatically.
  */
 function writeProfileToBudget_(sheet, profileId) {
   var p = PROFILES[profileId];
@@ -36,12 +36,15 @@ function writeProfileToBudget_(sheet, profileId) {
   sheet.getRange(BUDGET_SUB_CELL).setValue(p.sub);
   sheet.getRange(BUDGET_BLURB_CELL).setValue(p.blurb);
 
-  // Preset column — canonical values
-  sheet.getRange(BUDGET_TARGETS_FIRST_ROW, 3, p.targets.length, 1)
-    .setValues(p.targets.map(function (v) { return [v]; }))
-    .setNumberFormat('$#,##0');
+  // Preset column — canonical $ targets converted to % of income
+  var presetPct = p.targets.map(function (v) {
+    return [p.income > 0 ? v / p.income : 0];
+  });
+  sheet.getRange(BUDGET_TARGETS_FIRST_ROW, 3, presetPct.length, 1)
+    .setValues(presetPct)
+    .setNumberFormat('0.0%');
 
-  // Override column — per-profile saved tweaks, or blank
+  // Override column — per-profile saved tweaks (fractions), or blank
   var saved = _loadOverrides_(profileId);
   var overrideVals = CATEGORIES.map(function (cat) {
     var v = saved && saved[cat];
@@ -49,7 +52,7 @@ function writeProfileToBudget_(sheet, profileId) {
   });
   sheet.getRange(BUDGET_TARGETS_FIRST_ROW, 4, overrideVals.length, 1)
     .setValues(overrideVals)
-    .setNumberFormat('$#,##0');
+    .setNumberFormat('0.0%');
 }
 
 function applyProfile(profileId) {
@@ -68,8 +71,8 @@ function applyProfile(profileId) {
 
 /**
  * Snapshot the current Override column (D17:D36) as the saved overrides
- * for `profileId`. Called by onEdit when the user types into an override
- * cell.
+ * for `profileId`. Values are fractions (0.10 = 10%). Called by onEdit
+ * when the user types into an override cell.
  */
 function saveOverrides_(profileId) {
   var sheet = SpreadsheetApp.getActive().getSheetByName(TABS.BUDGET);

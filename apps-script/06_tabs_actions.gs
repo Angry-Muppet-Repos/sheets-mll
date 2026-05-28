@@ -18,8 +18,8 @@ var IMPORT_ACCOUNT_CELL = 'C10';
 var IMPORT_PASTE_ANCHOR = 'A12';     // merged A12:L23 green paste zone
 
 // ── Monthly Budget ────────────────────────────────────────────────────
-// Columns: B Category · C Preset (locked) · D Override (yellow editable)
-// · E Target (= override or preset) · F %Inc · G Δ · H Share
+// Columns: B Category · C Preset% (locked) · D Override% (yellow editable)
+// · E Target% (= override or preset) · F Target$ (= Target% × income) · G Δ% · H Share
 function buildMonthlyBudget_(sheet, mode) {
   chrome_(sheet, TABS.BUDGET, 'L', 'PICK A PROFILE · TWEAK ANY CATEGORY');
 
@@ -37,39 +37,40 @@ function buildMonthlyBudget_(sheet, mode) {
     .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
   sheet.getRange(BUDGET_PICKER_CELL).setFontColor(BRAND.CAPTION).setFontSize(9);
 
-  // hero KPI cards (right, cols H-L) at row 6
-  kpiCard_(sheet, 'H6', 2, 'PRESET TOTAL', '=SUM(C17:C36)', '', BRAND.FOREST);
+  // hero KPI cards (right, cols H-L) at row 6 — % is the primary unit
+  kpiCard_(sheet, 'H6', 2, 'PRESET TOTAL', '=SUM(C17:C36)',
+    '="$"&TEXT(SUM(C17:C36)*$C$13,"#,##0")&" of $"&TEXT($C$13,"#,##0")', BRAND.FOREST);
   kpiCard_(sheet, 'J6', 3, 'WITH OVERRIDES', '=SUM(E17:E36)',
-    '=IF(SUM(E17:E36)-SUM(C17:C36)=0,"on preset",IF(SUM(E17:E36)>SUM(C17:C36),"+$"&TEXT(SUM(E17:E36)-SUM(C17:C36),"#,##0")&" above preset","$"&TEXT(SUM(C17:C36)-SUM(E17:E36),"#,##0")&" below preset"))', BRAND.GOLD);
-  sheet.getRange(7, 8).setNumberFormat('$#,##0');
-  sheet.getRange(7, 10).setNumberFormat('$#,##0');
+    '="$"&TEXT(SUM(F17:F36),"#,##0")&" · "&IF(ABS(SUM(E17:E36)-SUM(C17:C36))<0.0005,"on preset",IF(SUM(E17:E36)>SUM(C17:C36),TEXT(SUM(E17:E36)-SUM(C17:C36),"0.0%")&" above preset",TEXT(SUM(C17:C36)-SUM(E17:E36),"0.0%")&" below preset"))', BRAND.GOLD);
+  sheet.getRange(7, 8).setNumberFormat('0.0%');
+  sheet.getRange(7, 10).setNumberFormat('0.0%');
 
   // Category targets table
   sectionLabel_(sheet, 'A15', 'F15', 'CATEGORY TARGETS · 20 CATEGORIES');
-  setCell_(sheet, 'G15', { value: 'PRESET LOCKED · TYPE INTO OVERRIDE TO TWEAK', merge: 'L15',
+  setCell_(sheet, 'G15', { value: 'PRESET LOCKED · TYPE A % INTO OVERRIDE TO TWEAK', merge: 'L15',
     font: FONT.BODY, size: 9, bold: true, color: BRAND.GOLD, bg: BRAND.CREAM, h: 'right', v: 'middle' });
-  sheet.getRange(16, 2, 1, 7).setValues([['Category', 'Preset', 'Override', 'Target', '% Inc', 'Δ', 'Share']])
+  sheet.getRange(16, 2, 1, 7).setValues([['Category', 'Preset %', 'Override %', 'Target %', 'Target $', 'Δ %', 'Share']])
     .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
   for (var i = 0; i < CATEGORIES.length; i++) {
     var rr = BUDGET_TARGETS_FIRST_ROW + i;
     sheet.getRange(rr, 2).setValue(CATEGORIES[i]).setFontFamily(FONT.BODY).setFontSize(11).setFontColor(BRAND.BODY);
-    // Preset col (locked, cream — themable as section so it follows palette)
-    sheet.getRange(rr, 3).setNumberFormat('$#,##0').setBackground(BRAND.CREAM).setFontColor(BRAND.CAPTION);
+    // Preset % col (locked, cream — themable as section so it follows palette)
+    sheet.getRange(rr, 3).setNumberFormat('0.0%').setBackground(BRAND.CREAM).setFontColor(BRAND.CAPTION);
     themable_(sheet.getName(), 'section', sheet.getRange(rr, 3).getA1Notation());
-    // Override col (yellow editable always)
-    sheet.getRange(rr, 4).setNumberFormat('$#,##0').setBackground(BRAND.YELLOW)
+    // Override % col (yellow editable always)
+    sheet.getRange(rr, 4).setNumberFormat('0.0%').setBackground(BRAND.YELLOW)
       .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
-    // Effective Target
+    // Target % — effective percentage (override if present, else preset)
     sheet.getRange(rr, 5).setFormula('=IF(D' + rr + '="",C' + rr + ',D' + rr + ')')
-      .setNumberFormat('$#,##0').setFontWeight('bold');
-    // % Inc
-    sheet.getRange(rr, 6).setFormula('=IF($C$13=0,0,E' + rr + '/$C$13)').setNumberFormat('0.0%');
-    // Δ from preset (signed)
+      .setNumberFormat('0.0%').setFontWeight('bold');
+    // Target $ — Target % × income
+    sheet.getRange(rr, 6).setFormula('=E' + rr + '*$C$13').setNumberFormat('$#,##0').setFontWeight('bold');
+    // Δ % from preset (signed)
     sheet.getRange(rr, 7).setFormula('=IF(D' + rr + '="",0,D' + rr + '-C' + rr + ')')
-      .setNumberFormat('+$#,##0;−$#,##0;"—"');
-    // Share bar based on effective Target
+      .setNumberFormat('+0.0%;−0.0%;"—"');
+    // Share bar based on Target $
     sheet.getRange(rr, 8).setFormula(
-      '=SPARKLINE(E' + rr + ',{"charttype","bar";"max",MAX($E$17:$E$36);"color1",SWITCH(B' + rr +
+      '=SPARKLINE(F' + rr + ',{"charttype","bar";"max",MAX($F$17:$F$36);"color1",SWITCH(B' + rr +
       ',"Savings","' + BRAND.GOLD + '","Debt Payments","' + BRAND.GARNET + '","' + BRAND.FOREST + '")})');
   }
 
@@ -90,9 +91,9 @@ function buildMonthlyBudget_(sheet, mode) {
   themable_(sheet.getName(), 'primary', sheet.getRange(sumRow, 1, 1, 12).getA1Notation());
   var parts = [
     ['MONTHLY INCOME', '=' + BUDGET_INCOME_CELL, '$#,##0'],
-    ['PRESET TOTAL', '=SUM(C17:C36)', '$#,##0'],
-    ['WITH OVERRIDES', '=SUM(E17:E36)', '$#,##0'],
-    ['SAVINGS RATE', '=E' + BUDGET_SAVINGS_ROW + '/C13', '0.0%']
+    ['PRESET TOTAL', '=SUM(C17:C36)*$C$13', '$#,##0'],
+    ['WITH OVERRIDES', '=SUM(F17:F36)', '$#,##0'],
+    ['SAVINGS RATE', '=E' + BUDGET_SAVINGS_ROW, '0.0%']
   ];
   for (var p = 0; p < 4; p++) {
     var c0 = 1 + p * 3;
@@ -110,11 +111,11 @@ function buildMonthlyBudget_(sheet, mode) {
   sheet.getRange(valRow, 1, 1, 12).setBackground(BRAND.FOREST);
   themable_(sheet.getName(), 'primary', sheet.getRange(valRow, 1, 1, 12).getA1Notation());
 
-  setCell_(sheet, 'A' + (valRow + 1), { value: "Override cells are yellow. Target feeds Dashboard, Health Score, and Categories.",
+  setCell_(sheet, 'A' + (valRow + 1), { value: "Override cells take a % of income. Target $ feeds Dashboard, Health Score, and Categories.",
     merge: 'L' + (valRow + 1), font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION });
 
   footer_(sheet, valRow + 3, 'L');
-  setColWidths_(sheet, [40, 150, 90, 100, 90, 70, 85, 80, 80, 80, 80, 80]);
+  setColWidths_(sheet, [40, 160, 80, 95, 80, 100, 80, 90, 80, 80, 80, 80]);
 
   // seed the default profile
   writeProfileToBudget_(sheet, DEFAULT_PROFILE);
