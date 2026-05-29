@@ -1332,18 +1332,27 @@ function buildHealthScore_(sheet, mode) {
   var r = titleRow_(sheet, 'L', 'Health Score',
     'A composite 0–100 across five weighted indicators. Where you stand, and what to fix first.');
 
-  // hero composite (Playfair big number)
-  var h = MOCK.health;
-  setCell_(sheet, 'B' + r, { value: h.composite, merge: 'C' + (r + 1),
-    font: FONT.DISPLAY, size: 64, bold: true, color: BRAND.FOREST, h: 'center', v: 'middle' });
-  setCell_(sheet, 'B' + (r + 2), { value: h.grade, merge: 'C' + (r + 2),
-    font: FONT.DISPLAY, size: 16, italic: true, color: BRAND.GOLD, h: 'center' });
+  var MIDX = 'cc_dashboard_month+1';
+  var start = r + 5;  // indicators occupy rows start..start+4 (14..18 with r=9)
+
+  // Hero composite — weighted avg of N{start}:N{start+4} (D holds fractions summing to 1)
+  setCell_(sheet, 'B' + r, {
+    formula: '=IFERROR(ROUND(SUMPRODUCT(N' + start + ':N' + (start + 4) + ',D' + start + ':D' + (start + 4) + '),0),0)',
+    merge: 'C' + (r + 1), font: FONT.DISPLAY, size: 64, bold: true, color: BRAND.FOREST, h: 'center', v: 'middle' });
+  // 64pt needs room — bump the merged hero rows so the digits don't clip.
+  sheet.setRowHeight(r, 48);
+  sheet.setRowHeight(r + 1, 48);
+  setCell_(sheet, 'B' + (r + 2), {
+    formula: '=IF(B9>=90,"A",IF(B9>=80,"B",IF(B9>=70,"C",IF(B9>=60,"D","F"))))',
+    merge: 'C' + (r + 2), font: FONT.DISPLAY, size: 16, italic: true, color: BRAND.GOLD, h: 'center' });
+  sheet.setRowHeight(r + 2, 26);
 
   // box-drawing scale + pip
   var scale = '0 ─── Critical ─── 45 ─── Needs Work ─── 60 ─── Fair ─── 75 ─── Good ─── 90 ─── Excellent ─── 100';
   setCell_(sheet, 'E' + r, { value: scale, merge: 'L' + r, font: 'Roboto Mono', size: 10, color: BRAND.BODY, v: 'middle' });
-  var pip = repeatStr_(' ', Math.round(h.composite / 100 * 64)) + '▼';
-  setCell_(sheet, 'E' + (r + 1), { value: pip, merge: 'L' + (r + 1), font: 'Roboto Mono', size: 10, color: BRAND.CANOPY });
+  setCell_(sheet, 'E' + (r + 1), {
+    formula: '=REPT(" ",ROUND(B9/100*64,0))&"▼"',
+    merge: 'L' + (r + 1), font: 'Roboto Mono', size: 10, color: BRAND.CANOPY });
   r += 3;
 
   // 5 indicator rows
@@ -1351,34 +1360,80 @@ function buildHealthScore_(sheet, mode) {
   r += 1;
   sheet.getRange(r, 1, 1, 6).setValues([['Indicator', 'Value', 'Benchmark', 'Weight', 'Score (0–100)', 'Status']])
     .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
-  var start = r + 1;
-  for (var i = 0; i < h.indicators.length; i++) {
-    var ind = h.indicators[i]; var rr = start + i;
-    sheet.getRange(rr, 1).setValue(ind[0]);
-    sheet.getRange(rr, 2).setValue(ind[1]);
-    sheet.getRange(rr, 3, 1, 1); sheet.getRange(rr, 3).setValue(ind[5]);
-    sheet.getRange(rr, 4).setValue(ind[3] / 100).setNumberFormat('0%');
-    sheet.getRange(rr, 5).setFormula('=SPARKLINE(' + ind[2] + ',{"charttype","bar";"max",100;"color1","' + BRAND.FOREST + '"})');
-    sheet.getRange(rr, 6).setValue(statusText_(ind[4]));
+
+  var names   = ['Savings Rate', 'Expense-to-Income', 'Emergency Fund', 'Budget Adherence', 'Debt-to-Income'];
+  var benches = ['≥ 20% of income saved', '≤ 80% of income spent', '≥ 3 months of expenses', '≥ 80% categories on budget', '≤ 36% debt payments'];
+  var weights = [0.25, 0.20, 0.20, 0.20, 0.15];
+  var fmts    = ['0.0%', '0.0%', '0.0" mo"', '@', '0.0%'];
+
+  for (var i = 0; i < 5; i++) {
+    var rr = start + i;
+    sheet.getRange(rr, 1).setValue(names[i]);
+    sheet.getRange(rr, 3).setValue(benches[i]);
+    sheet.getRange(rr, 4).setValue(weights[i]).setNumberFormat('0%');
+    sheet.getRange(rr, 5).setFormula('=SPARKLINE(N' + rr + ',{"charttype","bar";"max",100;"color1","' + BRAND.FOREST + '"})');
+    sheet.getRange(rr, 2).setNumberFormat(fmts[i]);
+
+    var valueF, scoreF, statusF;
+    if (i === 0) {
+      valueF  = '=IFERROR(INDEX(_Engine!$B$30:$Y$30,1,' + MIDX + '),0)';
+      scoreF  = '=MAX(0,MIN(100,B' + rr + '*500))';
+      statusF = '=IF(B' + rr + '>=0.2,"On Track",IF(B' + rr + '>=0.1,"Fair","Over"))';
+    } else if (i === 1) {
+      valueF  = '=IFERROR(INDEX(_Engine!$B$28:$Y$28,1,' + MIDX + ')/INDEX(_Engine!$B$27:$Y$27,1,' + MIDX + '),0)';
+      scoreF  = '=MAX(0,MIN(100,(1-B' + rr + ')*250))';
+      statusF = '=IF(B' + rr + '<=0.8,"On Track",IF(B' + rr + '<=0.9,"Fair","Over"))';
+    } else if (i === 2) {
+      valueF  = '=IFERROR((SUMIFS(Accounts!E10:E21,Accounts!B10:B21,"Checking")+SUMIFS(Accounts!E10:E21,Accounts!B10:B21,"Savings"))/INDEX(_Engine!$B$28:$Y$28,1,' + MIDX + '),0)';
+      scoreF  = '=MAX(0,MIN(100,B' + rr + '/6*100))';
+      statusF = '=IF(B' + rr + '>=3,"On Track",IF(B' + rr + '>=1,"Fair","Over"))';
+    } else if (i === 3) {
+      // BA helpers in hidden cols O (on count) and P (total count) at this row.
+      sheet.getRange(rr, 15).setFormula(
+        "=SUMPRODUCT((INDEX(_Engine!$B$2:$Y$26,," + MIDX + ")<='Monthly Budget'!E17:E41)*('Monthly Budget'!B17:B41<>\"\"))");
+      sheet.getRange(rr, 16).setFormula(
+        "=SUMPRODUCT(('Monthly Budget'!B17:B41<>\"\")*1)");
+      valueF  = '=O' + rr + '&" of "&P' + rr;
+      scoreF  = '=IFERROR(O' + rr + '/P' + rr + '*100,0)';
+      statusF = '=IF(IFERROR(O' + rr + '/P' + rr + ',0)>=0.8,"On Track",IF(IFERROR(O' + rr + '/P' + rr + ',0)>=0.6,"Fair","Over"))';
+    } else {
+      valueF  = '=IFERROR(INDEX(_Engine!$B$14:$Y$14,1,' + MIDX + ')/INDEX(_Engine!$B$27:$Y$27,1,' + MIDX + '),0)';
+      scoreF  = '=MAX(0,MIN(100,(0.36-B' + rr + ')/0.36*100))';
+      statusF = '=IF(B' + rr + '<=0.36,"On Track",IF(B' + rr + '<=0.45,"Fair","Over"))';
+    }
+    sheet.getRange(rr, 2).setFormula(valueF);
+    sheet.getRange(rr, 14).setFormula(scoreF);
+    sheet.getRange(rr, 6).setFormula(statusF);
+
     if (i % 2 === 1) { var z = sheet.getRange(rr, 1, 1, 6).getA1Notation(); sheet.getRange(z).setBackground(PALETTE_BY_ID.light.zebra); themable_(sheet.getName(), 'zebra', z); }
   }
-  statusChipCF_(sheet, sheet.getRange(start, 6, h.indicators.length, 1).getA1Notation());
-  r = start + h.indicators.length + 1;
+  statusChipCF_(sheet, sheet.getRange(start, 6, 5, 1).getA1Notation());
+  r = start + 5 + 1;
 
-  // Biggest Opportunity callout — Forest panel + delta arrow (paint, don't pre-merge)
+  // Biggest Opportunity callout — Forest panel + dynamic delta + dynamic text
   sheet.getRange(r, 1, 3, 12).setBackground(BRAND.FOREST).setVerticalAlignment('middle');
   themable_(sheet.getName(), 'primary', sheet.getRange(r, 1, 3, 12).getA1Notation());
   setCell_(sheet, 'A' + r, { value: '⚡ BIGGEST OPPORTUNITY', merge: 'D' + r,
     font: FONT.BODY, size: 10, bold: true, color: BRAND.GOLD, bg: BRAND.FOREST, v: 'middle' });
-  setCell_(sheet, 'E' + r, { value: h.delta_from + ' → ' + h.delta_to, merge: 'F' + r,
-    font: FONT.DISPLAY, size: 18, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: 'center', v: 'middle' });
-  setCell_(sheet, 'A' + (r + 1), { value: h.biggest_opportunity, merge: 'L' + (r + 2),
-    font: FONT.BODY, size: 13, color: BRAND.PARCHMENT, bg: BRAND.FOREST, wrap: true, v: 'top' });
 
-  // composite cell for named range cc_health_composite at B9 — ensure value present
-  sheet.getRange('B9').setValue(h.composite);
+  // Opportunity helpers in hidden cols Q (category name) and R (positive overage).
+  for (var bi = 0; bi < 25; bi++) {
+    var br = 17 + bi;
+    sheet.getRange(br, 17).setFormula("='Monthly Budget'!B" + br);
+    sheet.getRange(br, 18).setFormula(
+      "=IFERROR(MAX(0,INDEX(_Engine!$B$2:$Y$26," + (bi + 1) + "," + MIDX + ")-'Monthly Budget'!E" + br + "),0)");
+  }
+
+  setCell_(sheet, 'E' + r, {
+    formula: '=B9&" → "&ROUND(B9+IF(MAX(R17:R41)>0,6,0),0)',
+    merge: 'F' + r, font: FONT.DISPLAY, size: 18, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: 'center', v: 'middle' });
+  setCell_(sheet, 'A' + (r + 1), {
+    formula: '=IF(MAX(R17:R41)=0,"On budget across the board this month — keep it up.",INDEX(Q17:Q41,MATCH(MAX(R17:R41),R17:R41,0))&" is $"&TEXT(MAX(R17:R41),"#,##0")&" over budget. Trimming to plan lifts composite by ~6 points.")',
+    merge: 'L' + (r + 2), font: FONT.BODY, size: 13, color: BRAND.PARCHMENT, bg: BRAND.FOREST, wrap: true, v: 'top' });
+
   footer_(sheet, r + 4, 'L');
   setColWidths_(sheet, [150, 90, 200, 70, 130, 80, 60, 60, 60, 60, 60, 60]);
+  sheet.hideColumns(14, 5);  // N (scores), O+P (BA helpers), Q+R (opportunity helpers)
 }
 
 // ── Net Worth ─────────────────────────────────────────────────────────
