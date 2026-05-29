@@ -171,7 +171,9 @@ function buildAccounts_(sheet, mode) {
     .requireValueInList(['Joint', 'Marcus', 'Elena'], true).build();
   sheet.getRange(firstRow, 3, capacity, 1).setDataValidation(ownerRule);
 
-  footer_(sheet, firstRow + capacity + 2, 'H');
+  // Footer parked at row 45 so it can never fall inside cc_accounts_list
+  // (currently A10:A21) and leak the brand line into the account dropdown.
+  footer_(sheet, 45, 'H');
   setColWidths_(sheet, [200, 110, 90, 130, 130, 120, 200]);
 }
 
@@ -211,7 +213,7 @@ function buildTransactions_(sheet, mode) {
   sheet.getRange(firstData, 4, 5000, 1).setDataValidation(catList);
   var acctRule = SpreadsheetApp.newDataValidation()
     .requireValueInRange(SpreadsheetApp.getActive().getRangeByName('cc_accounts_list') ||
-      SpreadsheetApp.getActive().getRange("'" + TABS.ACCOUNTS + "'!A10:A41"), true).build();
+      SpreadsheetApp.getActive().getRange("'" + TABS.ACCOUNTS + "'!A10:A21"), true).build();
   sheet.getRange(firstData, 5, 5000, 1).setDataValidation(acctRule);
 
   setColWidths_(sheet, [110, 280, 110, 150, 170, 200, 90]);

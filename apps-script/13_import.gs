@@ -125,6 +125,16 @@ function importTransactions() {
 
   renumberLedger();
 
+  // Jump cursor to whichever review queue still needs the buyer. Without
+  // this, Review Income (row 64) and Uncategorized (row 87) live below the
+  // paste zone and are easy to miss.
+  imp.activate();
+  if (income.length > 0) {
+    imp.setActiveRange(imp.getRange(REVIEW_INCOME_HEADER_ROW, 1));
+  } else if (miscDescs.length > 0) {
+    imp.setActiveRange(imp.getRange(UNCAT_SECTION_ROW, 1));
+  }
+
   var parts = ['Imported ' + out.length];
   if (skipped) parts.push(skipped + ' duplicates skipped');
   if (misc) parts.push(misc + ' fell to Misc');
@@ -192,7 +202,7 @@ function addAccount() {
   var name = String(resp.getResponseText() || '').trim();
   if (!name) return;
 
-  var range = ss.getRangeByName('cc_accounts_list') || acct.getRange('A10:A41');
+  var range = ss.getRangeByName('cc_accounts_list') || acct.getRange('A10:A21');
   var vals = range.getValues();
   var target = -1;
   for (var i = 0; i < vals.length; i++) {

@@ -681,7 +681,7 @@ function setNamedRanges_(ss) {
     'cc_dashboard_month': TABS.DASHBOARD + '!N4',
     'cc_trends_window':   TABS.TRENDS + '!N7',
     'cc_health_composite':TABS.HEALTH + '!B9',
-    'cc_accounts_list':   TABS.ACCOUNTS + '!A10:A41'
+    'cc_accounts_list':   TABS.ACCOUNTS + '!A10:A21'
   };
   Object.keys(defs).forEach(function (name) {
     try { ss.setNamedRange(name, ss.getRange(defs[name])); } catch (e) {}
@@ -860,7 +860,9 @@ function buildAccounts_(sheet, mode) {
     .requireValueInList(['Joint', 'Marcus', 'Elena'], true).build();
   sheet.getRange(firstRow, 3, capacity, 1).setDataValidation(ownerRule);
 
-  footer_(sheet, firstRow + capacity + 2, 'H');
+  // Footer parked at row 45 so it can never fall inside cc_accounts_list
+  // (currently A10:A21) and leak the brand line into the account dropdown.
+  footer_(sheet, 45, 'H');
   setColWidths_(sheet, [200, 110, 90, 130, 130, 120, 200]);
 }
 
@@ -900,7 +902,7 @@ function buildTransactions_(sheet, mode) {
   sheet.getRange(firstData, 4, 5000, 1).setDataValidation(catList);
   var acctRule = SpreadsheetApp.newDataValidation()
     .requireValueInRange(SpreadsheetApp.getActive().getRangeByName('cc_accounts_list') ||
-      SpreadsheetApp.getActive().getRange("'" + TABS.ACCOUNTS + "'!A10:A41"), true).build();
+      SpreadsheetApp.getActive().getRange("'" + TABS.ACCOUNTS + "'!A10:A21"), true).build();
   sheet.getRange(firstData, 5, 5000, 1).setDataValidation(acctRule);
 
   setColWidths_(sheet, [110, 280, 110, 150, 170, 200, 90]);
@@ -1622,21 +1624,49 @@ function buildGoals_(sheet, mode) {
 // ── Bank Import Guide ─────────────────────────────────────────────────
 function buildBankImport_(sheet) {
   chrome_(sheet, TABS.IMPORT, 'L');
-  var r = titleRow_(sheet, 'L', 'Bank Import Guide', 'Paste a CSV. We figure out the rest.');
+  var r = titleRow_(sheet, 'L', 'Bank Import Guide', 'Paste a CSV. We figure out the rest. After import, the cursor jumps to whichever step still needs you.');
 
-  // 3-step row
+  // 5-step row, 12 cols total: 3+2+2+2+3. Steps 1-3 are static; steps 4-5
+  // show a live pending count that flips to ✓ when the queue is empty.
+  var dRev = REVIEW_INCOME_FIRST_ROW;                                   // 65
+  var dRevEnd = REVIEW_INCOME_FIRST_ROW + REVIEW_INCOME_ROW_COUNT - 1;  // 84
+  var dUnc = UNCAT_FIRST_ROW;                                           // 89
+  var dUncEnd = UNCAT_FIRST_ROW + UNCAT_ROW_COUNT - 1;                  // 108
+  var reviewCountFormula =
+    '=IF(COUNTA(A' + dRev + ':A' + dRevEnd + ')=0,"4",' +
+    'IF(COUNTA(A' + dRev + ':A' + dRevEnd + ')=COUNTA(D' + dRev + ':D' + dRevEnd + '),"✓",' +
+    'COUNTA(A' + dRev + ':A' + dRevEnd + ')-COUNTA(D' + dRev + ':D' + dRevEnd + ')))';
+  var uncatCountFormula =
+    '=IF(COUNTA(A' + dUnc + ':A' + dUncEnd + ')=0,"5",' +
+    'IF(COUNTA(A' + dUnc + ':A' + dUncEnd + ')=COUNTA(D' + dUnc + ':D' + dUncEnd + '),"✓",' +
+    'COUNTA(A' + dUnc + ':A' + dUncEnd + ')-COUNTA(D' + dUnc + ':D' + dUncEnd + ')))';
+
   var steps = [
-    ['1', 'Type the account name in C10 (or 💳 → Add Account… to register one first).'],
-    ['2', 'Paste your bank CSV into the green zone below.'],
-    ['3', 'Run 💳 Column & Co. → Import Bank Transactions.']
+    { digit: '1', label: 'Pick account (C10)',     digitCol: 1, labelStart: 2, labelEnd: 3 },
+    { digit: '2', label: 'Paste CSV below',        digitCol: 4, labelStart: 5, labelEnd: 5 },
+    { digit: '3', label: 'Run Import',             digitCol: 6, labelStart: 7, labelEnd: 7 },
+    { digit: reviewCountFormula, label: 'Review Income ↓', digitCol: 8, labelStart: 9, labelEnd: 9 },
+    { digit: uncatCountFormula,  label: 'Save merchant rules ↓', digitCol: 10, labelStart: 11, labelEnd: 12 }
   ];
-  for (var s = 0; s < 3; s++) {
-    var c0 = 1 + s * 4;
-    setCell_(sheet, sheet.getRange(r, c0).getA1Notation(), { value: steps[s][0],
-      font: FONT.DISPLAY, size: 16, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: 'center', v: 'middle' });
-    themable_(sheet.getName(), 'primary', sheet.getRange(r, c0).getA1Notation());
-    setCell_(sheet, sheet.getRange(r, c0 + 1).getA1Notation(), { value: steps[s][1],
-      merge: sheet.getRange(r, c0 + 3).getA1Notation(), font: FONT.BODY, size: 11, color: BRAND.BODY, wrap: true, v: 'middle' });
+  for (var s = 0; s < steps.length; s++) {
+    var st = steps[s];
+    var digitA1 = sheet.getRange(r, st.digitCol).getA1Notation();
+    var digitOpts = {
+      font: FONT.DISPLAY, size: 16, bold: true, color: BRAND.PARCHMENT,
+      bg: BRAND.FOREST, h: 'center', v: 'middle'
+    };
+    if (String(st.digit).charAt(0) === '=') digitOpts.formula = st.digit;
+    else digitOpts.value = st.digit;
+    setCell_(sheet, digitA1, digitOpts);
+    themable_(sheet.getName(), 'primary', digitA1);
+
+    var labelStartA1 = sheet.getRange(r, st.labelStart).getA1Notation();
+    var labelEndA1 = sheet.getRange(r, st.labelEnd).getA1Notation();
+    setCell_(sheet, labelStartA1, {
+      value: st.label,
+      merge: st.labelEnd > st.labelStart ? labelEndA1 : null,
+      font: FONT.BODY, size: 11, color: BRAND.BODY, wrap: true, v: 'middle'
+    });
   }
   sheet.setRowHeight(r, 40);
 
@@ -1649,13 +1679,13 @@ function buildBankImport_(sheet) {
   sheet.getRange(IMPORT_ACCOUNT_CELL + ':E10').merge();
   var ss = SpreadsheetApp.getActive();
   var acctRange = ss.getRangeByName('cc_accounts_list') ||
-    ss.getRange("'" + TABS.ACCOUNTS + "'!A10:A41");
+    ss.getRange("'" + TABS.ACCOUNTS + "'!A10:A21");
   var acctRule = SpreadsheetApp.newDataValidation()
     .requireValueInRange(acctRange, true).setAllowInvalid(false).build();
   sheet.getRange(IMPORT_ACCOUNT_CELL).setDataValidation(acctRule);
 
   // paste zone caption (row 11) + unmerged grid (A12:H61)
-  setCell_(sheet, 'A11', { value: 'Paste your CSV anywhere below — the first non-empty row is treated as the header.',
+  setCell_(sheet, 'A11', { value: 'Paste your CSV anywhere below — the first non-empty row is treated as the header.  New account? Use 💳 → Add Account… first.',
     merge: 'L11', font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION });
   var zone = sheet.getRange(IMPORT_PASTE_ANCHOR + ':H' + IMPORT_PASTE_LAST_ROW);
   zone.setBackground(BRAND.GREEN_ZONE).setFontFamily('Roboto Mono').setFontSize(10)
@@ -1696,6 +1726,12 @@ function buildBankImport_(sheet) {
 
   footer_(sheet, captionRow + 2, 'L');
   setColWidths_(sheet, [220, 50, 130, 130, 110, 80, 80, 80, 60, 60, 60, 60]);
+
+  // Pin chrome + step pills + account-name input so the buyer always sees
+  // the 5 steps (and the live pending counts on 4 & 5) while scrolling the
+  // paste / review / uncategorized grids below.
+  SpreadsheetApp.flush();
+  try { sheet.setFrozenRows(10); } catch (e) {}
 }
 /**
  * Column & Co. — The Foundation v2.1
@@ -2131,6 +2167,16 @@ function importTransactions() {
 
   renumberLedger();
 
+  // Jump cursor to whichever review queue still needs the buyer. Without
+  // this, Review Income (row 64) and Uncategorized (row 87) live below the
+  // paste zone and are easy to miss.
+  imp.activate();
+  if (income.length > 0) {
+    imp.setActiveRange(imp.getRange(REVIEW_INCOME_HEADER_ROW, 1));
+  } else if (miscDescs.length > 0) {
+    imp.setActiveRange(imp.getRange(UNCAT_SECTION_ROW, 1));
+  }
+
   var parts = ['Imported ' + out.length];
   if (skipped) parts.push(skipped + ' duplicates skipped');
   if (misc) parts.push(misc + ' fell to Misc');
@@ -2198,7 +2244,7 @@ function addAccount() {
   var name = String(resp.getResponseText() || '').trim();
   if (!name) return;
 
-  var range = ss.getRangeByName('cc_accounts_list') || acct.getRange('A10:A41');
+  var range = ss.getRangeByName('cc_accounts_list') || acct.getRange('A10:A21');
   var vals = range.getValues();
   var target = -1;
   for (var i = 0; i < vals.length; i++) {

@@ -106,7 +106,7 @@ function setNamedRanges_(ss) {
     'cc_dashboard_month': TABS.DASHBOARD + '!N4',
     'cc_trends_window':   TABS.TRENDS + '!N7',
     'cc_health_composite':TABS.HEALTH + '!B9',
-    'cc_accounts_list':   TABS.ACCOUNTS + '!A10:A41'
+    'cc_accounts_list':   TABS.ACCOUNTS + '!A10:A21'
   };
   Object.keys(defs).forEach(function (name) {
     try { ss.setNamedRange(name, ss.getRange(defs[name])); } catch (e) {}

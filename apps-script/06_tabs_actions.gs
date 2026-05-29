@@ -201,21 +201,49 @@ function buildGoals_(sheet, mode) {
 // ── Bank Import Guide ─────────────────────────────────────────────────
 function buildBankImport_(sheet) {
   chrome_(sheet, TABS.IMPORT, 'L');
-  var r = titleRow_(sheet, 'L', 'Bank Import Guide', 'Paste a CSV. We figure out the rest.');
+  var r = titleRow_(sheet, 'L', 'Bank Import Guide', 'Paste a CSV. We figure out the rest. After import, the cursor jumps to whichever step still needs you.');
 
-  // 3-step row
+  // 5-step row, 12 cols total: 3+2+2+2+3. Steps 1-3 are static; steps 4-5
+  // show a live pending count that flips to ✓ when the queue is empty.
+  var dRev = REVIEW_INCOME_FIRST_ROW;                                   // 65
+  var dRevEnd = REVIEW_INCOME_FIRST_ROW + REVIEW_INCOME_ROW_COUNT - 1;  // 84
+  var dUnc = UNCAT_FIRST_ROW;                                           // 89
+  var dUncEnd = UNCAT_FIRST_ROW + UNCAT_ROW_COUNT - 1;                  // 108
+  var reviewCountFormula =
+    '=IF(COUNTA(A' + dRev + ':A' + dRevEnd + ')=0,"4",' +
+    'IF(COUNTA(A' + dRev + ':A' + dRevEnd + ')=COUNTA(D' + dRev + ':D' + dRevEnd + '),"✓",' +
+    'COUNTA(A' + dRev + ':A' + dRevEnd + ')-COUNTA(D' + dRev + ':D' + dRevEnd + ')))';
+  var uncatCountFormula =
+    '=IF(COUNTA(A' + dUnc + ':A' + dUncEnd + ')=0,"5",' +
+    'IF(COUNTA(A' + dUnc + ':A' + dUncEnd + ')=COUNTA(D' + dUnc + ':D' + dUncEnd + '),"✓",' +
+    'COUNTA(A' + dUnc + ':A' + dUncEnd + ')-COUNTA(D' + dUnc + ':D' + dUncEnd + ')))';
+
   var steps = [
-    ['1', 'Type the account name in C10 (or 💳 → Add Account… to register one first).'],
-    ['2', 'Paste your bank CSV into the green zone below.'],
-    ['3', 'Run 💳 Column & Co. → Import Bank Transactions.']
+    { digit: '1', label: 'Pick account (C10)',     digitCol: 1, labelStart: 2, labelEnd: 3 },
+    { digit: '2', label: 'Paste CSV below',        digitCol: 4, labelStart: 5, labelEnd: 5 },
+    { digit: '3', label: 'Run Import',             digitCol: 6, labelStart: 7, labelEnd: 7 },
+    { digit: reviewCountFormula, label: 'Review Income ↓', digitCol: 8, labelStart: 9, labelEnd: 9 },
+    { digit: uncatCountFormula,  label: 'Save merchant rules ↓', digitCol: 10, labelStart: 11, labelEnd: 12 }
   ];
-  for (var s = 0; s < 3; s++) {
-    var c0 = 1 + s * 4;
-    setCell_(sheet, sheet.getRange(r, c0).getA1Notation(), { value: steps[s][0],
-      font: FONT.DISPLAY, size: 16, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: 'center', v: 'middle' });
-    themable_(sheet.getName(), 'primary', sheet.getRange(r, c0).getA1Notation());
-    setCell_(sheet, sheet.getRange(r, c0 + 1).getA1Notation(), { value: steps[s][1],
-      merge: sheet.getRange(r, c0 + 3).getA1Notation(), font: FONT.BODY, size: 11, color: BRAND.BODY, wrap: true, v: 'middle' });
+  for (var s = 0; s < steps.length; s++) {
+    var st = steps[s];
+    var digitA1 = sheet.getRange(r, st.digitCol).getA1Notation();
+    var digitOpts = {
+      font: FONT.DISPLAY, size: 16, bold: true, color: BRAND.PARCHMENT,
+      bg: BRAND.FOREST, h: 'center', v: 'middle'
+    };
+    if (String(st.digit).charAt(0) === '=') digitOpts.formula = st.digit;
+    else digitOpts.value = st.digit;
+    setCell_(sheet, digitA1, digitOpts);
+    themable_(sheet.getName(), 'primary', digitA1);
+
+    var labelStartA1 = sheet.getRange(r, st.labelStart).getA1Notation();
+    var labelEndA1 = sheet.getRange(r, st.labelEnd).getA1Notation();
+    setCell_(sheet, labelStartA1, {
+      value: st.label,
+      merge: st.labelEnd > st.labelStart ? labelEndA1 : null,
+      font: FONT.BODY, size: 11, color: BRAND.BODY, wrap: true, v: 'middle'
+    });
   }
   sheet.setRowHeight(r, 40);
 
@@ -228,13 +256,13 @@ function buildBankImport_(sheet) {
   sheet.getRange(IMPORT_ACCOUNT_CELL + ':E10').merge();
   var ss = SpreadsheetApp.getActive();
   var acctRange = ss.getRangeByName('cc_accounts_list') ||
-    ss.getRange("'" + TABS.ACCOUNTS + "'!A10:A41");
+    ss.getRange("'" + TABS.ACCOUNTS + "'!A10:A21");
   var acctRule = SpreadsheetApp.newDataValidation()
     .requireValueInRange(acctRange, true).setAllowInvalid(false).build();
   sheet.getRange(IMPORT_ACCOUNT_CELL).setDataValidation(acctRule);
 
   // paste zone caption (row 11) + unmerged grid (A12:H61)
-  setCell_(sheet, 'A11', { value: 'Paste your CSV anywhere below — the first non-empty row is treated as the header.',
+  setCell_(sheet, 'A11', { value: 'Paste your CSV anywhere below — the first non-empty row is treated as the header.  New account? Use 💳 → Add Account… first.',
     merge: 'L11', font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION });
   var zone = sheet.getRange(IMPORT_PASTE_ANCHOR + ':H' + IMPORT_PASTE_LAST_ROW);
   zone.setBackground(BRAND.GREEN_ZONE).setFontFamily('Roboto Mono').setFontSize(10)
@@ -275,4 +303,10 @@ function buildBankImport_(sheet) {
 
   footer_(sheet, captionRow + 2, 'L');
   setColWidths_(sheet, [220, 50, 130, 130, 110, 80, 80, 80, 60, 60, 60, 60]);
+
+  // Pin chrome + step pills + account-name input so the buyer always sees
+  // the 5 steps (and the live pending counts on 4 & 5) while scrolling the
+  // paste / review / uncategorized grids below.
+  SpreadsheetApp.flush();
+  try { sheet.setFrozenRows(10); } catch (e) {}
 }
