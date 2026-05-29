@@ -19,6 +19,7 @@ function buildMenu_() {
   var menu = ui.createMenu(CC.MENU_TITLE);
   menu.addItem('Import Bank Transactions', 'importTransactions');
   menu.addItem('Clear Paste Zone', 'clearPasteZone');
+  menu.addItem('Recategorize Ledger from Rules', 'recategorizeAll');
   menu.addSeparator();
   menu.addSubMenu(buildThemeMenu_());
   menu.addSubMenu(buildProfileMenu_());
@@ -49,6 +50,22 @@ function onEdit(e) {
   // Accounts: stamp Last Updated (col F) when Current Balance (col E) changes
   if (name === TABS.ACCOUNTS && e.range.getColumn() === 5 && e.range.getRow() >= 10) {
     sheet.getRange(e.range.getRow(), 6).setValue(new Date());
+  }
+
+  // Bank Import — Uncategorized block: picking a Category in col D saves a
+  // keyword rule from col C and reapplies it to past Misc rows.
+  if (name === TABS.IMPORT && e.range.getColumn() === 4 &&
+      e.range.getRow() >= UNCAT_FIRST_ROW &&
+      e.range.getRow() < UNCAT_FIRST_ROW + UNCAT_ROW_COUNT) {
+    var row = e.range.getRow();
+    var keyword = String(sheet.getRange(row, 3).getValue() || '').trim().toUpperCase();
+    var category = String(e.range.getValue() || '').trim();
+    if (keyword && category) {
+      addKeywordRule_(keyword, category);
+      var touched = recategorizeWhereDesc_(keyword, category);
+      sheet.getRange(row, 5).setValue('Rule saved ✓ · ' + touched + ' row' + (touched === 1 ? '' : 's') + ' updated')
+        .setFontColor(BRAND.CANOPY).setFontStyle('italic');
+    }
   }
 
   // Monthly Budget: auto-save Override-column edits (% of income) to the active profile.

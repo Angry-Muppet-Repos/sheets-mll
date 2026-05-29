@@ -22,6 +22,10 @@ var IMPORT_PASTE_LAST_ROW = 12 + IMPORT_PASTE_ROW_COUNT - 1;   // 61
 var REVIEW_INCOME_HEADER_ROW = 64;
 var REVIEW_INCOME_FIRST_ROW  = 65;
 var REVIEW_INCOME_ROW_COUNT  = 20;
+var UNCAT_SECTION_ROW = 87;       // section label
+var UNCAT_HEADER_ROW  = 88;
+var UNCAT_FIRST_ROW   = 89;
+var UNCAT_ROW_COUNT   = 20;
 
 // ── Monthly Budget ────────────────────────────────────────────────────
 // Columns: B Category · C Preset% (locked) · D Override% (yellow editable)
@@ -228,10 +232,26 @@ function buildBankImport_(sheet) {
   var ynRule = SpreadsheetApp.newDataValidation().requireValueInList(['Yes', 'No'], true).build();
   sheet.getRange(REVIEW_INCOME_FIRST_ROW, 4, REVIEW_INCOME_ROW_COUNT, 1).setDataValidation(ynRule);
 
-  var captionRow = REVIEW_INCOME_FIRST_ROW + REVIEW_INCOME_ROW_COUNT + 1;  // row 86
-  setCell_(sheet, 'A' + captionRow, { value: 'Sniffs headers from Chase, BoA, Wells Fargo, Cap One, Ally, Citi, USAA, Discover, Amex. Duplicates (same date + description + amount) are skipped on re-import.',
+  // Uncategorized Merchants block — turn any Misc row into a rule with a
+  // single dropdown pick. Populated by importTransactions after each import.
+  sectionLabel_(sheet, 'A' + UNCAT_SECTION_ROW, 'L' + UNCAT_SECTION_ROW,
+    'UNCATEGORIZED MERCHANTS · PICK A CATEGORY TO ADD A RULE');
+  sheet.getRange(UNCAT_HEADER_ROW, 1, 1, 5)
+    .setValues([['Sample Description', 'Hits', 'Keyword', 'Category', 'Status']])
+    .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
+  // Keyword column (C): yellow, editable.
+  sheet.getRange(UNCAT_FIRST_ROW, 3, UNCAT_ROW_COUNT, 1).setBackground(BRAND.YELLOW)
+    .setFontFamily('Roboto Mono').setFontSize(10);
+  // Category column (D): yellow + dropdown of the 20 categories.
+  sheet.getRange(UNCAT_FIRST_ROW, 4, UNCAT_ROW_COUNT, 1).setBackground(BRAND.YELLOW);
+  var uncatRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(CATEGORIES, true).setAllowInvalid(false).build();
+  sheet.getRange(UNCAT_FIRST_ROW, 4, UNCAT_ROW_COUNT, 1).setDataValidation(uncatRule);
+
+  var captionRow = UNCAT_FIRST_ROW + UNCAT_ROW_COUNT + 1;
+  setCell_(sheet, 'A' + captionRow, { value: 'Sniffs headers from Chase, BoA, Wells Fargo, Cap One, Ally, Citi, USAA, Discover, Amex. Duplicates (same date + description + amount) are skipped on re-import. Picking a Category above saves a keyword rule and reapplies it to past Misc rows.',
     merge: 'L' + captionRow, font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION, wrap: true });
 
   footer_(sheet, captionRow + 2, 'L');
-  setColWidths_(sheet, [110, 240, 90, 90, 110, 100, 100, 90, 60, 60, 60, 60]);
+  setColWidths_(sheet, [220, 50, 130, 130, 110, 80, 80, 80, 60, 60, 60, 60]);
 }

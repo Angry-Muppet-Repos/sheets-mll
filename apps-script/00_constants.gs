@@ -219,28 +219,116 @@ var DEFAULT_PASTE_CSV =
   '05/10/2026,SHELL OIL 575421,-52.18';
 
 // Default keyword rules for auto-categorization [keyword, category, note]
+// Matcher is longest-keyword-wins (see categorize_), so order is not load-bearing.
+// Keep entries UPPERCASE — descriptions are uppercased before matching.
 var KEYWORD_RULES = [
+  // Food & Dining — chains + generic grocery/restaurant patterns
   ['WHOLE FOODS', 'Food & Dining', ''], ['TRADER JOE', 'Food & Dining', ''],
   ['SAFEWAY', 'Food & Dining', ''], ['KROGER', 'Food & Dining', ''],
   ['STARBUCKS', 'Food & Dining', ''], ['CHIPOTLE', 'Food & Dining', ''],
   ['DOORDASH', 'Food & Dining', ''], ['UBER EATS', 'Food & Dining', ''],
   ['MCDONALD', 'Food & Dining', ''], ['RESTAURANT', 'Food & Dining', ''],
+  ['COSTCO', 'Food & Dining', ''], ['ALDI', 'Food & Dining', ''],
+  ['PUBLIX', 'Food & Dining', ''], ['MEIJER', 'Food & Dining', ''],
+  ['GROCERY', 'Food & Dining', ''], ['MARKET', 'Food & Dining', ''],
+  ['DELI', 'Food & Dining', ''], ['PIZZA', 'Food & Dining', ''],
+  ['CAFE', 'Food & Dining', ''], ['COFFEE', 'Food & Dining', ''],
+  ['GRUBHUB', 'Food & Dining', ''], ['INSTACART', 'Food & Dining', ''],
+  // Transportation — gas + rideshare + transit
   ['SHELL', 'Transportation', ''], ['CHEVRON', 'Transportation', ''],
-  ['EXXON', 'Transportation', ''], ['UBER', 'Transportation', 'after Uber Eats rule'],
-  ['LYFT', 'Transportation', ''], ['DELTA AIR', 'Travel', ''],
+  ['EXXON', 'Transportation', ''], ['MOBIL', 'Transportation', ''],
+  ['BP ', 'Transportation', ''], ['SPEEDWAY', 'Transportation', ''],
+  ['UBER EATS', 'Food & Dining', ''],   // longest-match guarantees this beats UBER
+  ['UBER', 'Transportation', ''], ['LYFT', 'Transportation', ''],
+  ['PARKING', 'Transportation', ''], ['TOLL', 'Transportation', ''],
+  ['AUTO REPAIR', 'Transportation', ''], ['CAR WASH', 'Transportation', ''],
+  // Travel
+  ['DELTA AIR', 'Travel', ''], ['UNITED AIR', 'Travel', ''],
+  ['AMERICAN AIR', 'Travel', ''], ['SOUTHWEST AIR', 'Travel', ''],
+  ['MARRIOTT', 'Travel', ''], ['HILTON', 'Travel', ''],
+  ['AIRBNB', 'Travel', ''], ['EXPEDIA', 'Travel', ''],
+  ['HOTEL', 'Travel', ''], ['BOOKING.COM', 'Travel', ''],
+  // Subscriptions
   ['NETFLIX', 'Subscriptions', ''], ['SPOTIFY', 'Subscriptions', ''],
   ['HULU', 'Subscriptions', ''], ['DISNEY PLUS', 'Subscriptions', ''],
   ['APPLE.COM/BILL', 'Subscriptions', ''], ['AUDIBLE', 'Subscriptions', ''],
-  ['AMAZON PRIME', 'Subscriptions', 'before AMAZON shopping rule'],
-  ['AMAZON', 'Shopping', ''], ['TARGET', 'Shopping', ''], ['WALMART', 'Shopping', ''],
-  ['BEST BUY', 'Shopping', ''], ['ETSY', 'Shopping', ''],
-  ['COMCAST', 'Utilities', ''], ['XFINITY', 'Utilities', ''], ['PG&E', 'Utilities', ''],
-  ['CON EDISON', 'Utilities', ''], ['VERIZON', 'Utilities', ''], ['AT&T', 'Utilities', ''],
-  ['GEICO', 'Insurance', ''], ['STATE FARM', 'Insurance', ''], ['PROGRESSIVE', 'Insurance', ''],
+  ['AMAZON PRIME', 'Subscriptions', ''],   // longest-match beats AMAZON
+  ['HBO', 'Subscriptions', ''], ['PARAMOUNT', 'Subscriptions', ''],
+  ['YOUTUBE', 'Subscriptions', ''], ['DROPBOX', 'Subscriptions', ''],
+  // Shopping
+  ['AMAZON', 'Shopping', ''], ['TARGET', 'Shopping', ''],
+  ['WALMART', 'Shopping', ''], ['BEST BUY', 'Shopping', ''],
+  ['ETSY', 'Shopping', ''], ['EBAY', 'Shopping', ''],
+  ['HOME DEPOT', 'Shopping', ''], ['LOWES', 'Shopping', ''],
+  ['IKEA', 'Shopping', ''], ['MACY', 'Shopping', ''],
+  // Utilities
+  ['COMCAST', 'Utilities', ''], ['XFINITY', 'Utilities', ''],
+  ['PG&E', 'Utilities', ''], ['CON EDISON', 'Utilities', ''],
+  ['VERIZON', 'Utilities', ''], ['AT&T', 'Utilities', ''],
+  ['T-MOBILE', 'Utilities', ''], ['SPECTRUM', 'Utilities', ''],
+  ['CONSUMERS ENERGY', 'Utilities', ''], ['DTE ENERGY', 'Utilities', ''],
+  ['ENERGY', 'Utilities', ''], ['ELECTRIC', 'Utilities', ''],
+  ['WATER DEPT', 'Utilities', ''], ['GAS COMPANY', 'Utilities', ''],
+  ['INTERNET', 'Utilities', ''],
+  // Insurance
+  ['GEICO', 'Insurance', ''], ['STATE FARM', 'Insurance', ''],
+  ['PROGRESSIVE', 'Insurance', ''], ['ALLSTATE', 'Insurance', ''],
+  ['FARMERS INS', 'Insurance', ''], ['USAA', 'Insurance', ''],
+  ['NATIONWIDE', 'Insurance', ''], ['LIBERTY MUTUAL', 'Insurance', ''],
+  // Health & Medical
   ['CVS', 'Health & Medical', ''], ['WALGREENS', 'Health & Medical', ''],
-  ['KAISER', 'Health & Medical', ''], ['LA FITNESS', 'Personal Care', ''],
-  ['PLANET FIT', 'Personal Care', ''], ['SEPHORA', 'Personal Care', ''],
-  ['PETCO', 'Pets', ''], ['CHEWY', 'Pets', ''], ['DIRECT DEPOSIT', 'Income', 'positive amounts'],
+  ['KAISER', 'Health & Medical', ''], ['RITE AID', 'Health & Medical', ''],
+  ['PHARMACY', 'Health & Medical', ''], ['MEDICAL', 'Health & Medical', ''],
+  ['DENTIST', 'Health & Medical', ''], ['HOSPITAL', 'Health & Medical', ''],
+  ['CLINIC', 'Health & Medical', ''], ['COPAY', 'Health & Medical', ''],
+  ['DOCTOR', 'Health & Medical', ''],
+  // Personal Care
+  ['LA FITNESS', 'Personal Care', ''], ['PLANET FIT', 'Personal Care', ''],
+  ['SEPHORA', 'Personal Care', ''], ['ULTA', 'Personal Care', ''],
+  ['SALON', 'Personal Care', ''], ['BARBER', 'Personal Care', ''],
+  ['HAIRCUT', 'Personal Care', ''],
+  // Pets
+  ['PETCO', 'Pets', ''], ['CHEWY', 'Pets', ''], ['PETSMART', 'Pets', ''],
+  ['VET ', 'Pets', ''],
+  // Entertainment
+  ['AMC ', 'Entertainment', ''], ['REGAL CINEMAS', 'Entertainment', ''],
+  ['CINEMARK', 'Entertainment', ''], ['TICKETMASTER', 'Entertainment', ''],
+  ['EVENTBRITE', 'Entertainment', ''], ['STEAM', 'Entertainment', ''],
+  ['PLAYSTATION', 'Entertainment', ''], ['XBOX', 'Entertainment', ''],
+  // Housing — mortgage / rent / property
+  ['MORTGAGE', 'Housing', ''], ['PLANET HOME', 'Housing', ''],
+  ['RENT', 'Housing', ''], ['LANDLORD', 'Housing', ''],
+  ['HOA ', 'Housing', ''], ['PROPERTY TAX', 'Housing', ''],
+  ['ROCKET MORTGAGE', 'Housing', ''],
+  // Debt Payments — credit card + loan ACH patterns
+  ['CCPYMT', 'Debt Payments', ''], ['CRCARDPMT', 'Debt Payments', ''],
+  ['CARD PMT', 'Debt Payments', ''], ['CARD PAYMENT', 'Debt Payments', ''],
+  ['CC PAYMENT', 'Debt Payments', ''], ['LOAN PMT', 'Debt Payments', ''],
+  ['LOAN PAYMENT', 'Debt Payments', ''], ['AUTO LOAN', 'Debt Payments', ''],
+  ['STUDENT LOAN', 'Debt Payments', ''], ['CAPITAL ONE - CR', 'Debt Payments', ''],
+  ['WELLS FARGO CARD', 'Debt Payments', ''], ['DISCOVER PMT', 'Debt Payments', ''],
+  // Taxes
+  ['FRANCHISE TAX', 'Taxes', ''], ['STATE TAX', 'Taxes', ''],
+  ['IRS', 'Taxes', ''], ['TAX PAYMENT', 'Taxes', ''],
+  // Childcare
+  ['DAYCARE', 'Childcare', ''], ['PRESCHOOL', 'Childcare', ''],
+  ['CHILDCARE', 'Childcare', ''], ['KINDERCARE', 'Childcare', ''],
+  // Education
+  ['UNIVERSITY', 'Education', ''], ['TUITION', 'Education', ''],
+  ['SCHOOL DISTRICT', 'Education', ''], ['COURSERA', 'Education', ''],
+  ['UDEMY', 'Education', ''],
+  // Business
+  ['SQUARE INC', 'Business', ''], ['STRIPE', 'Business', ''],
+  ['SHOPIFY', 'Business', ''], ['QUICKBOOKS', 'Business', ''],
+  ['MAILCHIMP', 'Business', ''], ['ADOBE', 'Business', ''],
+  // Income — ACH / payroll / treasury / benefits
+  ['DIRECT DEPOSIT', 'Income', ''], ['DIRECT DEP', 'Income', ''],
   ['PAYROLL', 'Income', ''], ['INTEREST PAYMENT', 'Income', ''],
+  ['CREDIT INTEREST', 'Income', ''], ['INTEREST CREDIT', 'Income', ''],
+  ['DIVIDEND', 'Income', ''], ['REFUND', 'Income', ''],
+  ['VA COMP', 'Income', ''], ['VA COMPENSATION', 'Income', ''],
+  ['SSA', 'Income', ''], ['TREAS 310', 'Income', ''],
+  ['TAX REFUND', 'Income', ''], ['ACH CREDIT', 'Income', ''],
+  // Transfers (peer-to-peer fallthrough)
   ['VENMO', 'Misc', ''], ['ZELLE', 'Misc', '']
 ];

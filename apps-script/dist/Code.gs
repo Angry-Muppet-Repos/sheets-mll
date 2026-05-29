@@ -225,29 +225,117 @@ var DEFAULT_PASTE_CSV =
   '05/10/2026,SHELL OIL 575421,-52.18';
 
 // Default keyword rules for auto-categorization [keyword, category, note]
+// Matcher is longest-keyword-wins (see categorize_), so order is not load-bearing.
+// Keep entries UPPERCASE — descriptions are uppercased before matching.
 var KEYWORD_RULES = [
+  // Food & Dining — chains + generic grocery/restaurant patterns
   ['WHOLE FOODS', 'Food & Dining', ''], ['TRADER JOE', 'Food & Dining', ''],
   ['SAFEWAY', 'Food & Dining', ''], ['KROGER', 'Food & Dining', ''],
   ['STARBUCKS', 'Food & Dining', ''], ['CHIPOTLE', 'Food & Dining', ''],
   ['DOORDASH', 'Food & Dining', ''], ['UBER EATS', 'Food & Dining', ''],
   ['MCDONALD', 'Food & Dining', ''], ['RESTAURANT', 'Food & Dining', ''],
+  ['COSTCO', 'Food & Dining', ''], ['ALDI', 'Food & Dining', ''],
+  ['PUBLIX', 'Food & Dining', ''], ['MEIJER', 'Food & Dining', ''],
+  ['GROCERY', 'Food & Dining', ''], ['MARKET', 'Food & Dining', ''],
+  ['DELI', 'Food & Dining', ''], ['PIZZA', 'Food & Dining', ''],
+  ['CAFE', 'Food & Dining', ''], ['COFFEE', 'Food & Dining', ''],
+  ['GRUBHUB', 'Food & Dining', ''], ['INSTACART', 'Food & Dining', ''],
+  // Transportation — gas + rideshare + transit
   ['SHELL', 'Transportation', ''], ['CHEVRON', 'Transportation', ''],
-  ['EXXON', 'Transportation', ''], ['UBER', 'Transportation', 'after Uber Eats rule'],
-  ['LYFT', 'Transportation', ''], ['DELTA AIR', 'Travel', ''],
+  ['EXXON', 'Transportation', ''], ['MOBIL', 'Transportation', ''],
+  ['BP ', 'Transportation', ''], ['SPEEDWAY', 'Transportation', ''],
+  ['UBER EATS', 'Food & Dining', ''],   // longest-match guarantees this beats UBER
+  ['UBER', 'Transportation', ''], ['LYFT', 'Transportation', ''],
+  ['PARKING', 'Transportation', ''], ['TOLL', 'Transportation', ''],
+  ['AUTO REPAIR', 'Transportation', ''], ['CAR WASH', 'Transportation', ''],
+  // Travel
+  ['DELTA AIR', 'Travel', ''], ['UNITED AIR', 'Travel', ''],
+  ['AMERICAN AIR', 'Travel', ''], ['SOUTHWEST AIR', 'Travel', ''],
+  ['MARRIOTT', 'Travel', ''], ['HILTON', 'Travel', ''],
+  ['AIRBNB', 'Travel', ''], ['EXPEDIA', 'Travel', ''],
+  ['HOTEL', 'Travel', ''], ['BOOKING.COM', 'Travel', ''],
+  // Subscriptions
   ['NETFLIX', 'Subscriptions', ''], ['SPOTIFY', 'Subscriptions', ''],
   ['HULU', 'Subscriptions', ''], ['DISNEY PLUS', 'Subscriptions', ''],
   ['APPLE.COM/BILL', 'Subscriptions', ''], ['AUDIBLE', 'Subscriptions', ''],
-  ['AMAZON PRIME', 'Subscriptions', 'before AMAZON shopping rule'],
-  ['AMAZON', 'Shopping', ''], ['TARGET', 'Shopping', ''], ['WALMART', 'Shopping', ''],
-  ['BEST BUY', 'Shopping', ''], ['ETSY', 'Shopping', ''],
-  ['COMCAST', 'Utilities', ''], ['XFINITY', 'Utilities', ''], ['PG&E', 'Utilities', ''],
-  ['CON EDISON', 'Utilities', ''], ['VERIZON', 'Utilities', ''], ['AT&T', 'Utilities', ''],
-  ['GEICO', 'Insurance', ''], ['STATE FARM', 'Insurance', ''], ['PROGRESSIVE', 'Insurance', ''],
+  ['AMAZON PRIME', 'Subscriptions', ''],   // longest-match beats AMAZON
+  ['HBO', 'Subscriptions', ''], ['PARAMOUNT', 'Subscriptions', ''],
+  ['YOUTUBE', 'Subscriptions', ''], ['DROPBOX', 'Subscriptions', ''],
+  // Shopping
+  ['AMAZON', 'Shopping', ''], ['TARGET', 'Shopping', ''],
+  ['WALMART', 'Shopping', ''], ['BEST BUY', 'Shopping', ''],
+  ['ETSY', 'Shopping', ''], ['EBAY', 'Shopping', ''],
+  ['HOME DEPOT', 'Shopping', ''], ['LOWES', 'Shopping', ''],
+  ['IKEA', 'Shopping', ''], ['MACY', 'Shopping', ''],
+  // Utilities
+  ['COMCAST', 'Utilities', ''], ['XFINITY', 'Utilities', ''],
+  ['PG&E', 'Utilities', ''], ['CON EDISON', 'Utilities', ''],
+  ['VERIZON', 'Utilities', ''], ['AT&T', 'Utilities', ''],
+  ['T-MOBILE', 'Utilities', ''], ['SPECTRUM', 'Utilities', ''],
+  ['CONSUMERS ENERGY', 'Utilities', ''], ['DTE ENERGY', 'Utilities', ''],
+  ['ENERGY', 'Utilities', ''], ['ELECTRIC', 'Utilities', ''],
+  ['WATER DEPT', 'Utilities', ''], ['GAS COMPANY', 'Utilities', ''],
+  ['INTERNET', 'Utilities', ''],
+  // Insurance
+  ['GEICO', 'Insurance', ''], ['STATE FARM', 'Insurance', ''],
+  ['PROGRESSIVE', 'Insurance', ''], ['ALLSTATE', 'Insurance', ''],
+  ['FARMERS INS', 'Insurance', ''], ['USAA', 'Insurance', ''],
+  ['NATIONWIDE', 'Insurance', ''], ['LIBERTY MUTUAL', 'Insurance', ''],
+  // Health & Medical
   ['CVS', 'Health & Medical', ''], ['WALGREENS', 'Health & Medical', ''],
-  ['KAISER', 'Health & Medical', ''], ['LA FITNESS', 'Personal Care', ''],
-  ['PLANET FIT', 'Personal Care', ''], ['SEPHORA', 'Personal Care', ''],
-  ['PETCO', 'Pets', ''], ['CHEWY', 'Pets', ''], ['DIRECT DEPOSIT', 'Income', 'positive amounts'],
+  ['KAISER', 'Health & Medical', ''], ['RITE AID', 'Health & Medical', ''],
+  ['PHARMACY', 'Health & Medical', ''], ['MEDICAL', 'Health & Medical', ''],
+  ['DENTIST', 'Health & Medical', ''], ['HOSPITAL', 'Health & Medical', ''],
+  ['CLINIC', 'Health & Medical', ''], ['COPAY', 'Health & Medical', ''],
+  ['DOCTOR', 'Health & Medical', ''],
+  // Personal Care
+  ['LA FITNESS', 'Personal Care', ''], ['PLANET FIT', 'Personal Care', ''],
+  ['SEPHORA', 'Personal Care', ''], ['ULTA', 'Personal Care', ''],
+  ['SALON', 'Personal Care', ''], ['BARBER', 'Personal Care', ''],
+  ['HAIRCUT', 'Personal Care', ''],
+  // Pets
+  ['PETCO', 'Pets', ''], ['CHEWY', 'Pets', ''], ['PETSMART', 'Pets', ''],
+  ['VET ', 'Pets', ''],
+  // Entertainment
+  ['AMC ', 'Entertainment', ''], ['REGAL CINEMAS', 'Entertainment', ''],
+  ['CINEMARK', 'Entertainment', ''], ['TICKETMASTER', 'Entertainment', ''],
+  ['EVENTBRITE', 'Entertainment', ''], ['STEAM', 'Entertainment', ''],
+  ['PLAYSTATION', 'Entertainment', ''], ['XBOX', 'Entertainment', ''],
+  // Housing — mortgage / rent / property
+  ['MORTGAGE', 'Housing', ''], ['PLANET HOME', 'Housing', ''],
+  ['RENT', 'Housing', ''], ['LANDLORD', 'Housing', ''],
+  ['HOA ', 'Housing', ''], ['PROPERTY TAX', 'Housing', ''],
+  ['ROCKET MORTGAGE', 'Housing', ''],
+  // Debt Payments — credit card + loan ACH patterns
+  ['CCPYMT', 'Debt Payments', ''], ['CRCARDPMT', 'Debt Payments', ''],
+  ['CARD PMT', 'Debt Payments', ''], ['CARD PAYMENT', 'Debt Payments', ''],
+  ['CC PAYMENT', 'Debt Payments', ''], ['LOAN PMT', 'Debt Payments', ''],
+  ['LOAN PAYMENT', 'Debt Payments', ''], ['AUTO LOAN', 'Debt Payments', ''],
+  ['STUDENT LOAN', 'Debt Payments', ''], ['CAPITAL ONE - CR', 'Debt Payments', ''],
+  ['WELLS FARGO CARD', 'Debt Payments', ''], ['DISCOVER PMT', 'Debt Payments', ''],
+  // Taxes
+  ['FRANCHISE TAX', 'Taxes', ''], ['STATE TAX', 'Taxes', ''],
+  ['IRS', 'Taxes', ''], ['TAX PAYMENT', 'Taxes', ''],
+  // Childcare
+  ['DAYCARE', 'Childcare', ''], ['PRESCHOOL', 'Childcare', ''],
+  ['CHILDCARE', 'Childcare', ''], ['KINDERCARE', 'Childcare', ''],
+  // Education
+  ['UNIVERSITY', 'Education', ''], ['TUITION', 'Education', ''],
+  ['SCHOOL DISTRICT', 'Education', ''], ['COURSERA', 'Education', ''],
+  ['UDEMY', 'Education', ''],
+  // Business
+  ['SQUARE INC', 'Business', ''], ['STRIPE', 'Business', ''],
+  ['SHOPIFY', 'Business', ''], ['QUICKBOOKS', 'Business', ''],
+  ['MAILCHIMP', 'Business', ''], ['ADOBE', 'Business', ''],
+  // Income — ACH / payroll / treasury / benefits
+  ['DIRECT DEPOSIT', 'Income', ''], ['DIRECT DEP', 'Income', ''],
   ['PAYROLL', 'Income', ''], ['INTEREST PAYMENT', 'Income', ''],
+  ['CREDIT INTEREST', 'Income', ''], ['INTEREST CREDIT', 'Income', ''],
+  ['DIVIDEND', 'Income', ''], ['REFUND', 'Income', ''],
+  ['VA COMP', 'Income', ''], ['VA COMPENSATION', 'Income', ''],
+  ['SSA', 'Income', ''], ['TREAS 310', 'Income', ''],
+  ['TAX REFUND', 'Income', ''], ['ACH CREDIT', 'Income', ''],
+  // Transfers (peer-to-peer fallthrough)
   ['VENMO', 'Misc', ''], ['ZELLE', 'Misc', '']
 ];
 
@@ -711,6 +799,12 @@ function buildCategories_(sheet, mode) {
   sheet.getRange(kr, 5, 1, 3).setValues([['Keyword', 'Category', 'Note']])
     .setFontWeight('bold').setFontColor(BRAND.BODY).setFontFamily(FONT.BODY).setFontSize(10);
   sheet.getRange(kr + 1, 5, KEYWORD_RULES.length, 3).setValues(KEYWORD_RULES);
+  // Category column (F): dropdown of the 20 categories + Income/Transfer so
+  // typos can't silently break a rule. Covers the whole reserved region.
+  var ruleCatVal = SpreadsheetApp.newDataValidation()
+    .requireValueInList(CATEGORIES.concat(['Income', 'Transfer']), true)
+    .setAllowInvalid(false).build();
+  sheet.getRange(kr + 1, 6, 190, 1).setDataValidation(ruleCatVal);
 
   footer_(sheet, kr + KEYWORD_RULES.length + 3, 'H');
   setColWidths_(sheet, [150, 90, 110, 24, 150, 130, 200, 40]);
@@ -1321,6 +1415,10 @@ var IMPORT_PASTE_LAST_ROW = 12 + IMPORT_PASTE_ROW_COUNT - 1;   // 61
 var REVIEW_INCOME_HEADER_ROW = 64;
 var REVIEW_INCOME_FIRST_ROW  = 65;
 var REVIEW_INCOME_ROW_COUNT  = 20;
+var UNCAT_SECTION_ROW = 87;       // section label
+var UNCAT_HEADER_ROW  = 88;
+var UNCAT_FIRST_ROW   = 89;
+var UNCAT_ROW_COUNT   = 20;
 
 // ── Monthly Budget ────────────────────────────────────────────────────
 // Columns: B Category · C Preset% (locked) · D Override% (yellow editable)
@@ -1527,12 +1625,28 @@ function buildBankImport_(sheet) {
   var ynRule = SpreadsheetApp.newDataValidation().requireValueInList(['Yes', 'No'], true).build();
   sheet.getRange(REVIEW_INCOME_FIRST_ROW, 4, REVIEW_INCOME_ROW_COUNT, 1).setDataValidation(ynRule);
 
-  var captionRow = REVIEW_INCOME_FIRST_ROW + REVIEW_INCOME_ROW_COUNT + 1;  // row 86
-  setCell_(sheet, 'A' + captionRow, { value: 'Sniffs headers from Chase, BoA, Wells Fargo, Cap One, Ally, Citi, USAA, Discover, Amex. Duplicates (same date + description + amount) are skipped on re-import.',
+  // Uncategorized Merchants block — turn any Misc row into a rule with a
+  // single dropdown pick. Populated by importTransactions after each import.
+  sectionLabel_(sheet, 'A' + UNCAT_SECTION_ROW, 'L' + UNCAT_SECTION_ROW,
+    'UNCATEGORIZED MERCHANTS · PICK A CATEGORY TO ADD A RULE');
+  sheet.getRange(UNCAT_HEADER_ROW, 1, 1, 5)
+    .setValues([['Sample Description', 'Hits', 'Keyword', 'Category', 'Status']])
+    .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
+  // Keyword column (C): yellow, editable.
+  sheet.getRange(UNCAT_FIRST_ROW, 3, UNCAT_ROW_COUNT, 1).setBackground(BRAND.YELLOW)
+    .setFontFamily('Roboto Mono').setFontSize(10);
+  // Category column (D): yellow + dropdown of the 20 categories.
+  sheet.getRange(UNCAT_FIRST_ROW, 4, UNCAT_ROW_COUNT, 1).setBackground(BRAND.YELLOW);
+  var uncatRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(CATEGORIES, true).setAllowInvalid(false).build();
+  sheet.getRange(UNCAT_FIRST_ROW, 4, UNCAT_ROW_COUNT, 1).setDataValidation(uncatRule);
+
+  var captionRow = UNCAT_FIRST_ROW + UNCAT_ROW_COUNT + 1;
+  setCell_(sheet, 'A' + captionRow, { value: 'Sniffs headers from Chase, BoA, Wells Fargo, Cap One, Ally, Citi, USAA, Discover, Amex. Duplicates (same date + description + amount) are skipped on re-import. Picking a Category above saves a keyword rule and reapplies it to past Misc rows.',
     merge: 'L' + captionRow, font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION, wrap: true });
 
   footer_(sheet, captionRow + 2, 'L');
-  setColWidths_(sheet, [110, 240, 90, 90, 110, 100, 100, 90, 60, 60, 60, 60]);
+  setColWidths_(sheet, [220, 50, 130, 130, 110, 80, 80, 80, 60, 60, 60, 60]);
 }
 
 // ===================== 10_menu.gs =====================
@@ -1557,6 +1671,7 @@ function buildMenu_() {
   var menu = ui.createMenu(CC.MENU_TITLE);
   menu.addItem('Import Bank Transactions', 'importTransactions');
   menu.addItem('Clear Paste Zone', 'clearPasteZone');
+  menu.addItem('Recategorize Ledger from Rules', 'recategorizeAll');
   menu.addSeparator();
   menu.addSubMenu(buildThemeMenu_());
   menu.addSubMenu(buildProfileMenu_());
@@ -1587,6 +1702,22 @@ function onEdit(e) {
   // Accounts: stamp Last Updated (col F) when Current Balance (col E) changes
   if (name === TABS.ACCOUNTS && e.range.getColumn() === 5 && e.range.getRow() >= 10) {
     sheet.getRange(e.range.getRow(), 6).setValue(new Date());
+  }
+
+  // Bank Import — Uncategorized block: picking a Category in col D saves a
+  // keyword rule from col C and reapplies it to past Misc rows.
+  if (name === TABS.IMPORT && e.range.getColumn() === 4 &&
+      e.range.getRow() >= UNCAT_FIRST_ROW &&
+      e.range.getRow() < UNCAT_FIRST_ROW + UNCAT_ROW_COUNT) {
+    var row = e.range.getRow();
+    var keyword = String(sheet.getRange(row, 3).getValue() || '').trim().toUpperCase();
+    var category = String(e.range.getValue() || '').trim();
+    if (keyword && category) {
+      addKeywordRule_(keyword, category);
+      var touched = recategorizeWhereDesc_(keyword, category);
+      sheet.getRange(row, 5).setValue('Rule saved ✓ · ' + touched + ' row' + (touched === 1 ? '' : 's') + ' updated')
+        .setFontColor(BRAND.CANOPY).setFontStyle('italic');
+    }
   }
 
   // Monthly Budget: auto-save Override-column edits (% of income) to the active profile.
@@ -1896,7 +2027,7 @@ function importTransactions() {
   }
 
   var rules = loadKeywordRules_(ss);
-  var out = [], income = [], skipped = 0, misc = 0;
+  var out = [], income = [], miscDescs = [], skipped = 0, misc = 0;
   for (var i = 1; i < rowsAsArrays.length; i++) {
     var f = rowsAsArrays[i];
     if (!f || f.length < 2) continue;
@@ -1912,7 +2043,7 @@ function importTransactions() {
       category = 'Income';
     } else {
       category = categorize_(desc, rules);
-      if (category === 'Misc') misc++;
+      if (category === 'Misc') { misc++; miscDescs.push(desc); }
     }
     out.push([date, desc, amount, category, account, '']);
     if (amount > 0) income.push([date, desc, amount]);
@@ -1932,6 +2063,27 @@ function importTransactions() {
     imp.getRange(REVIEW_INCOME_FIRST_ROW, 1, shown, 3).setValues(income.slice(0, shown));
     imp.getRange(REVIEW_INCOME_FIRST_ROW, 1, shown, 1).setNumberFormat('mmm d, yyyy');
     imp.getRange(REVIEW_INCOME_FIRST_ROW, 3, shown, 1).setNumberFormat('$#,##0.00');
+  }
+
+  // Refresh the Uncategorized Merchants block — group Misc descs by suggested
+  // keyword, sort by hit count, write up to UNCAT_ROW_COUNT rows.
+  imp.getRange(UNCAT_FIRST_ROW, 1, UNCAT_ROW_COUNT, 5).clearContent();
+  if (miscDescs.length) {
+    var groups = {};
+    for (var m = 0; m < miscDescs.length; m++) {
+      var d = miscDescs[m];
+      var k = suggestKeyword_(d);
+      if (!k) continue;
+      if (!groups[k]) groups[k] = { sample: d, hits: 0, keyword: k };
+      groups[k].hits++;
+    }
+    var rows = Object.keys(groups).map(function (k) { return groups[k]; })
+      .sort(function (a, b) { return b.hits - a.hits; })
+      .slice(0, UNCAT_ROW_COUNT);
+    if (rows.length) {
+      var grid = rows.map(function (g) { return [g.sample, g.hits, g.keyword, '', '']; });
+      imp.getRange(UNCAT_FIRST_ROW, 1, rows.length, 5).setValues(grid);
+    }
   }
 
   renumberLedger();
@@ -2047,12 +2199,105 @@ function parseDate_(s) {
   return isNaN(d.getTime()) ? s : d;
 }
 
+// Longest-keyword-wins. Removes the historical "AMAZON PRIME before AMAZON"
+// ordering trap — load order no longer matters; the most specific keyword
+// always wins.
 function categorize_(desc, rules) {
   var up = (desc || '').toUpperCase();
+  var best = null;
   for (var i = 0; i < rules.length; i++) {
-    if (rules[i].keyword && up.indexOf(rules[i].keyword) !== -1) return rules[i].category;
+    var k = rules[i].keyword;
+    if (k && up.indexOf(k) !== -1) {
+      if (!best || k.length > best.keyword.length) best = rules[i];
+    }
   }
-  return 'Misc';
+  return best ? best.category : 'Misc';
+}
+
+// Heuristic: strip standalone digits, ACH/PMT cruft, and reduce to the first
+// two words. Buyer can edit the suggestion before picking a category.
+function suggestKeyword_(desc) {
+  var s = String(desc || '').toUpperCase()
+    .replace(/[#0-9][#0-9\-]+.*$/, '')
+    .replace(/\s*-\s*(ACH|PMT|PAYMENT|PAYROLL|DIRECT|DEPOSIT|CRCARDPMT|CCPYMT).*$/, '')
+    .replace(/[^A-Z0-9\s\.\!\&\-]/g, ' ')
+    .trim();
+  var parts = s.split(/\s+/).filter(Boolean);
+  return parts.slice(0, 2).join(' ');
+}
+
+// Append a new rule to Categories!E:G. If the keyword already exists, just
+// update its category (still keeps the buyer's note column).
+function addKeywordRule_(keyword, category) {
+  var ss = SpreadsheetApp.getActive();
+  var cats = ss.getSheetByName(TABS.CATEGORIES);
+  if (!cats) return;
+  var existing = cats.getRange('E11:G200').getValues();
+  var key = String(keyword || '').toUpperCase().trim();
+  for (var i = 0; i < existing.length; i++) {
+    var k = String(existing[i][0] || '').toUpperCase().trim();
+    if (k === key) {
+      cats.getRange(11 + i, 6).setValue(category);
+      return;
+    }
+    if (!k) {
+      cats.getRange(11 + i, 5, 1, 3).setValues([[key, category, '(added from Bank Import)']]);
+      return;
+    }
+  }
+}
+
+// Find every TX row whose description contains `keyword` and whose category
+// is currently 'Misc', and rewrite the category. Returns the count touched.
+function recategorizeWhereDesc_(keyword, category) {
+  var ss = SpreadsheetApp.getActive();
+  var tx = ss.getSheetByName(TABS.TX);
+  if (!tx) return 0;
+  var finder = tx.getRange(1, 1, 12, 1).getValues();
+  var headerRow = 9;
+  for (var i = 0; i < finder.length; i++) { if (finder[i][0] === 'Date') { headerRow = i + 1; break; } }
+  var lastRow = tx.getLastRow();
+  if (lastRow <= headerRow) return 0;
+  var n = lastRow - headerRow;
+  var descCol = tx.getRange(headerRow + 1, 2, n, 1).getValues();
+  var catCol  = tx.getRange(headerRow + 1, 4, n, 1).getValues();
+  var key = String(keyword || '').toUpperCase().trim();
+  var touched = 0;
+  for (var r = 0; r < n; r++) {
+    if (String(catCol[r][0]) === 'Misc' &&
+        String(descCol[r][0] || '').toUpperCase().indexOf(key) !== -1) {
+      catCol[r][0] = category;
+      touched++;
+    }
+  }
+  if (touched) tx.getRange(headerRow + 1, 4, n, 1).setValues(catCol);
+  return touched;
+}
+
+// Menu item: walk every Misc row in the ledger and reapply rules. Used after
+// the buyer edits keyword rules by hand in the Categories tab.
+function recategorizeAll() {
+  var ss = SpreadsheetApp.getActive();
+  var tx = ss.getSheetByName(TABS.TX);
+  if (!tx) return;
+  var rules = loadKeywordRules_(ss);
+  var finder = tx.getRange(1, 1, 12, 1).getValues();
+  var headerRow = 9;
+  for (var i = 0; i < finder.length; i++) { if (finder[i][0] === 'Date') { headerRow = i + 1; break; } }
+  var lastRow = tx.getLastRow();
+  if (lastRow <= headerRow) { ss.toast('Ledger is empty.', CC.BRAND, 3); return; }
+  var n = lastRow - headerRow;
+  var descCol = tx.getRange(headerRow + 1, 2, n, 1).getValues();
+  var catCol  = tx.getRange(headerRow + 1, 4, n, 1).getValues();
+  var touched = 0;
+  for (var r = 0; r < n; r++) {
+    if (String(catCol[r][0]) === 'Misc') {
+      var c = categorize_(descCol[r][0], rules);
+      if (c && c !== 'Misc') { catCol[r][0] = c; touched++; }
+    }
+  }
+  if (touched) tx.getRange(headerRow + 1, 4, n, 1).setValues(catCol);
+  ss.toast(touched ? ('Recategorized ' + touched + ' row' + (touched === 1 ? '' : 's')) : 'No Misc rows matched any rule.', CC.BRAND, 4);
 }
 
 function loadKeywordRules_(ss) {

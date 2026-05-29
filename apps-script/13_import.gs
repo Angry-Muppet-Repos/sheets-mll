@@ -64,7 +64,7 @@ function importTransactions() {
   }
 
   var rules = loadKeywordRules_(ss);
-  var out = [], income = [], skipped = 0, misc = 0;
+  var out = [], income = [], miscDescs = [], skipped = 0, misc = 0;
   for (var i = 1; i < rowsAsArrays.length; i++) {
     var f = rowsAsArrays[i];
     if (!f || f.length < 2) continue;
@@ -80,7 +80,7 @@ function importTransactions() {
       category = 'Income';
     } else {
       category = categorize_(desc, rules);
-      if (category === 'Misc') misc++;
+      if (category === 'Misc') { misc++; miscDescs.push(desc); }
     }
     out.push([date, desc, amount, category, account, '']);
     if (amount > 0) income.push([date, desc, amount]);
@@ -100,6 +100,27 @@ function importTransactions() {
     imp.getRange(REVIEW_INCOME_FIRST_ROW, 1, shown, 3).setValues(income.slice(0, shown));
     imp.getRange(REVIEW_INCOME_FIRST_ROW, 1, shown, 1).setNumberFormat('mmm d, yyyy');
     imp.getRange(REVIEW_INCOME_FIRST_ROW, 3, shown, 1).setNumberFormat('$#,##0.00');
+  }
+
+  // Refresh the Uncategorized Merchants block — group Misc descs by suggested
+  // keyword, sort by hit count, write up to UNCAT_ROW_COUNT rows.
+  imp.getRange(UNCAT_FIRST_ROW, 1, UNCAT_ROW_COUNT, 5).clearContent();
+  if (miscDescs.length) {
+    var groups = {};
+    for (var m = 0; m < miscDescs.length; m++) {
+      var d = miscDescs[m];
+      var k = suggestKeyword_(d);
+      if (!k) continue;
+      if (!groups[k]) groups[k] = { sample: d, hits: 0, keyword: k };
+      groups[k].hits++;
+    }
+    var rows = Object.keys(groups).map(function (k) { return groups[k]; })
+      .sort(function (a, b) { return b.hits - a.hits; })
+      .slice(0, UNCAT_ROW_COUNT);
+    if (rows.length) {
+      var grid = rows.map(function (g) { return [g.sample, g.hits, g.keyword, '', '']; });
+      imp.getRange(UNCAT_FIRST_ROW, 1, rows.length, 5).setValues(grid);
+    }
   }
 
   renumberLedger();
@@ -215,12 +236,105 @@ function parseDate_(s) {
   return isNaN(d.getTime()) ? s : d;
 }
 
+// Longest-keyword-wins. Removes the historical "AMAZON PRIME before AMAZON"
+// ordering trap — load order no longer matters; the most specific keyword
+// always wins.
 function categorize_(desc, rules) {
   var up = (desc || '').toUpperCase();
+  var best = null;
   for (var i = 0; i < rules.length; i++) {
-    if (rules[i].keyword && up.indexOf(rules[i].keyword) !== -1) return rules[i].category;
+    var k = rules[i].keyword;
+    if (k && up.indexOf(k) !== -1) {
+      if (!best || k.length > best.keyword.length) best = rules[i];
+    }
   }
-  return 'Misc';
+  return best ? best.category : 'Misc';
+}
+
+// Heuristic: strip standalone digits, ACH/PMT cruft, and reduce to the first
+// two words. Buyer can edit the suggestion before picking a category.
+function suggestKeyword_(desc) {
+  var s = String(desc || '').toUpperCase()
+    .replace(/[#0-9][#0-9\-]+.*$/, '')
+    .replace(/\s*-\s*(ACH|PMT|PAYMENT|PAYROLL|DIRECT|DEPOSIT|CRCARDPMT|CCPYMT).*$/, '')
+    .replace(/[^A-Z0-9\s\.\!\&\-]/g, ' ')
+    .trim();
+  var parts = s.split(/\s+/).filter(Boolean);
+  return parts.slice(0, 2).join(' ');
+}
+
+// Append a new rule to Categories!E:G. If the keyword already exists, just
+// update its category (still keeps the buyer's note column).
+function addKeywordRule_(keyword, category) {
+  var ss = SpreadsheetApp.getActive();
+  var cats = ss.getSheetByName(TABS.CATEGORIES);
+  if (!cats) return;
+  var existing = cats.getRange('E11:G200').getValues();
+  var key = String(keyword || '').toUpperCase().trim();
+  for (var i = 0; i < existing.length; i++) {
+    var k = String(existing[i][0] || '').toUpperCase().trim();
+    if (k === key) {
+      cats.getRange(11 + i, 6).setValue(category);
+      return;
+    }
+    if (!k) {
+      cats.getRange(11 + i, 5, 1, 3).setValues([[key, category, '(added from Bank Import)']]);
+      return;
+    }
+  }
+}
+
+// Find every TX row whose description contains `keyword` and whose category
+// is currently 'Misc', and rewrite the category. Returns the count touched.
+function recategorizeWhereDesc_(keyword, category) {
+  var ss = SpreadsheetApp.getActive();
+  var tx = ss.getSheetByName(TABS.TX);
+  if (!tx) return 0;
+  var finder = tx.getRange(1, 1, 12, 1).getValues();
+  var headerRow = 9;
+  for (var i = 0; i < finder.length; i++) { if (finder[i][0] === 'Date') { headerRow = i + 1; break; } }
+  var lastRow = tx.getLastRow();
+  if (lastRow <= headerRow) return 0;
+  var n = lastRow - headerRow;
+  var descCol = tx.getRange(headerRow + 1, 2, n, 1).getValues();
+  var catCol  = tx.getRange(headerRow + 1, 4, n, 1).getValues();
+  var key = String(keyword || '').toUpperCase().trim();
+  var touched = 0;
+  for (var r = 0; r < n; r++) {
+    if (String(catCol[r][0]) === 'Misc' &&
+        String(descCol[r][0] || '').toUpperCase().indexOf(key) !== -1) {
+      catCol[r][0] = category;
+      touched++;
+    }
+  }
+  if (touched) tx.getRange(headerRow + 1, 4, n, 1).setValues(catCol);
+  return touched;
+}
+
+// Menu item: walk every Misc row in the ledger and reapply rules. Used after
+// the buyer edits keyword rules by hand in the Categories tab.
+function recategorizeAll() {
+  var ss = SpreadsheetApp.getActive();
+  var tx = ss.getSheetByName(TABS.TX);
+  if (!tx) return;
+  var rules = loadKeywordRules_(ss);
+  var finder = tx.getRange(1, 1, 12, 1).getValues();
+  var headerRow = 9;
+  for (var i = 0; i < finder.length; i++) { if (finder[i][0] === 'Date') { headerRow = i + 1; break; } }
+  var lastRow = tx.getLastRow();
+  if (lastRow <= headerRow) { ss.toast('Ledger is empty.', CC.BRAND, 3); return; }
+  var n = lastRow - headerRow;
+  var descCol = tx.getRange(headerRow + 1, 2, n, 1).getValues();
+  var catCol  = tx.getRange(headerRow + 1, 4, n, 1).getValues();
+  var touched = 0;
+  for (var r = 0; r < n; r++) {
+    if (String(catCol[r][0]) === 'Misc') {
+      var c = categorize_(descCol[r][0], rules);
+      if (c && c !== 'Misc') { catCol[r][0] = c; touched++; }
+    }
+  }
+  if (touched) tx.getRange(headerRow + 1, 4, n, 1).setValues(catCol);
+  ss.toast(touched ? ('Recategorized ' + touched + ' row' + (touched === 1 ? '' : 's')) : 'No Misc rows matched any rule.', CC.BRAND, 4);
 }
 
 function loadKeywordRules_(ss) {

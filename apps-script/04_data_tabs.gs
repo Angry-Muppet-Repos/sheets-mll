@@ -102,6 +102,12 @@ function buildCategories_(sheet, mode) {
   sheet.getRange(kr, 5, 1, 3).setValues([['Keyword', 'Category', 'Note']])
     .setFontWeight('bold').setFontColor(BRAND.BODY).setFontFamily(FONT.BODY).setFontSize(10);
   sheet.getRange(kr + 1, 5, KEYWORD_RULES.length, 3).setValues(KEYWORD_RULES);
+  // Category column (F): dropdown of the 20 categories + Income/Transfer so
+  // typos can't silently break a rule. Covers the whole reserved region.
+  var ruleCatVal = SpreadsheetApp.newDataValidation()
+    .requireValueInList(CATEGORIES.concat(['Income', 'Transfer']), true)
+    .setAllowInvalid(false).build();
+  sheet.getRange(kr + 1, 6, 190, 1).setDataValidation(ruleCatVal);
 
   footer_(sheet, kr + KEYWORD_RULES.length + 3, 'H');
   setColWidths_(sheet, [150, 90, 110, 24, 150, 130, 200, 40]);
