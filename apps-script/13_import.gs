@@ -80,7 +80,7 @@ function importTransactions() {
       category = 'Income';
     } else {
       category = categorize_(desc, rules);
-      if (category === 'Misc') { misc++; miscDescs.push(desc); }
+      if (category === 'Misc') { misc++; miscDescs.push({ desc: desc, amount: amount }); }
     }
     out.push([date, desc, amount, category, account, '']);
     if (amount > 0) income.push([date, desc, amount]);
@@ -104,22 +104,24 @@ function importTransactions() {
 
   // Refresh the Uncategorized Merchants block — group Misc descs by suggested
   // keyword, sort by hit count, write up to UNCAT_ROW_COUNT rows.
-  imp.getRange(UNCAT_FIRST_ROW, 1, UNCAT_ROW_COUNT, 5).clearContent();
+  imp.getRange(UNCAT_FIRST_ROW, 1, UNCAT_ROW_COUNT, 6).clearContent();
   if (miscDescs.length) {
     var groups = {};
     for (var m = 0; m < miscDescs.length; m++) {
-      var d = miscDescs[m];
+      var d = miscDescs[m].desc;
+      var amt = miscDescs[m].amount;
       var k = suggestKeyword_(d);
       if (!k) continue;
-      if (!groups[k]) groups[k] = { sample: d, hits: 0, keyword: k };
+      if (!groups[k]) groups[k] = { sample: d, sampleAmt: amt, hits: 0, keyword: k };
       groups[k].hits++;
     }
     var rows = Object.keys(groups).map(function (k) { return groups[k]; })
       .sort(function (a, b) { return b.hits - a.hits; })
       .slice(0, UNCAT_ROW_COUNT);
     if (rows.length) {
-      var grid = rows.map(function (g) { return [g.sample, g.hits, g.keyword, '', '']; });
-      imp.getRange(UNCAT_FIRST_ROW, 1, rows.length, 5).setValues(grid);
+      var grid = rows.map(function (g) { return [g.sample, g.hits, g.sampleAmt, g.keyword, '', '']; });
+      imp.getRange(UNCAT_FIRST_ROW, 1, rows.length, 6).setValues(grid);
+      imp.getRange(UNCAT_FIRST_ROW, 3, rows.length, 1).setNumberFormat('$#,##0.00;[red]-$#,##0.00');
     }
   }
 

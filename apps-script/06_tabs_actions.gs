@@ -215,8 +215,8 @@ function buildBankImport_(sheet) {
     'COUNTA(A' + dRev + ':A' + dRevEnd + ')-COUNTA(D' + dRev + ':D' + dRevEnd + ')))';
   var uncatCountFormula =
     '=IF(COUNTA(A' + dUnc + ':A' + dUncEnd + ')=0,"5",' +
-    'IF(COUNTA(A' + dUnc + ':A' + dUncEnd + ')=COUNTA(D' + dUnc + ':D' + dUncEnd + '),"✓",' +
-    'COUNTA(A' + dUnc + ':A' + dUncEnd + ')-COUNTA(D' + dUnc + ':D' + dUncEnd + ')))';
+    'IF(COUNTA(A' + dUnc + ':A' + dUncEnd + ')=COUNTA(E' + dUnc + ':E' + dUncEnd + '),"✓",' +
+    'COUNTA(A' + dUnc + ':A' + dUncEnd + ')-COUNTA(E' + dUnc + ':E' + dUncEnd + ')))';
 
   var steps = [
     { digit: '1', label: 'Pick account (C10)',     digitCol: 1, labelStart: 2, labelEnd: 3 },
@@ -282,20 +282,24 @@ function buildBankImport_(sheet) {
   // single dropdown pick. Populated by importTransactions after each import.
   sectionLabel_(sheet, 'A' + UNCAT_SECTION_ROW, 'L' + UNCAT_SECTION_ROW,
     'UNCATEGORIZED MERCHANTS · PICK A CATEGORY TO ADD A RULE');
-  sheet.getRange(UNCAT_HEADER_ROW, 1, 1, 5)
-    .setValues([['Sample Description', 'Hits', 'Keyword', 'Category', 'Status']])
+  sheet.getRange(UNCAT_HEADER_ROW, 1, 1, 6)
+    .setValues([['Sample Description', 'Hits', 'Sample Amount', 'Keyword', 'Category', 'Status']])
     .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
-  // Keyword column (C): yellow, editable.
-  sheet.getRange(UNCAT_FIRST_ROW, 3, UNCAT_ROW_COUNT, 1).setBackground(BRAND.YELLOW)
+  // Sample Amount column (C): currency, locked.
+  sheet.getRange(UNCAT_FIRST_ROW, 3, UNCAT_ROW_COUNT, 1)
+    .setNumberFormat('$#,##0.00;[red]-$#,##0.00')
+    .setFontFamily('Roboto Mono').setFontSize(10).setHorizontalAlignment('right');
+  // Keyword column (D): yellow, editable.
+  sheet.getRange(UNCAT_FIRST_ROW, 4, UNCAT_ROW_COUNT, 1).setBackground(BRAND.YELLOW)
     .setFontFamily('Roboto Mono').setFontSize(10);
-  // Category column (D): yellow + dropdown (pulls from cc_tx_categories so
+  // Category column (E): yellow + dropdown (pulls from cc_tx_categories so
   // routing a Misc merchant straight into a custom slot works).
-  sheet.getRange(UNCAT_FIRST_ROW, 4, UNCAT_ROW_COUNT, 1).setBackground(BRAND.YELLOW);
+  sheet.getRange(UNCAT_FIRST_ROW, 5, UNCAT_ROW_COUNT, 1).setBackground(BRAND.YELLOW);
   var uncatRange = SpreadsheetApp.getActive().getRangeByName('cc_tx_categories') ||
     SpreadsheetApp.getActive().getRange("'" + TABS.CATEGORIES + "'!A11:A37");
   var uncatRule = SpreadsheetApp.newDataValidation()
     .requireValueInRange(uncatRange, true).setAllowInvalid(false).build();
-  sheet.getRange(UNCAT_FIRST_ROW, 4, UNCAT_ROW_COUNT, 1).setDataValidation(uncatRule);
+  sheet.getRange(UNCAT_FIRST_ROW, 5, UNCAT_ROW_COUNT, 1).setDataValidation(uncatRule);
 
   var captionRow = UNCAT_FIRST_ROW + UNCAT_ROW_COUNT + 1;
   setCell_(sheet, 'A' + captionRow, { value: 'Sniffs headers from Chase, BoA, Wells Fargo, Cap One, Ally, Citi, USAA, Discover, Amex. Duplicates (same date + description + amount) are skipped on re-import. Picking a Category above saves a keyword rule and reapplies it to past Misc rows.',
