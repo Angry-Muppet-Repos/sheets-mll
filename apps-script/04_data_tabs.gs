@@ -42,7 +42,7 @@ function buildSchema_(sheet) {
     '',
     'Tabs:',
     '  • Transactions — every transaction. Columns: Date, Description, Amount',
-    '    (negative = expense, positive = income), Category, Account, Notes, Month.',
+    '    (negative = expense, positive = income), Category, Account, Counter-Account, Notes, Month.',
     '  • Accounts — register of bank accounts, credit cards, savings, and loans.',
     '  • Categories — 20 spending categories + keyword rules for auto-categorization.',
     '  • Monthly Budget — current targets per category, from one of 10 profiles',

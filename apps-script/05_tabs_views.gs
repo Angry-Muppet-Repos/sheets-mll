@@ -92,6 +92,9 @@ function buildStartHere_(sheet) {
 // ── Dashboard ─────────────────────────────────────────────────────────
 function buildDashboard_(sheet, mode) {
   chrome_(sheet, TABS.DASHBOARD, 'L', 'VIEWING MONTH · MAY 2026');
+  // Replace the static breadcrumb with a live formula so it tracks N4.
+  sheet.getRange('A3').setFormula(
+    '="VIEWING MONTH · "&UPPER(TEXT(DATEVALUE(INDEX(cc_engine_months,1,N4+1)&"-01"),"mmm yyyy"))&"  "');
   var r = titleRow_(sheet, 'L', 'Dashboard',
     'Your money at a glance. Updated automatically as transactions come in.');
 
@@ -100,16 +103,24 @@ function buildDashboard_(sheet, mode) {
   sheet.getRange('N3').setValue('active_month_idx (0-23)').setFontColor(BRAND.CAPTION).setFontSize(8);
 
   // Month label + 6 pills
-  setCell_(sheet, 'A' + r, { value: 'May 2026', merge: 'C' + r, font: FONT.DISPLAY, size: 26, bold: true, color: BRAND.FOREST });
+  setCell_(sheet, 'A' + r, {
+    formula: '=TEXT(DATEVALUE(INDEX(cc_engine_months,1,N4+1)&"-01"),"mmmm yyyy")',
+    merge: 'C' + r, font: FONT.DISPLAY, size: 26, bold: true, color: BRAND.FOREST });
   var pillMonths = ['Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May'];
   for (var i = 0; i < 6; i++) {
     var col = 6 + i;
-    var active = (i === 5);
     setCell_(sheet, sheet.getRange(r, col).getA1Notation(), {
       value: pillMonths[i], font: FONT.BODY, size: 11, bold: true, h: 'center', v: 'middle',
-      bg: active ? BRAND.FOREST : BRAND.CREAM, color: active ? BRAND.PARCHMENT : BRAND.BODY });
-    if (active) themable_(sheet.getName(), 'primary', sheet.getRange(r, col).getA1Notation());
+      bg: BRAND.FOREST, color: BRAND.PARCHMENT });
+    themable_(sheet.getName(), 'primary', sheet.getRange(r, col).getA1Notation());
   }
+  // CF: paint inactive pills cream (active pill = the one whose column matches N4-12).
+  var pillRange = sheet.getRange(r, 6, 1, 6);
+  var inactiveRule = SpreadsheetApp.newConditionalFormatRule()
+    .whenFormulaSatisfied('=COLUMN()<>$N$4-12')
+    .setBackground(BRAND.CREAM).setFontColor(BRAND.BODY).setBold(true)
+    .setRanges([pillRange]).build();
+  sheet.setConditionalFormatRules(sheet.getConditionalFormatRules().concat([inactiveRule]));
   r += 2;
 
   // KPI row — 4 cards (3 cols each)
@@ -128,7 +139,9 @@ function buildDashboard_(sheet, mode) {
   r += 4;
 
   // Top spending table (left, cols A-H) + Month Snapshot (right, I-L)
-  sectionLabel_(sheet, 'A' + r, 'H' + r, 'TOP SPENDING · MAY 2026');
+  sectionLabel_(sheet, 'A' + r, 'H' + r, 'TOP SPENDING');
+  sheet.getRange('A' + r).setFormula(
+    '="TOP SPENDING · "&UPPER(TEXT(DATEVALUE(INDEX(cc_engine_months,1,N4+1)&"-01"),"mmm yyyy"))');
   sectionLabel_(sheet, 'I' + r, 'L' + r, 'MONTH SNAPSHOT');
   r += 1;
   sheet.getRange(r, 1, 1, 5).setValues([['Category', 'Spent', 'Budget', '% of Budget', 'Status']])
