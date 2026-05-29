@@ -168,9 +168,51 @@ function renumberLedger() {
   tx.getRange(firstData, 3, 5000, 1).setNumberFormat('$#,##0.00');
   tx.getRange(firstData, 7, 5000, 1).setFormulaR1C1('=IF(RC1="","",TEXT(RC1,"yyyy-mm"))');
 
-  var catList = SpreadsheetApp.newDataValidation().requireValueInList(CATEGORIES.concat(['Income', 'Transfer']), true).build();
+  var catRange = ss.getRangeByName('cc_tx_categories') ||
+    ss.getRange("'" + TABS.CATEGORIES + "'!A11:A37");
+  var catList = SpreadsheetApp.newDataValidation()
+    .requireValueInRange(catRange, true).build();
   tx.getRange(firstData, 4, 5000, 1).setDataValidation(catList);
   ss.toast('Ledger formats refreshed', CC.BRAND, 3);
+}
+
+// ── Add Account (menu item) ───────────────────────────────────────────
+// Prompts for an account name and appends it to the Accounts list with
+// sensible defaults so the buyer doesn't have to leave Bank Import to
+// register a new account. Direct editing on the Accounts tab still works.
+function addAccount() {
+  var ui = SpreadsheetApp.getUi();
+  var ss = SpreadsheetApp.getActive();
+  var acct = ss.getSheetByName(TABS.ACCOUNTS);
+  if (!acct) { ui.alert('Accounts tab not found.'); return; }
+
+  var resp = ui.prompt('Add Account',
+    'Account name (e.g. "Chase Joint Checking"):', ui.ButtonSet.OK_CANCEL);
+  if (resp.getSelectedButton() !== ui.Button.OK) return;
+  var name = String(resp.getResponseText() || '').trim();
+  if (!name) return;
+
+  var range = ss.getRangeByName('cc_accounts_list') || acct.getRange('A10:A41');
+  var vals = range.getValues();
+  var target = -1;
+  for (var i = 0; i < vals.length; i++) {
+    if (!vals[i][0]) { target = range.getRow() + i; break; }
+    if (String(vals[i][0]).trim().toLowerCase() === name.toLowerCase()) {
+      ui.alert('"' + name + '" is already in the Accounts list.');
+      return;
+    }
+  }
+  if (target === -1) {
+    ui.alert('Accounts list is full. Add capacity in buildAccounts_.');
+    return;
+  }
+  acct.getRange(target, 1).setValue(name);
+  acct.getRange(target, 2).setValue('Checking');
+  acct.getRange(target, 3).setValue('Joint');
+  acct.getRange(target, 6).setValue(new Date());
+  acct.activate();
+  acct.getRange(target, 4).activate();
+  ss.toast('Added "' + name + '" — fill in the starting balance →', CC.BRAND, 4);
 }
 
 function openHelpSidebar() {

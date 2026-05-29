@@ -77,16 +77,17 @@ function buildCategories_(sheet, mode) {
   var r = titleRow_(sheet, 'H', 'Categories',
     'The 20 spending categories and the keyword rules that auto-tag your imports.');
 
-  sectionLabel_(sheet, 'A' + r, 'C' + r, 'CATEGORY LIST · 20 CATEGORIES');
+  sectionLabel_(sheet, 'A' + r, 'C' + r, 'CATEGORY LIST · 20 FIXED + 5 CUSTOM SLOTS');
   r += 1;
   sheet.getRange(r, 1, 1, 3).setValues([['Category Name', 'Type', 'Monthly Target']])
     .setFontWeight('bold').setFontColor(BRAND.BODY).setFontFamily(FONT.BODY).setFontSize(10);
+  // 20 fixed categories (locked names)
   sheet.getRange(r + 1, 1, 20, 1).setValues(CATEGORIES.map(function (c) { return [c]; }));
   sheet.getRange(r + 1, 2, 20, 1).setValue('Expense');
   for (var i = 0; i < 20; i++) {
     sheet.getRange(r + 1 + i, 3).setFormula("='" + TABS.BUDGET + "'!F" + (17 + i)).setNumberFormat('$#,##0');
   }
-  // zebra
+  // zebra (fixed rows only)
   for (var z = 0; z < 20; z++) {
     if (z % 2 === 1) {
       var a1 = sheet.getRange(r + 1 + z, 1, 1, 3).getA1Notation();
@@ -94,6 +95,20 @@ function buildCategories_(sheet, mode) {
       themable_(sheet.getName(), 'zebra', a1);
     }
   }
+  // 5 custom slots — yellow editable name, default Expense type, Monthly
+  // Target pulled from Monthly Budget rows 37-41 (added by buildMonthlyBudget_).
+  var customStart = r + 1 + 20;   // row 31
+  for (var cs = 0; cs < CUSTOM_CATEGORY_SLOTS; cs++) {
+    var crow = customStart + cs;
+    sheet.getRange(crow, 1).setBackground(BRAND.YELLOW)
+      .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
+    sheet.getRange(crow, 2).setValue('Expense').setFontColor(BRAND.CAPTION);
+    sheet.getRange(crow, 3).setFormula("='" + TABS.BUDGET + "'!F" + (37 + cs)).setNumberFormat('$#,##0');
+  }
+  // System rows — Income / Transfer (locked, included so dropdowns can pick them up)
+  var sysStart = customStart + CUSTOM_CATEGORY_SLOTS;   // row 36
+  sheet.getRange(sysStart, 1, 2, 1).setValues([['Income'], ['Transfer']]).setFontColor(BRAND.CAPTION);
+  sheet.getRange(sysStart, 2, 2, 1).setValues([['Income'], ['Transfer']]).setFontColor(BRAND.CAPTION);
 
   // Keyword rules region (cols E-G) — start at row 9 so it clears the
   // title row (rows 6-7 are merged full-width by titleRow_).
@@ -102,10 +117,12 @@ function buildCategories_(sheet, mode) {
   sheet.getRange(kr, 5, 1, 3).setValues([['Keyword', 'Category', 'Note']])
     .setFontWeight('bold').setFontColor(BRAND.BODY).setFontFamily(FONT.BODY).setFontSize(10);
   sheet.getRange(kr + 1, 5, KEYWORD_RULES.length, 3).setValues(KEYWORD_RULES);
-  // Category column (F): dropdown of the 20 categories + Income/Transfer so
-  // typos can't silently break a rule. Covers the whole reserved region.
+  // Category column (F): dropdown sourced from cc_tx_categories so custom
+  // slot names + Income/Transfer all show up. Covers the whole reserved region.
+  var ruleCatRange = SpreadsheetApp.getActive().getRangeByName('cc_tx_categories') ||
+    sheet.getRange('A11:A37');
   var ruleCatVal = SpreadsheetApp.newDataValidation()
-    .requireValueInList(CATEGORIES.concat(['Income', 'Transfer']), true)
+    .requireValueInRange(ruleCatRange, true)
     .setAllowInvalid(false).build();
   sheet.getRange(kr + 1, 6, 190, 1).setDataValidation(ruleCatVal);
 
@@ -186,8 +203,11 @@ function buildTransactions_(sheet, mode) {
   sheet.getRange(firstData, 7, 5000, 1)
     .setFormulaR1C1('=IF(RC1="","",TEXT(RC1,"yyyy-mm"))');
 
-  // dropdowns — explicit category list (avoids depending on Categories row offsets)
-  var catList = SpreadsheetApp.newDataValidation().requireValueInList(CATEGORIES.concat(['Income', 'Transfer']), true).build();
+  // dropdowns — pull from cc_tx_categories so custom slot names appear automatically
+  var catRange = SpreadsheetApp.getActive().getRangeByName('cc_tx_categories') ||
+    SpreadsheetApp.getActive().getRange("'" + TABS.CATEGORIES + "'!A11:A37");
+  var catList = SpreadsheetApp.newDataValidation()
+    .requireValueInRange(catRange, true).build();
   sheet.getRange(firstData, 4, 5000, 1).setDataValidation(catList);
   var acctRule = SpreadsheetApp.newDataValidation()
     .requireValueInRange(SpreadsheetApp.getActive().getRangeByName('cc_accounts_list') ||
@@ -260,7 +280,7 @@ function buildEngine_(sheet, mode) {
   sheet.getRange('A1').setValue('metric \\ month').setFontWeight('bold');
   sheet.getRange(1, 2, 1, 24).setValues([monthCodes]).setFontWeight('bold');
 
-  // Rows 2-21: categories. Each cell SUMIFS expenses (abs) for that month+cat.
+  // Rows 2-21: 20 fixed categories. Each cell SUMIFS expenses (abs) for that month+cat.
   var txAmount = "'" + TABS.TX + "'!$C:$C";
   var txCat = "'" + TABS.TX + "'!$D:$D";
   var txMonth = "'" + TABS.TX + "'!$G:$G";
@@ -275,24 +295,37 @@ function buildEngine_(sheet, mode) {
       );
     }
   }
-  // Row 22 Income, 23 Expenses, 24 NetCashFlow, 25 SavingsRate
-  sheet.getRange(22, 1).setValue('Income');
-  sheet.getRange(23, 1).setValue('Expenses');
-  sheet.getRange(24, 1).setValue('NetCashFlow');
-  sheet.getRange(25, 1).setValue('SavingsRate');
+  // Rows 22-26: 5 custom-category slots. Col A reads the user-typed name from
+  // the Categories tab — when blank, SUMIFS matches nothing and the row stays 0.
+  for (var cs = 0; cs < CUSTOM_CATEGORY_SLOTS; cs++) {
+    var crow = 22 + cs;
+    sheet.getRange(crow, 1).setFormula("='" + TABS.CATEGORIES + "'!A" + (31 + cs));
+    for (var cc = 0; cc < 24; cc++) {
+      var ccol = 2 + cc;
+      var ccolL = columnToLetter_(ccol);
+      sheet.getRange(crow, ccol).setFormula(
+        '=IF($A' + crow + '="",0,ABS(SUMIFS(' + txAmount + ',' + txCat + ',$A' + crow + ',' + txMonth + ',' + ccolL + '$1)))'
+      );
+    }
+  }
+  // Rows 27-30: Income, Expenses, NetCashFlow, SavingsRate
+  sheet.getRange(27, 1).setValue('Income');
+  sheet.getRange(28, 1).setValue('Expenses');
+  sheet.getRange(29, 1).setValue('NetCashFlow');
+  sheet.getRange(30, 1).setValue('SavingsRate');
   for (var c2 = 0; c2 < 24; c2++) {
     var colL2 = columnToLetter_(2 + c2);
     // Income = SUMIFS positive amounts where category = Income
-    sheet.getRange(22, 2 + c2).setFormula(
+    sheet.getRange(27, 2 + c2).setFormula(
       '=SUMIFS(' + txAmount + ',' + txCat + ',"Income",' + txMonth + ',' + colL2 + '$1)');
-    // Expenses = sum of category rows 2..21
-    sheet.getRange(23, 2 + c2).setFormula('=SUM(' + colL2 + '2:' + colL2 + '21)');
-    sheet.getRange(24, 2 + c2).setFormula('=' + colL2 + '22-' + colL2 + '23');
-    sheet.getRange(25, 2 + c2).setFormula(
-      '=IF(' + colL2 + '22=0,0,' + colL2 + '24/' + colL2 + '22)').setNumberFormat('0.0%');
+    // Expenses = sum of all category rows 2..26 (20 fixed + 5 custom)
+    sheet.getRange(28, 2 + c2).setFormula('=SUM(' + colL2 + '2:' + colL2 + '26)');
+    sheet.getRange(29, 2 + c2).setFormula('=' + colL2 + '27-' + colL2 + '28');
+    sheet.getRange(30, 2 + c2).setFormula(
+      '=IF(' + colL2 + '27=0,0,' + colL2 + '29/' + colL2 + '27)').setNumberFormat('0.0%');
   }
-  sheet.getRange(2, 2, 24, 24).setNumberFormat('$#,##0');
-  sheet.getRange(25, 2, 1, 24).setNumberFormat('0.0%');
+  sheet.getRange(2, 2, 28, 24).setNumberFormat('$#,##0');
+  sheet.getRange(30, 2, 1, 24).setNumberFormat('0.0%');
 }
 
 function columnToLetter_(col) {

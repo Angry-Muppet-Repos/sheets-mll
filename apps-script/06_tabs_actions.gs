@@ -44,21 +44,21 @@ function buildMonthlyBudget_(sheet, mode) {
   setCell_(sheet, 'A13', { value: 'Monthly income', font: FONT.BODY, size: 11, bold: true, color: BRAND.BODY });
   setCell_(sheet, 'A14', { value: 'Active profile', font: FONT.BODY, size: 9, color: BRAND.CAPTION });
   sheet.getRange(BUDGET_INCOME_CELL)
-    .setFormula("=INDEX('" + TABS.ENGINE + "'!$B$22:$Y$22,1,24)")
+    .setFormula("=INDEX('" + TABS.ENGINE + "'!$B$27:$Y$27,1,24)")
     .setNumberFormat('$#,##0').setBackground(BRAND.YELLOW)
     .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
   sheet.getRange(BUDGET_PICKER_CELL).setFontColor(BRAND.CAPTION).setFontSize(9);
 
   // hero KPI cards (right, cols H-L) at row 6 — % is the primary unit
-  kpiCard_(sheet, 'H6', 2, 'PRESET TOTAL', '=SUM(C17:C36)',
-    '="$"&TEXT(SUM(C17:C36)*$C$13,"#,##0")&" of $"&TEXT($C$13,"#,##0")', BRAND.FOREST);
-  kpiCard_(sheet, 'J6', 3, 'WITH OVERRIDES', '=SUM(E17:E36)',
-    '="$"&TEXT(SUM(F17:F36),"#,##0")&" · "&IF(ABS(SUM(E17:E36)-SUM(C17:C36))<0.0005,"on preset",IF(SUM(E17:E36)>SUM(C17:C36),TEXT(SUM(E17:E36)-SUM(C17:C36),"0.0%")&" above preset",TEXT(SUM(C17:C36)-SUM(E17:E36),"0.0%")&" below preset"))', BRAND.GOLD);
+  kpiCard_(sheet, 'H6', 2, 'PRESET TOTAL', '=SUM(C17:C41)',
+    '="$"&TEXT(SUM(C17:C41)*$C$13,"#,##0")&" of $"&TEXT($C$13,"#,##0")', BRAND.FOREST);
+  kpiCard_(sheet, 'J6', 3, 'WITH OVERRIDES', '=SUM(E17:E41)',
+    '="$"&TEXT(SUM(F17:F41),"#,##0")&" · "&IF(ABS(SUM(E17:E41)-SUM(C17:C41))<0.0005,"on preset",IF(SUM(E17:E41)>SUM(C17:C41),TEXT(SUM(E17:E41)-SUM(C17:C41),"0.0%")&" above preset",TEXT(SUM(C17:C41)-SUM(E17:E41),"0.0%")&" below preset"))', BRAND.GOLD);
   sheet.getRange(7, 8).setNumberFormat('0.0%');
   sheet.getRange(7, 10).setNumberFormat('0.0%');
 
   // Category targets table
-  sectionLabel_(sheet, 'A15', 'F15', 'CATEGORY TARGETS · 20 CATEGORIES');
+  sectionLabel_(sheet, 'A15', 'F15', 'CATEGORY TARGETS · 20 FIXED + 5 CUSTOM');
   setCell_(sheet, 'G15', { value: 'PRESET LOCKED · TYPE A % INTO OVERRIDE TO TWEAK', merge: 'L15',
     font: FONT.BODY, size: 9, bold: true, color: BRAND.GOLD, bg: BRAND.CREAM, h: 'right', v: 'middle' });
   sheet.getRange(16, 2, 1, 7).setValues([['Category', 'Preset %', 'Override %', 'Target %', 'Target $', 'Δ %', 'Share']])
@@ -82,13 +82,31 @@ function buildMonthlyBudget_(sheet, mode) {
       .setNumberFormat('+0.0%;−0.0%;"—"');
     // Share bar based on Target $
     sheet.getRange(rr, 8).setFormula(
-      '=SPARKLINE(F' + rr + ',{"charttype","bar";"max",MAX($F$17:$F$36);"color1",SWITCH(B' + rr +
+      '=SPARKLINE(F' + rr + ',{"charttype","bar";"max",MAX($F$17:$F$41);"color1",SWITCH(B' + rr +
       ',"Savings","' + BRAND.GOLD + '","Debt Payments","' + BRAND.GARNET + '","' + BRAND.FOREST + '")})');
+  }
+  // 5 custom-slot rows (37-41). Category name is a formula reading Categories!A31..A35.
+  // Override / Target / Δ behave identically — blank slot name renders a blank row.
+  for (var cs = 0; cs < CUSTOM_CATEGORY_SLOTS; cs++) {
+    var crr = BUDGET_TARGETS_FIRST_ROW + 20 + cs;   // 37..41
+    sheet.getRange(crr, 2).setFormula("='" + TABS.CATEGORIES + "'!A" + (31 + cs))
+      .setFontFamily(FONT.BODY).setFontSize(11).setFontColor(BRAND.BODY).setFontStyle('italic');
+    sheet.getRange(crr, 3).setNumberFormat('0.0%').setBackground(BRAND.CREAM).setFontColor(BRAND.CAPTION);
+    themable_(sheet.getName(), 'section', sheet.getRange(crr, 3).getA1Notation());
+    sheet.getRange(crr, 4).setNumberFormat('0.0%').setBackground(BRAND.YELLOW)
+      .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
+    sheet.getRange(crr, 5).setFormula('=IF(D' + crr + '="",C' + crr + ',D' + crr + ')')
+      .setNumberFormat('0.0%').setFontWeight('bold');
+    sheet.getRange(crr, 6).setFormula('=E' + crr + '*$C$13').setNumberFormat('$#,##0').setFontWeight('bold');
+    sheet.getRange(crr, 7).setFormula('=IF(D' + crr + '="",0,D' + crr + '-C' + crr + ')')
+      .setNumberFormat('+0.0%;−0.0%;"—"');
+    sheet.getRange(crr, 8).setFormula(
+      '=IF(B' + crr + '="","",SPARKLINE(F' + crr + ',{"charttype","bar";"max",MAX($F$17:$F$41);"color1","' + BRAND.GOLD + '"}))');
   }
 
   // Δ column color: red over preset, green under preset, neutral at zero/blank
   var rules = sheet.getConditionalFormatRules();
-  var deltaRange = sheet.getRange('G17:G36');
+  var deltaRange = sheet.getRange('G17:G41');
   rules.push(SpreadsheetApp.newConditionalFormatRule()
     .whenNumberGreaterThan(0).setFontColor(BRAND.GARNET).setRanges([deltaRange]).build());
   rules.push(SpreadsheetApp.newConditionalFormatRule()
@@ -187,7 +205,7 @@ function buildBankImport_(sheet) {
 
   // 3-step row
   var steps = [
-    ['1', 'Type the account name in C10 (must match an Accounts entry).'],
+    ['1', 'Type the account name in C10 (or 💳 → Add Account… to register one first).'],
     ['2', 'Paste your bank CSV into the green zone below.'],
     ['3', 'Run 💳 Column & Co. → Import Bank Transactions.']
   ];
@@ -242,10 +260,13 @@ function buildBankImport_(sheet) {
   // Keyword column (C): yellow, editable.
   sheet.getRange(UNCAT_FIRST_ROW, 3, UNCAT_ROW_COUNT, 1).setBackground(BRAND.YELLOW)
     .setFontFamily('Roboto Mono').setFontSize(10);
-  // Category column (D): yellow + dropdown of the 20 categories.
+  // Category column (D): yellow + dropdown (pulls from cc_tx_categories so
+  // routing a Misc merchant straight into a custom slot works).
   sheet.getRange(UNCAT_FIRST_ROW, 4, UNCAT_ROW_COUNT, 1).setBackground(BRAND.YELLOW);
+  var uncatRange = SpreadsheetApp.getActive().getRangeByName('cc_tx_categories') ||
+    SpreadsheetApp.getActive().getRange("'" + TABS.CATEGORIES + "'!A11:A37");
   var uncatRule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(CATEGORIES, true).setAllowInvalid(false).build();
+    .requireValueInRange(uncatRange, true).setAllowInvalid(false).build();
   sheet.getRange(UNCAT_FIRST_ROW, 4, UNCAT_ROW_COUNT, 1).setDataValidation(uncatRule);
 
   var captionRow = UNCAT_FIRST_ROW + UNCAT_ROW_COUNT + 1;

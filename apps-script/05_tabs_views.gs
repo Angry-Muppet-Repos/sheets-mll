@@ -113,10 +113,10 @@ function buildDashboard_(sheet, mode) {
   r += 2;
 
   // KPI row — 4 cards (3 cols each)
-  var incF = '=INDEX(' + ENG + '!$B$22:$Y$22,1,N4+1)';
-  var expF = '=INDEX(' + ENG + '!$B$23:$Y$23,1,N4+1)';
-  var netF = '=INDEX(' + ENG + '!$B$24:$Y$24,1,N4+1)';
-  var srF  = '=INDEX(' + ENG + '!$B$25:$Y$25,1,N4+1)';
+  var incF = '=INDEX(' + ENG + '!$B$27:$Y$27,1,N4+1)';
+  var expF = '=INDEX(' + ENG + '!$B$28:$Y$28,1,N4+1)';
+  var netF = '=INDEX(' + ENG + '!$B$29:$Y$29,1,N4+1)';
+  var srF  = '=INDEX(' + ENG + '!$B$30:$Y$30,1,N4+1)';
   kpiCard_(sheet, 'A' + r, 3, 'TOTAL INCOME', incF, 'vs last month +0.1%', BRAND.FOREST);
   kpiCard_(sheet, 'D' + r, 3, 'TOTAL EXPENSES', expF, 'vs last month +1.1%', BRAND.GARNET);
   kpiCard_(sheet, 'G' + r, 3, 'NET CASH FLOW', netF, 'vs last month −$65', BRAND.FOREST);
@@ -225,38 +225,45 @@ function buildTrends_(sheet, mode) {
   var avg = function (row) {
     return '=AVERAGE(INDEX(' + ENG + '!$B$' + row + ':$Y$' + row + ',1,24-N7+1):INDEX(' + ENG + '!$B$' + row + ':$Y$' + row + ',1,24))';
   };
-  kpiCard_(sheet, 'A' + r, 3, 'AVG INCOME', avg(22), 'over selected window', BRAND.FOREST);
-  kpiCard_(sheet, 'D' + r, 3, 'AVG EXPENSES', avg(23), 'over selected window', BRAND.GARNET);
-  kpiCard_(sheet, 'G' + r, 3, 'AVG NET', avg(24), 'over selected window', BRAND.FOREST);
+  kpiCard_(sheet, 'A' + r, 3, 'AVG INCOME', avg(27), 'over selected window', BRAND.FOREST);
+  kpiCard_(sheet, 'D' + r, 3, 'AVG EXPENSES', avg(28), 'over selected window', BRAND.GARNET);
+  kpiCard_(sheet, 'G' + r, 3, 'AVG NET', avg(29), 'over selected window', BRAND.FOREST);
   sheet.getRange(r + 1, 1).setNumberFormat('$#,##0');
   sheet.getRange(r + 1, 4).setNumberFormat('$#,##0');
   sheet.getRange(r + 1, 7).setNumberFormat('$#,##0');
   r += 4;
 
-  // Income vs Expenses combo chart (uses _Engine rows 22-23 last 6 months)
+  // Income vs Expenses combo chart (uses _Engine rows 27-28 last 6 months)
   sectionLabel_(sheet, 'A' + r, 'L' + r, 'INCOME vs EXPENSES · SAVINGS RATE');
   r += 1;
   buildTrendsChart_(sheet, r);
   r += 12;
 
-  // Category sparkline table
+  // Category sparkline table — 20 fixed + 5 custom slots (custom slots show
+  // a blank name + flat sparkline until the buyer types a slot name on Categories).
   sectionLabel_(sheet, 'A' + r, 'L' + r, 'CATEGORY TRENDS · LAST 6 MONTHS');
   r += 1;
   sheet.getRange(r, 1, 1, 4).setValues([['Category', 'Sparkline (6 mo)', 'Last Month', 'Δ vs first']])
     .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
   var start = r + 1;
-  for (var c = 0; c < CATEGORIES.length; c++) {
+  var totalCats = CATEGORIES.length + CUSTOM_CATEGORY_SLOTS;   // 25 rows
+  for (var c = 0; c < totalCats; c++) {
     var er = 2 + c;             // engine row for this category
     var rr = start + c;
-    sheet.getRange(rr, 1).setValue(CATEGORIES[c]);
-    // sparkline over engine cols T..Y (last 6) for this category row
+    if (c < CATEGORIES.length) {
+      sheet.getRange(rr, 1).setValue(CATEGORIES[c]);
+    } else {
+      // custom-slot row — name comes from the engine's col A (which itself
+      // pulls from Categories tab), so a slot rename propagates here too.
+      sheet.getRange(rr, 1).setFormula('=' + ENG + '!A' + er).setFontStyle('italic');
+    }
     sheet.getRange(rr, 2, 1, 1).setFormula(
       '=SPARKLINE(' + ENG + '!T' + er + ':Y' + er + ',{"charttype","line";"color","' + BRAND.FOREST + '";"linewidth",2})');
     sheet.getRange(rr, 3).setFormula('=' + ENG + '!Y' + er).setNumberFormat('$#,##0');
     sheet.getRange(rr, 4).setFormula('=IFERROR(' + ENG + '!Y' + er + '-' + ENG + '!T' + er + ',0)').setNumberFormat('+$#,##0;−$#,##0');
     if (c % 2 === 1) { var z = sheet.getRange(rr, 1, 1, 4).getA1Notation(); sheet.getRange(z).setBackground(PALETTE_BY_ID.light.zebra); themable_(sheet.getName(), 'zebra', z); }
   }
-  footer_(sheet, start + CATEGORIES.length + 2, 'L');
+  footer_(sheet, start + totalCats + 2, 'L');
   setColWidths_(sheet, [140, 180, 90, 90, 60, 60, 60, 60, 70, 70, 70, 70]);
 }
 

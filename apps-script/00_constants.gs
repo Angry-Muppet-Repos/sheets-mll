@@ -62,6 +62,11 @@ var CATEGORIES = [
   'Childcare', 'Business', 'Taxes', 'Misc'
 ];
 
+// User-defined categories: 5 yellow slots on the Categories tab the
+// buyer can name (e.g. "Vacation 2026"). Flow through Transactions
+// dropdown, Engine SUMIFS rows, and Monthly Budget rows automatically.
+var CUSTOM_CATEGORY_SLOTS = 5;
+
 // ── 16 in-sheet palettes (product feature) ────────────────────────────
 var PALETTES = [
   { id: 'light',         name: 'Light',           primary: '#1C3D2E', mid: '#2D5C45', accent: '#C5A95A', bg: '#FAF8F2', zebra: '#EEF2EC', dark: '#111827', accentLight: '#F0EBD8' },

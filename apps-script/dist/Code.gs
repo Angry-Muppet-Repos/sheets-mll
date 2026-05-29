@@ -1,9 +1,3 @@
-/* Column & Co. — The Foundation v2.1
-   BUNDLED build — all .gs files concatenated into one for easy pasting.
-   Generated from the apps-script/*.gs sources. Do not hand-edit; edit the
-   source files and re-bundle. */
-
-// ===================== 00_constants.gs =====================
 /**
  * Column & Co. — The Foundation v2.1
  * 00 · Constants — single source of truth for the whole build.
@@ -67,6 +61,11 @@ var CATEGORIES = [
   'Debt Payments', 'Education', 'Travel', 'Pets',
   'Childcare', 'Business', 'Taxes', 'Misc'
 ];
+
+// User-defined categories: 5 yellow slots on the Categories tab the
+// buyer can name (e.g. "Vacation 2026"). Flow through Transactions
+// dropdown, Engine SUMIFS rows, and Monthly Budget rows automatically.
+var CUSTOM_CATEGORY_SLOTS = 5;
 
 // ── 16 in-sheet palettes (product feature) ────────────────────────────
 var PALETTES = [
@@ -338,8 +337,6 @@ var KEYWORD_RULES = [
   // Transfers (peer-to-peer fallthrough)
   ['VENMO', 'Misc', ''], ['ZELLE', 'Misc', '']
 ];
-
-// ===================== 01_helpers.gs =====================
 /**
  * Column & Co. — The Foundation v2.1
  * 01 · Helpers — styling utilities + the theme registry.
@@ -503,8 +500,6 @@ function money_(n) {
   var s = String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   return (neg ? '−$' : '$') + s;
 }
-
-// ===================== 02_chrome.gs =====================
 /**
  * Column & Co. — The Foundation v2.1
  * 02 · Brand chrome — the non-negotiable 3-row letterhead + footer.
@@ -578,8 +573,6 @@ function paintContentBg_(sheet, endRow, lastColLetter) {
   sheet.getRange(a1).setBackground(BRAND.PARCHMENT);
   themable_(sheet.getName(), 'bg', a1);
 }
-
-// ===================== 03_build.gs =====================
 /**
  * Column & Co. — The Foundation v2.1
  * 03 · Build orchestrator.
@@ -678,12 +671,13 @@ function setNamedRanges_(ss) {
     'cc_active_profile':  TABS.CONFIG + '!B41',
     'cc_palettes':        TABS.CONFIG + '!A3:I18',
     'cc_profiles':        TABS.CONFIG + '!C22:X31',
-    'cc_categories':      TABS.CATEGORIES + '!A11:A30',
+    'cc_categories':      TABS.CATEGORIES + '!A11:A35',
+    'cc_tx_categories':   TABS.CATEGORIES + '!A11:A37',
     'cc_keyword_rules':   TABS.CATEGORIES + '!E11:G200',
     'cc_budget_income':   TABS.BUDGET + '!C13',
-    'cc_budget_targets':  TABS.BUDGET + '!F17:F36',
+    'cc_budget_targets':  TABS.BUDGET + '!F17:F41',
     'cc_engine_months':   TABS.ENGINE + '!B1:Y1',
-    'cc_engine_data':     TABS.ENGINE + '!B2:Y23',
+    'cc_engine_data':     TABS.ENGINE + '!B2:Y30',
     'cc_dashboard_month': TABS.DASHBOARD + '!N4',
     'cc_trends_window':   TABS.TRENDS + '!N7',
     'cc_health_composite':TABS.HEALTH + '!B9',
@@ -693,8 +687,6 @@ function setNamedRanges_(ss) {
     try { ss.setNamedRange(name, ss.getRange(defs[name])); } catch (e) {}
   });
 }
-
-// ===================== 04_data_tabs.gs =====================
 /**
  * Column & Co. — The Foundation v2.1
  * 04 · Data + system tabs: _Config, _Schema, Categories, Accounts,
@@ -774,16 +766,17 @@ function buildCategories_(sheet, mode) {
   var r = titleRow_(sheet, 'H', 'Categories',
     'The 20 spending categories and the keyword rules that auto-tag your imports.');
 
-  sectionLabel_(sheet, 'A' + r, 'C' + r, 'CATEGORY LIST · 20 CATEGORIES');
+  sectionLabel_(sheet, 'A' + r, 'C' + r, 'CATEGORY LIST · 20 FIXED + 5 CUSTOM SLOTS');
   r += 1;
   sheet.getRange(r, 1, 1, 3).setValues([['Category Name', 'Type', 'Monthly Target']])
     .setFontWeight('bold').setFontColor(BRAND.BODY).setFontFamily(FONT.BODY).setFontSize(10);
+  // 20 fixed categories (locked names)
   sheet.getRange(r + 1, 1, 20, 1).setValues(CATEGORIES.map(function (c) { return [c]; }));
   sheet.getRange(r + 1, 2, 20, 1).setValue('Expense');
   for (var i = 0; i < 20; i++) {
     sheet.getRange(r + 1 + i, 3).setFormula("='" + TABS.BUDGET + "'!F" + (17 + i)).setNumberFormat('$#,##0');
   }
-  // zebra
+  // zebra (fixed rows only)
   for (var z = 0; z < 20; z++) {
     if (z % 2 === 1) {
       var a1 = sheet.getRange(r + 1 + z, 1, 1, 3).getA1Notation();
@@ -791,6 +784,20 @@ function buildCategories_(sheet, mode) {
       themable_(sheet.getName(), 'zebra', a1);
     }
   }
+  // 5 custom slots — yellow editable name, default Expense type, Monthly
+  // Target pulled from Monthly Budget rows 37-41 (added by buildMonthlyBudget_).
+  var customStart = r + 1 + 20;   // row 31
+  for (var cs = 0; cs < CUSTOM_CATEGORY_SLOTS; cs++) {
+    var crow = customStart + cs;
+    sheet.getRange(crow, 1).setBackground(BRAND.YELLOW)
+      .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
+    sheet.getRange(crow, 2).setValue('Expense').setFontColor(BRAND.CAPTION);
+    sheet.getRange(crow, 3).setFormula("='" + TABS.BUDGET + "'!F" + (37 + cs)).setNumberFormat('$#,##0');
+  }
+  // System rows — Income / Transfer (locked, included so dropdowns can pick them up)
+  var sysStart = customStart + CUSTOM_CATEGORY_SLOTS;   // row 36
+  sheet.getRange(sysStart, 1, 2, 1).setValues([['Income'], ['Transfer']]).setFontColor(BRAND.CAPTION);
+  sheet.getRange(sysStart, 2, 2, 1).setValues([['Income'], ['Transfer']]).setFontColor(BRAND.CAPTION);
 
   // Keyword rules region (cols E-G) — start at row 9 so it clears the
   // title row (rows 6-7 are merged full-width by titleRow_).
@@ -799,10 +806,12 @@ function buildCategories_(sheet, mode) {
   sheet.getRange(kr, 5, 1, 3).setValues([['Keyword', 'Category', 'Note']])
     .setFontWeight('bold').setFontColor(BRAND.BODY).setFontFamily(FONT.BODY).setFontSize(10);
   sheet.getRange(kr + 1, 5, KEYWORD_RULES.length, 3).setValues(KEYWORD_RULES);
-  // Category column (F): dropdown of the 20 categories + Income/Transfer so
-  // typos can't silently break a rule. Covers the whole reserved region.
+  // Category column (F): dropdown sourced from cc_tx_categories so custom
+  // slot names + Income/Transfer all show up. Covers the whole reserved region.
+  var ruleCatRange = SpreadsheetApp.getActive().getRangeByName('cc_tx_categories') ||
+    sheet.getRange('A11:A37');
   var ruleCatVal = SpreadsheetApp.newDataValidation()
-    .requireValueInList(CATEGORIES.concat(['Income', 'Transfer']), true)
+    .requireValueInRange(ruleCatRange, true)
     .setAllowInvalid(false).build();
   sheet.getRange(kr + 1, 6, 190, 1).setDataValidation(ruleCatVal);
 
@@ -883,8 +892,11 @@ function buildTransactions_(sheet, mode) {
   sheet.getRange(firstData, 7, 5000, 1)
     .setFormulaR1C1('=IF(RC1="","",TEXT(RC1,"yyyy-mm"))');
 
-  // dropdowns — explicit category list (avoids depending on Categories row offsets)
-  var catList = SpreadsheetApp.newDataValidation().requireValueInList(CATEGORIES.concat(['Income', 'Transfer']), true).build();
+  // dropdowns — pull from cc_tx_categories so custom slot names appear automatically
+  var catRange = SpreadsheetApp.getActive().getRangeByName('cc_tx_categories') ||
+    SpreadsheetApp.getActive().getRange("'" + TABS.CATEGORIES + "'!A11:A37");
+  var catList = SpreadsheetApp.newDataValidation()
+    .requireValueInRange(catRange, true).build();
   sheet.getRange(firstData, 4, 5000, 1).setDataValidation(catList);
   var acctRule = SpreadsheetApp.newDataValidation()
     .requireValueInRange(SpreadsheetApp.getActive().getRangeByName('cc_accounts_list') ||
@@ -957,7 +969,7 @@ function buildEngine_(sheet, mode) {
   sheet.getRange('A1').setValue('metric \\ month').setFontWeight('bold');
   sheet.getRange(1, 2, 1, 24).setValues([monthCodes]).setFontWeight('bold');
 
-  // Rows 2-21: categories. Each cell SUMIFS expenses (abs) for that month+cat.
+  // Rows 2-21: 20 fixed categories. Each cell SUMIFS expenses (abs) for that month+cat.
   var txAmount = "'" + TABS.TX + "'!$C:$C";
   var txCat = "'" + TABS.TX + "'!$D:$D";
   var txMonth = "'" + TABS.TX + "'!$G:$G";
@@ -972,24 +984,37 @@ function buildEngine_(sheet, mode) {
       );
     }
   }
-  // Row 22 Income, 23 Expenses, 24 NetCashFlow, 25 SavingsRate
-  sheet.getRange(22, 1).setValue('Income');
-  sheet.getRange(23, 1).setValue('Expenses');
-  sheet.getRange(24, 1).setValue('NetCashFlow');
-  sheet.getRange(25, 1).setValue('SavingsRate');
+  // Rows 22-26: 5 custom-category slots. Col A reads the user-typed name from
+  // the Categories tab — when blank, SUMIFS matches nothing and the row stays 0.
+  for (var cs = 0; cs < CUSTOM_CATEGORY_SLOTS; cs++) {
+    var crow = 22 + cs;
+    sheet.getRange(crow, 1).setFormula("='" + TABS.CATEGORIES + "'!A" + (31 + cs));
+    for (var cc = 0; cc < 24; cc++) {
+      var ccol = 2 + cc;
+      var ccolL = columnToLetter_(ccol);
+      sheet.getRange(crow, ccol).setFormula(
+        '=IF($A' + crow + '="",0,ABS(SUMIFS(' + txAmount + ',' + txCat + ',$A' + crow + ',' + txMonth + ',' + ccolL + '$1)))'
+      );
+    }
+  }
+  // Rows 27-30: Income, Expenses, NetCashFlow, SavingsRate
+  sheet.getRange(27, 1).setValue('Income');
+  sheet.getRange(28, 1).setValue('Expenses');
+  sheet.getRange(29, 1).setValue('NetCashFlow');
+  sheet.getRange(30, 1).setValue('SavingsRate');
   for (var c2 = 0; c2 < 24; c2++) {
     var colL2 = columnToLetter_(2 + c2);
     // Income = SUMIFS positive amounts where category = Income
-    sheet.getRange(22, 2 + c2).setFormula(
+    sheet.getRange(27, 2 + c2).setFormula(
       '=SUMIFS(' + txAmount + ',' + txCat + ',"Income",' + txMonth + ',' + colL2 + '$1)');
-    // Expenses = sum of category rows 2..21
-    sheet.getRange(23, 2 + c2).setFormula('=SUM(' + colL2 + '2:' + colL2 + '21)');
-    sheet.getRange(24, 2 + c2).setFormula('=' + colL2 + '22-' + colL2 + '23');
-    sheet.getRange(25, 2 + c2).setFormula(
-      '=IF(' + colL2 + '22=0,0,' + colL2 + '24/' + colL2 + '22)').setNumberFormat('0.0%');
+    // Expenses = sum of all category rows 2..26 (20 fixed + 5 custom)
+    sheet.getRange(28, 2 + c2).setFormula('=SUM(' + colL2 + '2:' + colL2 + '26)');
+    sheet.getRange(29, 2 + c2).setFormula('=' + colL2 + '27-' + colL2 + '28');
+    sheet.getRange(30, 2 + c2).setFormula(
+      '=IF(' + colL2 + '27=0,0,' + colL2 + '29/' + colL2 + '27)').setNumberFormat('0.0%');
   }
-  sheet.getRange(2, 2, 24, 24).setNumberFormat('$#,##0');
-  sheet.getRange(25, 2, 1, 24).setNumberFormat('0.0%');
+  sheet.getRange(2, 2, 28, 24).setNumberFormat('$#,##0');
+  sheet.getRange(30, 2, 1, 24).setNumberFormat('0.0%');
 }
 
 function columnToLetter_(col) {
@@ -997,8 +1022,6 @@ function columnToLetter_(col) {
   while (col > 0) { var m = (col - 1) % 26; letter = String.fromCharCode(65 + m) + letter; col = Math.floor((col - 1) / 26); }
   return letter;
 }
-
-// ===================== 05_tabs_views.gs =====================
 /**
  * Column & Co. — The Foundation v2.1
  * 05 · View tabs: Start Here, Dashboard, Trends, Health Score, Net Worth.
@@ -1114,10 +1137,10 @@ function buildDashboard_(sheet, mode) {
   r += 2;
 
   // KPI row — 4 cards (3 cols each)
-  var incF = '=INDEX(' + ENG + '!$B$22:$Y$22,1,N4+1)';
-  var expF = '=INDEX(' + ENG + '!$B$23:$Y$23,1,N4+1)';
-  var netF = '=INDEX(' + ENG + '!$B$24:$Y$24,1,N4+1)';
-  var srF  = '=INDEX(' + ENG + '!$B$25:$Y$25,1,N4+1)';
+  var incF = '=INDEX(' + ENG + '!$B$27:$Y$27,1,N4+1)';
+  var expF = '=INDEX(' + ENG + '!$B$28:$Y$28,1,N4+1)';
+  var netF = '=INDEX(' + ENG + '!$B$29:$Y$29,1,N4+1)';
+  var srF  = '=INDEX(' + ENG + '!$B$30:$Y$30,1,N4+1)';
   kpiCard_(sheet, 'A' + r, 3, 'TOTAL INCOME', incF, 'vs last month +0.1%', BRAND.FOREST);
   kpiCard_(sheet, 'D' + r, 3, 'TOTAL EXPENSES', expF, 'vs last month +1.1%', BRAND.GARNET);
   kpiCard_(sheet, 'G' + r, 3, 'NET CASH FLOW', netF, 'vs last month −$65', BRAND.FOREST);
@@ -1226,38 +1249,45 @@ function buildTrends_(sheet, mode) {
   var avg = function (row) {
     return '=AVERAGE(INDEX(' + ENG + '!$B$' + row + ':$Y$' + row + ',1,24-N7+1):INDEX(' + ENG + '!$B$' + row + ':$Y$' + row + ',1,24))';
   };
-  kpiCard_(sheet, 'A' + r, 3, 'AVG INCOME', avg(22), 'over selected window', BRAND.FOREST);
-  kpiCard_(sheet, 'D' + r, 3, 'AVG EXPENSES', avg(23), 'over selected window', BRAND.GARNET);
-  kpiCard_(sheet, 'G' + r, 3, 'AVG NET', avg(24), 'over selected window', BRAND.FOREST);
+  kpiCard_(sheet, 'A' + r, 3, 'AVG INCOME', avg(27), 'over selected window', BRAND.FOREST);
+  kpiCard_(sheet, 'D' + r, 3, 'AVG EXPENSES', avg(28), 'over selected window', BRAND.GARNET);
+  kpiCard_(sheet, 'G' + r, 3, 'AVG NET', avg(29), 'over selected window', BRAND.FOREST);
   sheet.getRange(r + 1, 1).setNumberFormat('$#,##0');
   sheet.getRange(r + 1, 4).setNumberFormat('$#,##0');
   sheet.getRange(r + 1, 7).setNumberFormat('$#,##0');
   r += 4;
 
-  // Income vs Expenses combo chart (uses _Engine rows 22-23 last 6 months)
+  // Income vs Expenses combo chart (uses _Engine rows 27-28 last 6 months)
   sectionLabel_(sheet, 'A' + r, 'L' + r, 'INCOME vs EXPENSES · SAVINGS RATE');
   r += 1;
   buildTrendsChart_(sheet, r);
   r += 12;
 
-  // Category sparkline table
+  // Category sparkline table — 20 fixed + 5 custom slots (custom slots show
+  // a blank name + flat sparkline until the buyer types a slot name on Categories).
   sectionLabel_(sheet, 'A' + r, 'L' + r, 'CATEGORY TRENDS · LAST 6 MONTHS');
   r += 1;
   sheet.getRange(r, 1, 1, 4).setValues([['Category', 'Sparkline (6 mo)', 'Last Month', 'Δ vs first']])
     .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
   var start = r + 1;
-  for (var c = 0; c < CATEGORIES.length; c++) {
+  var totalCats = CATEGORIES.length + CUSTOM_CATEGORY_SLOTS;   // 25 rows
+  for (var c = 0; c < totalCats; c++) {
     var er = 2 + c;             // engine row for this category
     var rr = start + c;
-    sheet.getRange(rr, 1).setValue(CATEGORIES[c]);
-    // sparkline over engine cols T..Y (last 6) for this category row
+    if (c < CATEGORIES.length) {
+      sheet.getRange(rr, 1).setValue(CATEGORIES[c]);
+    } else {
+      // custom-slot row — name comes from the engine's col A (which itself
+      // pulls from Categories tab), so a slot rename propagates here too.
+      sheet.getRange(rr, 1).setFormula('=' + ENG + '!A' + er).setFontStyle('italic');
+    }
     sheet.getRange(rr, 2, 1, 1).setFormula(
       '=SPARKLINE(' + ENG + '!T' + er + ':Y' + er + ',{"charttype","line";"color","' + BRAND.FOREST + '";"linewidth",2})');
     sheet.getRange(rr, 3).setFormula('=' + ENG + '!Y' + er).setNumberFormat('$#,##0');
     sheet.getRange(rr, 4).setFormula('=IFERROR(' + ENG + '!Y' + er + '-' + ENG + '!T' + er + ',0)').setNumberFormat('+$#,##0;−$#,##0');
     if (c % 2 === 1) { var z = sheet.getRange(rr, 1, 1, 4).getA1Notation(); sheet.getRange(z).setBackground(PALETTE_BY_ID.light.zebra); themable_(sheet.getName(), 'zebra', z); }
   }
-  footer_(sheet, start + CATEGORIES.length + 2, 'L');
+  footer_(sheet, start + totalCats + 2, 'L');
   setColWidths_(sheet, [140, 180, 90, 90, 60, 60, 60, 60, 70, 70, 70, 70]);
 }
 
@@ -1389,8 +1419,6 @@ function buildNetWorth_(sheet, mode) {
 }
 
 function repeatStr_(s, n) { var o = ''; for (var i = 0; i < n; i++) o += s; return o; }
-
-// ===================== 06_tabs_actions.gs =====================
 /**
  * Column & Co. — The Foundation v2.1
  * 06 · Action tabs: Monthly Budget, Goals, Bank Import Guide.
@@ -1437,21 +1465,21 @@ function buildMonthlyBudget_(sheet, mode) {
   setCell_(sheet, 'A13', { value: 'Monthly income', font: FONT.BODY, size: 11, bold: true, color: BRAND.BODY });
   setCell_(sheet, 'A14', { value: 'Active profile', font: FONT.BODY, size: 9, color: BRAND.CAPTION });
   sheet.getRange(BUDGET_INCOME_CELL)
-    .setFormula("=INDEX('" + TABS.ENGINE + "'!$B$22:$Y$22,1,24)")
+    .setFormula("=INDEX('" + TABS.ENGINE + "'!$B$27:$Y$27,1,24)")
     .setNumberFormat('$#,##0').setBackground(BRAND.YELLOW)
     .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
   sheet.getRange(BUDGET_PICKER_CELL).setFontColor(BRAND.CAPTION).setFontSize(9);
 
   // hero KPI cards (right, cols H-L) at row 6 — % is the primary unit
-  kpiCard_(sheet, 'H6', 2, 'PRESET TOTAL', '=SUM(C17:C36)',
-    '="$"&TEXT(SUM(C17:C36)*$C$13,"#,##0")&" of $"&TEXT($C$13,"#,##0")', BRAND.FOREST);
-  kpiCard_(sheet, 'J6', 3, 'WITH OVERRIDES', '=SUM(E17:E36)',
-    '="$"&TEXT(SUM(F17:F36),"#,##0")&" · "&IF(ABS(SUM(E17:E36)-SUM(C17:C36))<0.0005,"on preset",IF(SUM(E17:E36)>SUM(C17:C36),TEXT(SUM(E17:E36)-SUM(C17:C36),"0.0%")&" above preset",TEXT(SUM(C17:C36)-SUM(E17:E36),"0.0%")&" below preset"))', BRAND.GOLD);
+  kpiCard_(sheet, 'H6', 2, 'PRESET TOTAL', '=SUM(C17:C41)',
+    '="$"&TEXT(SUM(C17:C41)*$C$13,"#,##0")&" of $"&TEXT($C$13,"#,##0")', BRAND.FOREST);
+  kpiCard_(sheet, 'J6', 3, 'WITH OVERRIDES', '=SUM(E17:E41)',
+    '="$"&TEXT(SUM(F17:F41),"#,##0")&" · "&IF(ABS(SUM(E17:E41)-SUM(C17:C41))<0.0005,"on preset",IF(SUM(E17:E41)>SUM(C17:C41),TEXT(SUM(E17:E41)-SUM(C17:C41),"0.0%")&" above preset",TEXT(SUM(C17:C41)-SUM(E17:E41),"0.0%")&" below preset"))', BRAND.GOLD);
   sheet.getRange(7, 8).setNumberFormat('0.0%');
   sheet.getRange(7, 10).setNumberFormat('0.0%');
 
   // Category targets table
-  sectionLabel_(sheet, 'A15', 'F15', 'CATEGORY TARGETS · 20 CATEGORIES');
+  sectionLabel_(sheet, 'A15', 'F15', 'CATEGORY TARGETS · 20 FIXED + 5 CUSTOM');
   setCell_(sheet, 'G15', { value: 'PRESET LOCKED · TYPE A % INTO OVERRIDE TO TWEAK', merge: 'L15',
     font: FONT.BODY, size: 9, bold: true, color: BRAND.GOLD, bg: BRAND.CREAM, h: 'right', v: 'middle' });
   sheet.getRange(16, 2, 1, 7).setValues([['Category', 'Preset %', 'Override %', 'Target %', 'Target $', 'Δ %', 'Share']])
@@ -1475,13 +1503,31 @@ function buildMonthlyBudget_(sheet, mode) {
       .setNumberFormat('+0.0%;−0.0%;"—"');
     // Share bar based on Target $
     sheet.getRange(rr, 8).setFormula(
-      '=SPARKLINE(F' + rr + ',{"charttype","bar";"max",MAX($F$17:$F$36);"color1",SWITCH(B' + rr +
+      '=SPARKLINE(F' + rr + ',{"charttype","bar";"max",MAX($F$17:$F$41);"color1",SWITCH(B' + rr +
       ',"Savings","' + BRAND.GOLD + '","Debt Payments","' + BRAND.GARNET + '","' + BRAND.FOREST + '")})');
+  }
+  // 5 custom-slot rows (37-41). Category name is a formula reading Categories!A31..A35.
+  // Override / Target / Δ behave identically — blank slot name renders a blank row.
+  for (var cs = 0; cs < CUSTOM_CATEGORY_SLOTS; cs++) {
+    var crr = BUDGET_TARGETS_FIRST_ROW + 20 + cs;   // 37..41
+    sheet.getRange(crr, 2).setFormula("='" + TABS.CATEGORIES + "'!A" + (31 + cs))
+      .setFontFamily(FONT.BODY).setFontSize(11).setFontColor(BRAND.BODY).setFontStyle('italic');
+    sheet.getRange(crr, 3).setNumberFormat('0.0%').setBackground(BRAND.CREAM).setFontColor(BRAND.CAPTION);
+    themable_(sheet.getName(), 'section', sheet.getRange(crr, 3).getA1Notation());
+    sheet.getRange(crr, 4).setNumberFormat('0.0%').setBackground(BRAND.YELLOW)
+      .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
+    sheet.getRange(crr, 5).setFormula('=IF(D' + crr + '="",C' + crr + ',D' + crr + ')')
+      .setNumberFormat('0.0%').setFontWeight('bold');
+    sheet.getRange(crr, 6).setFormula('=E' + crr + '*$C$13').setNumberFormat('$#,##0').setFontWeight('bold');
+    sheet.getRange(crr, 7).setFormula('=IF(D' + crr + '="",0,D' + crr + '-C' + crr + ')')
+      .setNumberFormat('+0.0%;−0.0%;"—"');
+    sheet.getRange(crr, 8).setFormula(
+      '=IF(B' + crr + '="","",SPARKLINE(F' + crr + ',{"charttype","bar";"max",MAX($F$17:$F$41);"color1","' + BRAND.GOLD + '"}))');
   }
 
   // Δ column color: red over preset, green under preset, neutral at zero/blank
   var rules = sheet.getConditionalFormatRules();
-  var deltaRange = sheet.getRange('G17:G36');
+  var deltaRange = sheet.getRange('G17:G41');
   rules.push(SpreadsheetApp.newConditionalFormatRule()
     .whenNumberGreaterThan(0).setFontColor(BRAND.GARNET).setRanges([deltaRange]).build());
   rules.push(SpreadsheetApp.newConditionalFormatRule()
@@ -1580,7 +1626,7 @@ function buildBankImport_(sheet) {
 
   // 3-step row
   var steps = [
-    ['1', 'Type the account name in C10 (must match an Accounts entry).'],
+    ['1', 'Type the account name in C10 (or 💳 → Add Account… to register one first).'],
     ['2', 'Paste your bank CSV into the green zone below.'],
     ['3', 'Run 💳 Column & Co. → Import Bank Transactions.']
   ];
@@ -1635,10 +1681,13 @@ function buildBankImport_(sheet) {
   // Keyword column (C): yellow, editable.
   sheet.getRange(UNCAT_FIRST_ROW, 3, UNCAT_ROW_COUNT, 1).setBackground(BRAND.YELLOW)
     .setFontFamily('Roboto Mono').setFontSize(10);
-  // Category column (D): yellow + dropdown of the 20 categories.
+  // Category column (D): yellow + dropdown (pulls from cc_tx_categories so
+  // routing a Misc merchant straight into a custom slot works).
   sheet.getRange(UNCAT_FIRST_ROW, 4, UNCAT_ROW_COUNT, 1).setBackground(BRAND.YELLOW);
+  var uncatRange = SpreadsheetApp.getActive().getRangeByName('cc_tx_categories') ||
+    SpreadsheetApp.getActive().getRange("'" + TABS.CATEGORIES + "'!A11:A37");
   var uncatRule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(CATEGORIES, true).setAllowInvalid(false).build();
+    .requireValueInRange(uncatRange, true).setAllowInvalid(false).build();
   sheet.getRange(UNCAT_FIRST_ROW, 4, UNCAT_ROW_COUNT, 1).setDataValidation(uncatRule);
 
   var captionRow = UNCAT_FIRST_ROW + UNCAT_ROW_COUNT + 1;
@@ -1648,8 +1697,6 @@ function buildBankImport_(sheet) {
   footer_(sheet, captionRow + 2, 'L');
   setColWidths_(sheet, [220, 50, 130, 130, 110, 80, 80, 80, 60, 60, 60, 60]);
 }
-
-// ===================== 10_menu.gs =====================
 /**
  * Column & Co. — The Foundation v2.1
  * 10 · Menu + triggers (onOpen / onEdit / onSelectionChange).
@@ -1669,6 +1716,8 @@ function onOpen() {
 function buildMenu_() {
   var ui = SpreadsheetApp.getUi();
   var menu = ui.createMenu(CC.MENU_TITLE);
+  menu.addItem('Add Account…', 'addAccount');
+  menu.addSeparator();
   menu.addItem('Import Bank Transactions', 'importTransactions');
   menu.addItem('Clear Paste Zone', 'clearPasteZone');
   menu.addItem('Recategorize Ledger from Rules', 'recategorizeAll');
@@ -1759,8 +1808,6 @@ function onSelectionChange(e) {
     }
   }
 }
-
-// ===================== 11_theme.gs =====================
 /**
  * Column & Co. — The Foundation v2.1
  * 11 · Theme engine. applyTheme(id) repaints the content area using the
@@ -1831,8 +1878,6 @@ function _applyTheme_forest_white()  { applyTheme('forest-white'); }
 function _applyTheme_royal_gold()    { applyTheme('royal-gold'); }
 function _applyTheme_silver_black()  { applyTheme('silver-black'); }
 function _applyTheme_custom()        { applyTheme('custom'); }
-
-// ===================== 12_profile.gs =====================
 /**
  * Column & Co. — The Foundation v2.1
  * 12 · Budget-profile engine. Writes the canonical Preset column and
@@ -1959,8 +2004,6 @@ function _applyProfile_new_parent()     { applyProfile('new-parent'); }
 function _applyProfile_self_employed()  { applyProfile('self-employed'); }
 function _applyProfile_hcol_renter()    { applyProfile('hcol-renter'); }
 function _applyProfile_custom()         { applyProfile('custom'); }
-
-// ===================== 13_import.gs =====================
 /**
  * Column & Co. — The Foundation v2.1
  * 13 · Bank CSV import, paste-zone clearing, ledger maintenance, help.
@@ -2131,9 +2174,51 @@ function renumberLedger() {
   tx.getRange(firstData, 3, 5000, 1).setNumberFormat('$#,##0.00');
   tx.getRange(firstData, 7, 5000, 1).setFormulaR1C1('=IF(RC1="","",TEXT(RC1,"yyyy-mm"))');
 
-  var catList = SpreadsheetApp.newDataValidation().requireValueInList(CATEGORIES.concat(['Income', 'Transfer']), true).build();
+  var catRange = ss.getRangeByName('cc_tx_categories') ||
+    ss.getRange("'" + TABS.CATEGORIES + "'!A11:A37");
+  var catList = SpreadsheetApp.newDataValidation()
+    .requireValueInRange(catRange, true).build();
   tx.getRange(firstData, 4, 5000, 1).setDataValidation(catList);
   ss.toast('Ledger formats refreshed', CC.BRAND, 3);
+}
+
+// ── Add Account (menu item) ───────────────────────────────────────────
+// Prompts for an account name and appends it to the Accounts list with
+// sensible defaults so the buyer doesn't have to leave Bank Import to
+// register a new account. Direct editing on the Accounts tab still works.
+function addAccount() {
+  var ui = SpreadsheetApp.getUi();
+  var ss = SpreadsheetApp.getActive();
+  var acct = ss.getSheetByName(TABS.ACCOUNTS);
+  if (!acct) { ui.alert('Accounts tab not found.'); return; }
+
+  var resp = ui.prompt('Add Account',
+    'Account name (e.g. "Chase Joint Checking"):', ui.ButtonSet.OK_CANCEL);
+  if (resp.getSelectedButton() !== ui.Button.OK) return;
+  var name = String(resp.getResponseText() || '').trim();
+  if (!name) return;
+
+  var range = ss.getRangeByName('cc_accounts_list') || acct.getRange('A10:A41');
+  var vals = range.getValues();
+  var target = -1;
+  for (var i = 0; i < vals.length; i++) {
+    if (!vals[i][0]) { target = range.getRow() + i; break; }
+    if (String(vals[i][0]).trim().toLowerCase() === name.toLowerCase()) {
+      ui.alert('"' + name + '" is already in the Accounts list.');
+      return;
+    }
+  }
+  if (target === -1) {
+    ui.alert('Accounts list is full. Add capacity in buildAccounts_.');
+    return;
+  }
+  acct.getRange(target, 1).setValue(name);
+  acct.getRange(target, 2).setValue('Checking');
+  acct.getRange(target, 3).setValue('Joint');
+  acct.getRange(target, 6).setValue(new Date());
+  acct.activate();
+  acct.getRange(target, 4).activate();
+  ss.toast('Added "' + name + '" — fill in the starting balance →', CC.BRAND, 4);
 }
 
 function openHelpSidebar() {
@@ -2318,4 +2403,3 @@ function findFirstEmptyTxRow_(tx) {
   for (var r = 0; r < colA.length; r++) { if (!colA[r][0]) return headerRow + 1 + r; }
   return headerRow + 1;
 }
-

@@ -17,6 +17,8 @@ function onOpen() {
 function buildMenu_() {
   var ui = SpreadsheetApp.getUi();
   var menu = ui.createMenu(CC.MENU_TITLE);
+  menu.addItem('Add Account…', 'addAccount');
+  menu.addSeparator();
   menu.addItem('Import Bank Transactions', 'importTransactions');
   menu.addItem('Clear Paste Zone', 'clearPasteZone');
   menu.addItem('Recategorize Ledger from Rules', 'recategorizeAll');
