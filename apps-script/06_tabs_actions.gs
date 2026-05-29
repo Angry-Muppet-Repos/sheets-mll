@@ -306,7 +306,7 @@ function buildBankImport_(sheet) {
     merge: 'L' + captionRow, font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION, wrap: true });
 
   footer_(sheet, captionRow + 2, 'L');
-  setColWidths_(sheet, [220, 50, 130, 130, 110, 80, 80, 80, 60, 60, 60, 60]);
+  setColWidths_(sheet, [170, 50, 130, 130, 110, 80, 80, 80, 110, 60, 60, 60]);
 
   // Pin chrome + step pills + account-name input so the buyer always sees
   // the 5 steps (and the live pending counts on 4 & 5) while scrolling the

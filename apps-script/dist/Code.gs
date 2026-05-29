@@ -1101,7 +1101,7 @@ function buildStartHere_(sheet) {
   sheet.getRange(r, 1, 5, 12).setBackground(BRAND.FOREST).setVerticalAlignment('top');
   themable_(sheet.getName(), 'primary', sheet.getRange(r, 1, 5, 12).getA1Notation());
   setCell_(sheet, 'A' + r, { value: 'Ask Claude or ChatGPT to read your sheet.', merge: 'F' + r,
-    font: FONT.DISPLAY, size: 18, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
+    font: FONT.DISPLAY, size: 18, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST, wrap: true });
   setCell_(sheet, 'A' + (r + 1), {
     value: 'A hidden _Schema tab documents every column for an AI. Copy the prompt, paste it in your assistant, attach your sheet. You get insights in seconds.',
     merge: 'F' + (r + 2), font: FONT.BODY, size: 12, color: BRAND.PARCHMENT, bg: BRAND.FOREST, wrap: true, v: 'top' });
@@ -1110,6 +1110,13 @@ function buildStartHere_(sheet) {
     .setFontColor(BRAND.CREAM).setWrap(true).setVerticalAlignment('middle').setHorizontalAlignment('left')
     .setValue('Find every category where I\'m trending over budget for three or more months in a row. Estimate the annual cost of that drift. List the top three subscriptions I should cancel.');
   themable_(sheet.getName(), 'primary', code.getA1Notation());
+  // Tall enough rows that the 18pt headline can wrap and the 10pt mono
+  // prompt has room for its 6-7 wrapped lines.
+  sheet.setRowHeight(r, 32);
+  sheet.setRowHeight(r + 1, 24);
+  sheet.setRowHeight(r + 2, 24);
+  sheet.setRowHeight(r + 3, 24);
+  sheet.setRowHeight(r + 4, 24);
 
   footer_(sheet, r + 6, 'L');
   setColWidths_(sheet, [78, 78, 78, 78, 78, 78, 78, 78, 70, 70, 70, 70]);
@@ -1231,10 +1238,10 @@ function buildDonut_(sheet, dataStartRow, n) {
   var range = sheet.getRange(dataStartRow, 1, n, 2);
   var chart = sheet.newChart().asPieChart().setOption('pieHole', 0.6)
     .addRange(range).setPosition(dataStartRow, 1, 0, 0)
-    .setOption('legend', { position: 'right' })
+    .setOption('legend', { position: 'right', textStyle: { fontSize: 11 } })
     .setOption('colors', DONUT_RAMP)
     .setOption('title', '')
-    .setOption('width', 320).setOption('height', 240)
+    .setOption('width', 460).setOption('height', 260)
     .setNumHeaders(0).build();
   sheet.insertChart(chart);
 }
@@ -1456,8 +1463,9 @@ function buildNetWorth_(sheet, mode) {
   var spark = sheet.getRange(r + 1, 9, 1, 4).merge();
   spark.setFormula(sparkLine_('H' + (r + 1) + ':H' + (r + 6), BRAND.GOLD)).setBackground(BRAND.FOREST);
   themable_(sheet.getName(), 'primary', spark.getA1Notation());
-  // asset / liability cards
-  setCell_(sheet, 'I' + (r + 3), { value: 'Assets ' + money_(nw.assets) + '   ·   Liabilities ' + money_(nw.liabilities),
+  // asset / liability cards — stacked so neither number wraps mid-string
+  setCell_(sheet, 'I' + (r + 3), {
+    value: 'Assets ' + money_(nw.assets) + '\nLiabilities ' + money_(nw.liabilities),
     merge: 'L' + (r + 4), font: FONT.DISPLAY, size: 14, color: BRAND.PARCHMENT, bg: BRAND.FOREST, wrap: true, v: 'middle' });
   r += 7;
 
@@ -1797,7 +1805,7 @@ function buildBankImport_(sheet) {
     merge: 'L' + captionRow, font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION, wrap: true });
 
   footer_(sheet, captionRow + 2, 'L');
-  setColWidths_(sheet, [220, 50, 130, 130, 110, 80, 80, 80, 60, 60, 60, 60]);
+  setColWidths_(sheet, [170, 50, 130, 130, 110, 80, 80, 80, 110, 60, 60, 60]);
 
   // Pin chrome + step pills + account-name input so the buyer always sees
   // the 5 steps (and the live pending counts on 4 & 5) while scrolling the
