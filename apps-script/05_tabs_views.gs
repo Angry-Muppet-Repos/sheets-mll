@@ -78,7 +78,7 @@ function buildStartHere_(sheet) {
     font: FONT.DISPLAY, size: 18, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST, wrap: true });
   setCell_(sheet, 'A' + (r + 1), {
     value: 'A hidden _Schema tab documents every column for an AI. Copy the prompt, paste it in your assistant, attach your sheet. You get insights in seconds.',
-    merge: 'F' + (r + 2), font: FONT.BODY, size: 12, color: BRAND.PARCHMENT, bg: BRAND.FOREST, wrap: true, v: 'top' });
+    merge: 'F' + (r + 4), font: FONT.BODY, size: 12, color: BRAND.PARCHMENT, bg: BRAND.FOREST, wrap: true, v: 'top' });
   var code = sheet.getRange(r, 7, 5, 6).merge();
   code.setBackground(BRAND.FOREST_HI).setFontFamily('Roboto Mono').setFontSize(10)
     .setFontColor(BRAND.CREAM).setWrap(true).setVerticalAlignment('middle').setHorizontalAlignment('left')
