@@ -113,6 +113,17 @@ function _loadOverrides_(profileId) {
   try { return JSON.parse(raw); } catch (e) { return null; }
 }
 
+// Wipe every saved cc_overrides_<profileId> doc property. Called at the
+// start of buildWorkbook so a fresh build doesn't repopulate D from
+// overrides typed in a prior session.
+function clearAllSavedOverrides_() {
+  var props = PropertiesService.getDocumentProperties();
+  var all = props.getProperties();
+  Object.keys(all).forEach(function (k) {
+    if (k.indexOf('cc_overrides_') === 0) props.deleteProperty(k);
+  });
+}
+
 // Zero-arg menu wrappers (Apps Script menus can't pass arguments)
 function _applyProfile_dave_ramsey()    { applyProfile('dave-ramsey'); }
 function _applyProfile_50_30_20()       { applyProfile('50-30-20'); }

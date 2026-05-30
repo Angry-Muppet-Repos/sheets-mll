@@ -593,6 +593,10 @@ function buildWorkbook(mode) {
   mode = (mode === 'blank') ? 'blank' : 'mock';
   var ss = SpreadsheetApp.getActive();
   THEME_MAP = {};
+  // A rebuild is destructive — wipe stale per-profile overrides too so
+  // re-selecting a profile after rebuild doesn't repopulate D from a
+  // prior session's typing.
+  clearAllSavedOverrides_();
 
   // 1. Create/clear every sheet up front so cross-tab formulas resolve.
   var sheets = {};
@@ -2120,6 +2124,17 @@ function _loadOverrides_(profileId) {
     .getProperty('cc_overrides_' + profileId);
   if (!raw) return null;
   try { return JSON.parse(raw); } catch (e) { return null; }
+}
+
+// Wipe every saved cc_overrides_<profileId> doc property. Called at the
+// start of buildWorkbook so a fresh build doesn't repopulate D from
+// overrides typed in a prior session.
+function clearAllSavedOverrides_() {
+  var props = PropertiesService.getDocumentProperties();
+  var all = props.getProperties();
+  Object.keys(all).forEach(function (k) {
+    if (k.indexOf('cc_overrides_') === 0) props.deleteProperty(k);
+  });
 }
 
 // Zero-arg menu wrappers (Apps Script menus can't pass arguments)

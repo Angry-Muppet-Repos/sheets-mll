@@ -18,6 +18,10 @@ function buildWorkbook(mode) {
   mode = (mode === 'blank') ? 'blank' : 'mock';
   var ss = SpreadsheetApp.getActive();
   THEME_MAP = {};
+  // A rebuild is destructive — wipe stale per-profile overrides too so
+  // re-selecting a profile after rebuild doesn't repopulate D from a
+  // prior session's typing.
+  clearAllSavedOverrides_();
 
   // 1. Create/clear every sheet up front so cross-tab formulas resolve.
   var sheets = {};
