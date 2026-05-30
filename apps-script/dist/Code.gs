@@ -84,6 +84,14 @@ var PALETTES = [
   { id: 'forest-white',  name: 'Forest & White',  primary: '#154733', mid: '#1E6048', accent: '#FFFFFF', bg: '#F4FBF6', zebra: '#E8F5EC', dark: '#0A2819', accentLight: '#F0FFF4' },
   { id: 'royal-gold',    name: 'Royal & Gold',    primary: '#002D72', mid: '#003D9C', accent: '#B5A642', bg: '#F0F5FF', zebra: '#E0ECFF', dark: '#001040', accentLight: '#F5F0C0' },
   { id: 'silver-black',  name: 'Silver & Black',  primary: '#1A1A1A', mid: '#2D2D2D', accent: '#A8A9AD', bg: '#F5F5F5', zebra: '#EBEBEB', dark: '#000000', accentLight: '#E8E8E8' },
+  { id: 'midnight',      name: 'Midnight',        primary: '#0B1F3A', mid: '#142E55', accent: '#14B8A6', bg: '#F0F4F8', zebra: '#E2E8F0', dark: '#050E1C', accentLight: '#99F6E4' },
+  { id: 'burgundy',      name: 'Burgundy',        primary: '#5C0A1A', mid: '#7A0E22', accent: '#E8D5B5', bg: '#FAF5F0', zebra: '#F0E6DA', dark: '#2E0510', accentLight: '#F5E8D5' },
+  { id: 'mocha',         name: 'Mocha',           primary: '#5C3A21', mid: '#7A4F2D', accent: '#D4A574', bg: '#FAF3EA', zebra: '#F0E2CE', dark: '#2E1D10', accentLight: '#F0DCC2' },
+  { id: 'indigo-blush',  name: 'Indigo & Blush',  primary: '#2E1F6B', mid: '#3D2A8C', accent: '#EAB0B8', bg: '#F7F4FA', zebra: '#ECE5F5', dark: '#170F36', accentLight: '#F8DEE3' },
+  { id: 'pine-brass',    name: 'Pine & Brass',    primary: '#1F3A2E', mid: '#2E5544', accent: '#B8964A', bg: '#F2F8F4', zebra: '#E1F0E7', dark: '#0E1D17', accentLight: '#E8D9A8' },
+  { id: 'ocean-coral',   name: 'Ocean & Coral',   primary: '#0F4858', mid: '#166075', accent: '#F47B6A', bg: '#F0F8FA', zebra: '#DCEFF2', dark: '#062430', accentLight: '#FBC8BD' },
+  { id: 'charcoal-mint', name: 'Charcoal & Mint', primary: '#2C2C2E', mid: '#44444A', accent: '#A8D5BA', bg: '#F5F5F5', zebra: '#E8E8E8', dark: '#161617', accentLight: '#D0EAD9' },
+  { id: 'olive-cream',   name: 'Olive & Cream',   primary: '#3D4A1F', mid: '#56672E', accent: '#C8B27A', bg: '#F7F4E8', zebra: '#ECE5D0', dark: '#1E2410', accentLight: '#E8D9A8' },
   { id: 'custom',        name: 'Custom',          primary: '#1B2A4A', mid: '#2C3E6B', accent: '#C8873A', bg: '#F3F4F6', zebra: '#EEF0F5', dark: '#111827', accentLight: '#F5D9B0' }
 ];
 var PALETTE_BY_ID = (function () { var m = {}; PALETTES.forEach(function (p) { m[p.id] = p; }); return m; })();
@@ -1059,38 +1067,39 @@ function buildStartHere_(sheet) {
     merge: 'L' + (r + 1), font: FONT.BODY, size: 13, color: BRAND.BODY, wrap: true, v: 'top' });
   sheet.setRowHeight(r + 1, 36);
 
-  // Choose Your Theme — 16 tiles in an 8x2 grid (each tile = swatch + name)
+  // Choose Your Theme — 24 tiles in a 12x2 grid (one tile per column, A..L)
   r += 3;
-  sectionLabel_(sheet, 'A' + r, 'L' + r, 'CHOOSE YOUR THEME · 16 PALETTES · APPLY VIA 💳 COLUMN & CO. ▸ APPLY THEME');
+  sectionLabel_(sheet, 'A' + r, 'L' + r, 'CHOOSE YOUR THEME · 24 PALETTES · APPLY VIA 💳 COLUMN & CO. ▸ APPLY THEME');
   r += 1;
   var tileTop = r;
+  var TILES_PER_ROW = 12;
   for (var i = 0; i < PALETTES.length; i++) {
     var p = PALETTES[i];
-    var rowBlock = Math.floor(i / 8);     // 0 or 1
-    var colInRow = i % 8;                  // 0..7
+    var rowBlock = Math.floor(i / TILES_PER_ROW);
+    var colInRow = i % TILES_PER_ROW;
     var topRow = tileTop + rowBlock * 3;
-    var col = 1 + colInRow + (colInRow > 0 ? 0 : 0); // one column per tile (A..H)
-    // swatch (3 stacked stripe via 1 cell filled primary, with name beneath)
+    var col = 1 + colInRow;
     sheet.getRange(topRow, col).setBackground(p.primary);
     sheet.getRange(topRow + 1, col).setBackground(p.accent);
     setCell_(sheet, sheet.getRange(topRow + 2, col).getA1Notation(),
       { value: p.name, font: FONT.BODY, size: 8, color: BRAND.BODY, h: 'center', wrap: true });
   }
-  sheet.setColumnWidths(1, 8, 78);
+  sheet.setColumnWidths(1, 12, 62);
 
-  // Setup guide — 5 steps
+  // Setup guide — 6 steps spanning A..L (2 cols each)
   r = tileTop + 7;
-  sectionLabel_(sheet, 'A' + r, 'L' + r, 'SETUP GUIDE · 5 STEPS');
+  sectionLabel_(sheet, 'A' + r, 'L' + r, 'SETUP GUIDE · 6 STEPS');
   r += 1;
   var steps = [
     ['1', 'Install the Script', 'Extensions → Apps Script → paste the ColumnCo file. A 💳 Column & Co. menu appears.'],
     ['2', 'Set Up Accounts', 'Add every bank account, card, and savings account. Enter current balances.'],
-    ['3', 'Import Transactions', 'Type the account name in C6 of Bank Import. Paste your bank CSV. Run Import.'],
-    ['4', 'Set Your Goals', 'Pick a Type, a Category or Account, a Target. Progress tracks automatically.'],
-    ['5', 'Explore Your Data', 'Dashboard, Trends, Health Score, and Net Worth update as you import.']
+    ['3', 'Pick Your Profile', 'Open Monthly Budget. Choose one of 10 budget profiles or tweak any category % in yellow.'],
+    ['4', 'Import Transactions', 'Type the account name in C6 of Bank Import. Paste your bank CSV. Run Import.'],
+    ['5', 'Set Your Goals', 'Pick a Type, a Category or Account, a Target. Progress tracks automatically.'],
+    ['6', 'Explore Your Data', 'Dashboard, Trends, Health Score, and Net Worth update as you import.']
   ];
-  for (var s = 0; s < 5; s++) {
-    var c0 = 1 + s * 2; // each step spans ~2 cols (A-B, C-D, ...)
+  for (var s = 0; s < steps.length; s++) {
+    var c0 = 1 + s * 2; // each step spans 2 cols: (A-B), (C-D), ..., (K-L)
     setCell_(sheet, sheet.getRange(r, c0).getA1Notation(),
       { value: steps[s][0], merge: sheet.getRange(r, c0 + 1).getA1Notation(),
         font: FONT.DISPLAY, size: 18, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: 'center', v: 'middle' });
@@ -2122,6 +2131,14 @@ function _applyTheme_garnet_gold()   { applyTheme('garnet-gold'); }
 function _applyTheme_forest_white()  { applyTheme('forest-white'); }
 function _applyTheme_royal_gold()    { applyTheme('royal-gold'); }
 function _applyTheme_silver_black()  { applyTheme('silver-black'); }
+function _applyTheme_midnight()      { applyTheme('midnight'); }
+function _applyTheme_burgundy()      { applyTheme('burgundy'); }
+function _applyTheme_mocha()         { applyTheme('mocha'); }
+function _applyTheme_indigo_blush()  { applyTheme('indigo-blush'); }
+function _applyTheme_pine_brass()    { applyTheme('pine-brass'); }
+function _applyTheme_ocean_coral()   { applyTheme('ocean-coral'); }
+function _applyTheme_charcoal_mint() { applyTheme('charcoal-mint'); }
+function _applyTheme_olive_cream()   { applyTheme('olive-cream'); }
 function _applyTheme_custom()        { applyTheme('custom'); }
 /**
  * Column & Co. — The Foundation v2.1

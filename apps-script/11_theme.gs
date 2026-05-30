@@ -67,4 +67,12 @@ function _applyTheme_garnet_gold()   { applyTheme('garnet-gold'); }
 function _applyTheme_forest_white()  { applyTheme('forest-white'); }
 function _applyTheme_royal_gold()    { applyTheme('royal-gold'); }
 function _applyTheme_silver_black()  { applyTheme('silver-black'); }
+function _applyTheme_midnight()      { applyTheme('midnight'); }
+function _applyTheme_burgundy()      { applyTheme('burgundy'); }
+function _applyTheme_mocha()         { applyTheme('mocha'); }
+function _applyTheme_indigo_blush()  { applyTheme('indigo-blush'); }
+function _applyTheme_pine_brass()    { applyTheme('pine-brass'); }
+function _applyTheme_ocean_coral()   { applyTheme('ocean-coral'); }
+function _applyTheme_charcoal_mint() { applyTheme('charcoal-mint'); }
+function _applyTheme_olive_cream()   { applyTheme('olive-cream'); }
 function _applyTheme_custom()        { applyTheme('custom'); }

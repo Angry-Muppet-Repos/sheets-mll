@@ -25,38 +25,39 @@ function buildStartHere_(sheet) {
     merge: 'L' + (r + 1), font: FONT.BODY, size: 13, color: BRAND.BODY, wrap: true, v: 'top' });
   sheet.setRowHeight(r + 1, 36);
 
-  // Choose Your Theme — 16 tiles in an 8x2 grid (each tile = swatch + name)
+  // Choose Your Theme — 24 tiles in a 12x2 grid (one tile per column, A..L)
   r += 3;
-  sectionLabel_(sheet, 'A' + r, 'L' + r, 'CHOOSE YOUR THEME · 16 PALETTES · APPLY VIA 💳 COLUMN & CO. ▸ APPLY THEME');
+  sectionLabel_(sheet, 'A' + r, 'L' + r, 'CHOOSE YOUR THEME · 24 PALETTES · APPLY VIA 💳 COLUMN & CO. ▸ APPLY THEME');
   r += 1;
   var tileTop = r;
+  var TILES_PER_ROW = 12;
   for (var i = 0; i < PALETTES.length; i++) {
     var p = PALETTES[i];
-    var rowBlock = Math.floor(i / 8);     // 0 or 1
-    var colInRow = i % 8;                  // 0..7
+    var rowBlock = Math.floor(i / TILES_PER_ROW);
+    var colInRow = i % TILES_PER_ROW;
     var topRow = tileTop + rowBlock * 3;
-    var col = 1 + colInRow + (colInRow > 0 ? 0 : 0); // one column per tile (A..H)
-    // swatch (3 stacked stripe via 1 cell filled primary, with name beneath)
+    var col = 1 + colInRow;
     sheet.getRange(topRow, col).setBackground(p.primary);
     sheet.getRange(topRow + 1, col).setBackground(p.accent);
     setCell_(sheet, sheet.getRange(topRow + 2, col).getA1Notation(),
       { value: p.name, font: FONT.BODY, size: 8, color: BRAND.BODY, h: 'center', wrap: true });
   }
-  sheet.setColumnWidths(1, 8, 78);
+  sheet.setColumnWidths(1, 12, 62);
 
-  // Setup guide — 5 steps
+  // Setup guide — 6 steps spanning A..L (2 cols each)
   r = tileTop + 7;
-  sectionLabel_(sheet, 'A' + r, 'L' + r, 'SETUP GUIDE · 5 STEPS');
+  sectionLabel_(sheet, 'A' + r, 'L' + r, 'SETUP GUIDE · 6 STEPS');
   r += 1;
   var steps = [
     ['1', 'Install the Script', 'Extensions → Apps Script → paste the ColumnCo file. A 💳 Column & Co. menu appears.'],
     ['2', 'Set Up Accounts', 'Add every bank account, card, and savings account. Enter current balances.'],
-    ['3', 'Import Transactions', 'Type the account name in C6 of Bank Import. Paste your bank CSV. Run Import.'],
-    ['4', 'Set Your Goals', 'Pick a Type, a Category or Account, a Target. Progress tracks automatically.'],
-    ['5', 'Explore Your Data', 'Dashboard, Trends, Health Score, and Net Worth update as you import.']
+    ['3', 'Pick Your Profile', 'Open Monthly Budget. Choose one of 10 budget profiles or tweak any category % in yellow.'],
+    ['4', 'Import Transactions', 'Type the account name in C6 of Bank Import. Paste your bank CSV. Run Import.'],
+    ['5', 'Set Your Goals', 'Pick a Type, a Category or Account, a Target. Progress tracks automatically.'],
+    ['6', 'Explore Your Data', 'Dashboard, Trends, Health Score, and Net Worth update as you import.']
   ];
-  for (var s = 0; s < 5; s++) {
-    var c0 = 1 + s * 2; // each step spans ~2 cols (A-B, C-D, ...)
+  for (var s = 0; s < steps.length; s++) {
+    var c0 = 1 + s * 2; // each step spans 2 cols: (A-B), (C-D), ..., (K-L)
     setCell_(sheet, sheet.getRange(r, c0).getA1Notation(),
       { value: steps[s][0], merge: sheet.getRange(r, c0 + 1).getA1Notation(),
         font: FONT.DISPLAY, size: 18, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: 'center', v: 'middle' });
