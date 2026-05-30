@@ -165,7 +165,7 @@ function buildDashboard_(sheet, mode) {
     sheet.getRange(rr, 1).setFormula(
       '=IFERROR(INDEX(_Engine!$A$2:$A$26,MATCH(LARGE(' + actualsCol + ',' + rank + '),' + actualsCol + ',0)),"")');
     sheet.getRange(rr, 2).setFormula('=IFERROR(LARGE(' + actualsCol + ',' + rank + '),0)').setNumberFormat('$#,##0');
-    sheet.getRange(rr, 3).setFormula("=IFERROR(VLOOKUP(A" + rr + ",'Monthly Budget'!$B$17:$E$41,4,FALSE),0)").setNumberFormat('$#,##0');
+    sheet.getRange(rr, 3).setFormula("=IFERROR(VLOOKUP(A" + rr + ",'Monthly Budget'!$B$17:$F$41,5,FALSE),0)").setNumberFormat('$#,##0');
     sheet.getRange(rr, 4).setFormula('=IFERROR(B' + rr + '/C' + rr + ',0)').setNumberFormat('0%');
     sheet.getRange(rr, 5).setFormula(
       '=IF(A' + rr + '="","",IF(C' + rr + '=0,"—",IF(B' + rr + '<=C' + rr + ',"On Track",IF(B' + rr + '<=C' + rr + '*1.1,"Fair","Over"))))');
@@ -177,7 +177,7 @@ function buildDashboard_(sheet, mode) {
   statusChipCF_(sheet, sheet.getRange(tsStart, 5, TOP_N, 1).getA1Notation());
 
   // Month snapshot — all live formulas keyed off cc_dashboard_month + the TX ledger.
-  // Active-month code (e.g. "2026-05") drives SUMIFS/COUNTIFS over TX!H (the
+  // Active-month code (e.g. "2026-05") drives SUMIFS/COUNTIFS over TX!G (the
   // hidden Month helper col on Transactions).
   var monthCode = 'INDEX(cc_engine_months,1,' + monthCol + ')';
   var snap = [
@@ -185,11 +185,11 @@ function buildDashboard_(sheet, mode) {
     ['Expenses',        '=IFERROR(INDEX(_Engine!$B$28:$Y$28,1,' + monthCol + '),0)',                          '$#,##0'],
     ['Net',             '=IFERROR(INDEX(_Engine!$B$29:$Y$29,1,' + monthCol + '),0)',                          '$#,##0'],
     ['Savings Rate',    '=IFERROR(INDEX(_Engine!$B$30:$Y$30,1,' + monthCol + '),0)',                          '0.0%'],
-    ['Avg Daily Spend', '=IFERROR(-SUMIFS(Transactions!$C:$C,Transactions!$H:$H,' + monthCode +
+    ['Avg Daily Spend', '=IFERROR(-SUMIFS(Transactions!$C:$C,Transactions!$G:$G,' + monthCode +
                           ',Transactions!$C:$C,"<0")/DAY(EOMONTH(IFERROR(DATEVALUE(' + monthCode +
                           '&"-01"),' + monthCode + '),0)),0)',                                                 '$#,##0'],
-    ['Transactions',    '=COUNTIFS(Transactions!$H:$H,' + monthCode + ',Transactions!$C:$C,"<>0")',            '#,##0'],
-    ['Largest Expense', '=IFERROR(-MINIFS(Transactions!$C:$C,Transactions!$H:$H,' + monthCode + '),0)',        '$#,##0']
+    ['Transactions',    '=COUNTIFS(Transactions!$G:$G,' + monthCode + ',Transactions!$C:$C,"<>0")',            '#,##0'],
+    ['Largest Expense', '=IFERROR(-MINIFS(Transactions!$C:$C,Transactions!$G:$G,' + monthCode + '),0)',        '$#,##0']
   ];
   for (var sI = 0; sI < snap.length; sI++) {
     var sr = tsStart + sI;
