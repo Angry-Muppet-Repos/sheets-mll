@@ -1434,7 +1434,7 @@ function buildHealthScore_(sheet, mode) {
     } else if (i === 3) {
       // BA helpers in hidden cols O (on count) and P (total count) at this row.
       sheet.getRange(rr, 15).setFormula(
-        "=SUMPRODUCT((INDEX(_Engine!$B$2:$Y$26,," + MIDX + ")<='Monthly Budget'!E17:E41)*('Monthly Budget'!B17:B41<>\"\"))");
+        "=SUMPRODUCT((INDEX(_Engine!$B$2:$Y$26,," + MIDX + ")<='Monthly Budget'!F17:F41)*('Monthly Budget'!B17:B41<>\"\"))");
       sheet.getRange(rr, 16).setFormula(
         "=SUMPRODUCT(('Monthly Budget'!B17:B41<>\"\")*1)");
       valueF  = '=O' + rr + '&" of "&P' + rr;
@@ -1465,7 +1465,7 @@ function buildHealthScore_(sheet, mode) {
     var br = 17 + bi;
     sheet.getRange(br, 17).setFormula("='Monthly Budget'!B" + br);
     sheet.getRange(br, 18).setFormula(
-      "=IFERROR(MAX(0,INDEX(_Engine!$B$2:$Y$26," + (bi + 1) + "," + MIDX + ")-'Monthly Budget'!E" + br + "),0)");
+      "=IFERROR(MAX(0,INDEX(_Engine!$B$2:$Y$26," + (bi + 1) + "," + MIDX + ")-'Monthly Budget'!F" + br + "),0)");
   }
 
   setCell_(sheet, 'E' + r, {
