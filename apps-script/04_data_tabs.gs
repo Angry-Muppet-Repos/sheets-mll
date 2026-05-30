@@ -253,6 +253,7 @@ function generateMockLedger_() {
       rows.push([new Date(year, monthIdx, day), desc, -amt, cat, acct, '']);
     });
   }
+  rows.sort(function (a, b) { return b[0] - a[0]; });
   return rows;
 }
 
