@@ -1314,8 +1314,8 @@ function buildTrends_(sheet, mode) {
     }
     sheet.getRange(rr, 2, 1, 1).setFormula(
       '=IF(SUM(' + ENG + '!T' + er + ':Y' + er + ')=0,"",SPARKLINE(' + ENG + '!T' + er + ':Y' + er + ',{"charttype","line";"color","' + BRAND.FOREST + '";"linewidth",2}))');
-    sheet.getRange(rr, 3).setFormula('=' + ENG + '!Y' + er).setNumberFormat('$#,##0');
-    sheet.getRange(rr, 4).setFormula('=IFERROR(' + ENG + '!Y' + er + '-' + ENG + '!T' + er + ',0)').setNumberFormat('+$#,##0;−$#,##0');
+    sheet.getRange(rr, 3).setFormula('=IF(SUM(' + ENG + '!T' + er + ':Y' + er + ')=0,"",' + ENG + '!Y' + er + ')').setNumberFormat('$#,##0');
+    sheet.getRange(rr, 4).setFormula('=IF(SUM(' + ENG + '!T' + er + ':Y' + er + ')=0,"",IFERROR(' + ENG + '!Y' + er + '-' + ENG + '!T' + er + ',0))').setNumberFormat('+$#,##0;−$#,##0');
     if (c % 2 === 1) { var z = sheet.getRange(rr, 1, 1, 4).getA1Notation(); sheet.getRange(z).setBackground(PALETTE_BY_ID.light.zebra); themable_(sheet.getName(), 'zebra', z); }
   }
   footer_(sheet, start + totalCats + 2, 'L');
