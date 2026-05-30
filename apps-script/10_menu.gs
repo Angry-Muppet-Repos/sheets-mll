@@ -22,6 +22,7 @@ function buildMenu_() {
   menu.addItem('Import Bank Transactions', 'importTransactions');
   menu.addItem('Clear Paste Zone', 'clearPasteZone');
   menu.addItem('Recategorize Ledger from Rules', 'recategorizeAll');
+  menu.addItem('Sort Transactions by Date', 'sortTransactions');
   menu.addSeparator();
   menu.addSubMenu(buildThemeMenu_());
   menu.addSubMenu(buildProfileMenu_());

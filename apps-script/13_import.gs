@@ -126,6 +126,7 @@ function importTransactions() {
   }
 
   renumberLedger();
+  sortTxByDateDesc_(tx);  // newest first so the just-imported rows surface at the top
 
   // Jump cursor to whichever review queue still needs the buyer. Without
   // this, Review Income (row 64) and Uncategorized (row 87) live below the
@@ -408,4 +409,26 @@ function findFirstEmptyTxRow_(tx) {
   var colA = tx.getRange(headerRow + 1, 1, 5000, 1).getValues();
   for (var r = 0; r < colA.length; r++) { if (!colA[r][0]) return headerRow + 1 + r; }
   return headerRow + 1;
+}
+
+// Sort the ledger by Date descending (newest first). Cols 1-6 only — col 7
+// is the Month helper formula (row-relative), which recomputes after sort.
+// Returns the row count sorted; 0 if the ledger is empty.
+function sortTxByDateDesc_(tx) {
+  var finder = tx.getRange(1, 1, 12, 1).getValues();
+  var headerRow = 9;
+  for (var i = 0; i < finder.length; i++) { if (finder[i][0] === 'Date') { headerRow = i + 1; break; } }
+  var firstEmpty = findFirstEmptyTxRow_(tx);
+  var n = firstEmpty - 1 - headerRow;
+  if (n <= 0) return 0;
+  tx.getRange(headerRow + 1, 1, n, 6).sort({ column: 1, ascending: false });
+  return n;
+}
+
+function sortTransactions() {
+  var ss = SpreadsheetApp.getActive();
+  var tx = ss.getSheetByName(TABS.TX);
+  if (!tx) return;
+  var n = sortTxByDateDesc_(tx);
+  ss.toast(n ? ('Sorted ' + n + ' transaction' + (n === 1 ? '' : 's') + ' by date (newest first).') : 'Ledger is empty.', CC.BRAND, 3);
 }
