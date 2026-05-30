@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>The Foundation · Help</title>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --cc-forest: #1C3D2E;
+    --cc-canopy: #2D5C45;
+    --cc-harvest-gold: #C5A95A;
+    --cc-cream: #F0EBD8;
+    --cc-parchment: #FAF8F2;
+    --cc-garnet: #832F30;
+    --cc-hairline: rgba(28, 61, 46, 0.12);
+    --cc-body: rgba(28, 61, 46, 0.75);
+    --cc-caption: rgba(28, 61, 46, 0.50);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--cc-parchment);
+    color: var(--cc-forest);
+    font-family: 'Jost', 'Roboto', sans-serif;
+    font-weight: 300;
+    font-size: 13px;
+    line-height: 1.55;
+    letter-spacing: 0.02em;
+  }
+  header.chrome {
+    background: var(--cc-forest);
+    color: var(--cc-parchment);
+    padding: 14px 16px 10px;
+    border-bottom: 3px solid var(--cc-harvest-gold);
+  }
+  header.chrome .nameplate {
+    font-family: 'Playfair Display', 'Lora', serif;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.01em;
+  }
+  header.chrome .tagline {
+    font-family: 'Jost', sans-serif;
+    font-weight: 500;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--cc-harvest-gold);
+    margin-top: 2px;
+  }
+  header.chrome .canopy {
+    background: var(--cc-canopy);
+    margin: 8px -16px -10px;
+    padding: 6px 16px;
+    color: var(--cc-parchment);
+    font-family: 'Jost', sans-serif;
+    font-weight: 500;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  nav.tabs {
+    display: flex;
+    background: var(--cc-cream);
+    border-bottom: 1px solid var(--cc-hairline);
+    padding: 0 8px;
+  }
+  nav.tabs button {
+    flex: 1;
+    background: none;
+    border: 0;
+    padding: 10px 6px;
+    font-family: 'Jost', sans-serif;
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cc-body);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: background-color 120ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  nav.tabs button:hover { background: rgba(28, 61, 46, 0.04); }
+  nav.tabs button.active {
+    color: var(--cc-forest);
+    border-bottom-color: var(--cc-harvest-gold);
+  }
+  main {
+    padding: 16px;
+  }
+  section { display: none; }
+  section.active { display: block; }
+  h1, h2, h3 {
+    font-family: 'Playfair Display', 'Lora', serif;
+    color: var(--cc-forest);
+    margin: 0 0 8px;
+    font-weight: 700;
+  }
+  h1 { font-size: 22px; line-height: 1.2; margin-top: 4px; }
+  h2 { font-size: 16px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--cc-hairline); }
+  h2:first-of-type { border-top: 0; padding-top: 0; margin-top: 12px; }
+  h3 { font-size: 13px; margin-top: 14px; font-style: italic; font-weight: 400; }
+  p { margin: 0 0 10px; color: var(--cc-body); }
+  ol, ul { margin: 0 0 12px; padding-left: 22px; color: var(--cc-body); }
+  li { margin-bottom: 6px; }
+  .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--cc-forest);
+    color: var(--cc-parchment);
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 12px;
+    margin-right: 8px;
+    vertical-align: -4px;
+  }
+  code, .menu {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-size: 11.5px;
+    background: var(--cc-cream);
+    color: var(--cc-forest);
+    padding: 1px 5px;
+    border-radius: 2px;
+    letter-spacing: 0;
+  }
+  .menu { white-space: nowrap; }
+  .callout {
+    background: var(--cc-cream);
+    border-left: 2px solid var(--cc-harvest-gold);
+    padding: 10px 12px;
+    margin: 12px 0;
+    font-size: 12px;
+    color: var(--cc-body);
+  }
+  .menu-entry {
+    border-top: 1px solid var(--cc-hairline);
+    padding-top: 10px;
+    margin-top: 12px;
+  }
+  .menu-entry:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+  .menu-entry .name {
+    font-family: 'Jost', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--cc-forest);
+    letter-spacing: 0.04em;
+  }
+  .menu-entry .desc { font-size: 12px; color: var(--cc-body); margin: 4px 0 0; }
+  footer.brand {
+    background: var(--cc-forest);
+    color: var(--cc-parchment);
+    padding: 12px 16px;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    text-align: center;
+    margin-top: 24px;
+  }
+  footer.brand .dot { color: var(--cc-harvest-gold); margin: 0 6px; }
+  a { color: var(--cc-canopy); text-decoration: none; border-bottom: 1px solid transparent; }
+  a:hover { border-bottom-color: var(--cc-harvest-gold); }
+</style>
+</head>
+<body>
+
+<header class="chrome">
+  <div class="nameplate">Column &amp; Co. <span style="color: var(--cc-harvest-gold);">·</span> The Foundation</div>
+  <div class="tagline">Life, Organized.</div>
+  <div class="canopy">Help <span style="color: var(--cc-harvest-gold);">·</span> v2.1</div>
+</header>
+
+<nav class="tabs">
+  <button class="active" data-tab="quickstart">Quickstart</button>
+  <button data-tab="menu">Menu</button>
+  <button data-tab="tabs">Tabs</button>
+  <button data-tab="help">Stuck?</button>
+</nav>
+
+<main>
+
+<section id="quickstart" class="active">
+  <h1>Five steps to a working sheet</h1>
+  <p>Ten minutes from blank to a moving Dashboard. Stop reading after this section and you have everything you need.</p>
+
+  <h2><span class="step-num">1</span> Make your copy</h2>
+  <p>Open <code>the_foundation_v2_BLANK.xlsx</code> in Drive. Right-click → <strong>Open with → Google Sheets</strong>, then <strong>File → Save as Google Sheets</strong>. The file lives in your Drive — Column &amp; Co. never sees it.</p>
+
+  <h2><span class="step-num">2</span> Install the script</h2>
+  <ol>
+    <li><strong>Extensions → Apps Script</strong>. A new tab opens.</li>
+    <li>Delete the placeholder <code>Code.gs</code> content.</li>
+    <li>Paste in <code>ColumnCo_Foundation_v2.gs</code> from your download. Save.</li>
+    <li>Reload the sheet. The <span class="menu">💳 Column &amp; Co.</span> menu appears.</li>
+  </ol>
+  <p>First menu click prompts for permission. The script asks for <code>spreadsheets.currentonly</code> — the narrowest scope Google offers. Approve.</p>
+
+  <h2><span class="step-num">3</span> Add your accounts</h2>
+  <p>Go to <strong>Accounts</strong>. One row per checking account, credit card, savings account. Name, Type, Owner, current balance. The <strong>Last Updated</strong> column stamps itself — don't touch it.</p>
+  <p>Investments (401(k), brokerage, IRA) go on <strong>Net Worth</strong>, not Accounts.</p>
+
+  <h2><span class="step-num">4</span> Import your first month</h2>
+  <ol>
+    <li>Export 30 days of CSV from your bank.</li>
+    <li>On <strong>Bank Import Guide</strong>, type the account name in <code>C6</code>.</li>
+    <li>Paste the CSV into the green paste-zone box.</li>
+    <li><span class="menu">💳 Column &amp; Co. → Import Bank Transactions</span>.</li>
+  </ol>
+  <p>Toast confirms the count. Chase, BoA, Wells, Cap One, Ally, Citi, USAA, Discover, Amex headers all recognized. Unmatched rows become <code>Misc</code> — clean them up on Transactions.</p>
+
+  <h2><span class="step-num">5</span> Pick your look</h2>
+  <p>Top-right swatch button on any tab — sixteen palettes. Pick one, sheet repaints. The brand chrome stays locked; only the interior changes.</p>
+  <p>Then pick a budget profile: <span class="menu">💳 Column &amp; Co. → Apply Budget Profile</span>. Ten profiles, from Dave Ramsey to Kakeibo. The Monthly Budget tab fills in. Editing any yellow cell flips you into Custom mode automatically, and your values are saved.</p>
+
+  <div class="callout">You're operational. Open <strong>Dashboard</strong> — KPIs, donut, AI Insights all reading your data. Open <strong>Health Score</strong> for the one-number read. Open <strong>Trends</strong> for the six-month sparklines.</div>
+</section>
+
+<section id="menu">
+  <h1>Menu reference</h1>
+  <p>Every item in the <span class="menu">💳 Column &amp; Co.</span> menu. Listed in display order.</p>
+
+  <div class="menu-entry">
+    <div class="name">Add Account…</div>
+    <p class="desc"><em>Pending live <code>.gs</code> documentation.</em> Prompts you for a new account row on the Accounts tab.</p>
+  </div>
+
+  <div class="menu-entry">
+    <div class="name">Import Bank Transactions</div>
+    <p class="desc">Parses the CSV in the Bank Import Guide paste zone, sniffs the header against nine bank formats, auto-categorizes against your Categories rules, and appends to Transactions. Income rows surface in the Review block for confirmation.</p>
+  </div>
+
+  <div class="menu-entry">
+    <div class="name">Clear Paste Zone</div>
+    <p class="desc">Wipes the paste-zone box back to its placeholder. Confirmation dialog first.</p>
+  </div>
+
+  <div class="menu-entry">
+    <div class="name">Recategorize Ledger from Rules</div>
+    <p class="desc"><em>Pending live <code>.gs</code> documentation.</em> Re-applies the current Categories keyword rules to transactions already in the ledger. Use after editing rules.</p>
+  </div>
+
+  <div class="menu-entry">
+    <div class="name">Sort Transactions by Date</div>
+    <p class="desc"><em>Pending live <code>.gs</code> documentation.</em> Sorts the Transactions tab newest-first (or oldest-first — confirm against shipped <code>.gs</code>).</p>
+  </div>
+
+  <div class="menu-entry">
+    <div class="name">Apply Theme ▸</div>
+    <p class="desc">Submenu of the 16 in-sheet palettes. Pick one; the script repaints every content cell. The brand chrome stays locked. Your selection persists across reloads.</p>
+  </div>
+
+  <div class="menu-entry">
+    <div class="name">Apply Budget Profile ▸</div>
+    <p class="desc">Submenu of the 10 profiles. Pick one; the Monthly Budget tab fills its 20 target cells. Active profile gets a <code>✓</code>. Switching from Custom snapshots your edits first.</p>
+  </div>
+
+  <div class="menu-entry">
+    <div class="name">Renumber Ledger</div>
+    <p class="desc">Re-applies data validation dropdowns and number formats to the Transactions tab after a big CSV import. Idempotent — safe to run anytime.</p>
+  </div>
+
+  <div class="menu-entry">
+    <div class="name">Help…</div>
+    <p class="desc">Opens this sidebar.</p>
+  </div>
+
+  <div class="menu-entry">
+    <div class="name">Setup ▸</div>
+    <p class="desc"><em>Pending live <code>.gs</code> documentation.</em> Sub-items not yet documented.</p>
+  </div>
+</section>
+
+<section id="tabs">
+  <h1>Tabs at a glance</h1>
+
+  <h3>Start Here</h3>
+  <p>The cover tab. 16 palette tiles, 5-step setup, the LLM-ready prompt block.</p>
+
+  <h3>Trends</h3>
+  <p>6 / 12 / 24-month history. Category sparklines, Income-vs-Expenses combo chart.</p>
+
+  <h3>Dashboard</h3>
+  <p>Current month at a glance. KPIs, donut, top spending, AI Insights (Leak / Subs / Win).</p>
+
+  <h3>Monthly Budget</h3>
+  <p>10 profiles or fully Custom. 20 category targets, hero KPIs, footer summary bar.</p>
+
+  <h3>Health Score</h3>
+  <p>0–100 composite, 5 indicators, Biggest Opportunity callout with delta arrow.</p>
+
+  <h3>Goals</h3>
+  <p>Savings / Debt Payoff / Spending Limit / Savings Rate. Live Current values. Forecast strip for off-track goals.</p>
+
+  <h3>Transactions</h3>
+  <p>The ledger. 5,000-row capacity. Negative = expense, positive = income.</p>
+
+  <h3>Bank Import Guide</h3>
+  <p>The CSV paste surface. Nine bank formats recognized.</p>
+
+  <h3>Net Worth</h3>
+  <p>Budget Accounts (auto) + Investments (manual). Hero block with 6-month sparkline.</p>
+
+  <h3>Accounts</h3>
+  <p>Every account you track. Update balances monthly; Last Updated stamps itself.</p>
+
+  <h3>Categories</h3>
+  <p>20 categories + ~80 keyword rules. Add a row when an import keeps mis-tagging a merchant.</p>
+
+  <h3>_Engine, _Config, _Schema</h3>
+  <p>System tabs, hidden by default. Don't touch.</p>
+</section>
+
+<section id="help">
+  <h1>Stuck?</h1>
+
+  <h3>The <span class="menu">💳 Column &amp; Co.</span> menu didn't appear</h3>
+  <p>The script isn't installed yet. <strong>Quickstart · Step 2</strong>. After pasting and saving, reload the sheet — the menu loads on open, not on save.</p>
+
+  <h3>Google is asking for permission</h3>
+  <p>Expected on first menu click. The scope is <code>spreadsheets.currentonly</code> — the narrowest one Google offers. Approve.</p>
+
+  <h3>Import said "no rows imported"</h3>
+  <p>The paste zone might be empty, or the header row didn't match a known bank format. Confirm the first line of your paste is a header (e.g. <code>Date,Description,Amount</code>) and that the account name in <code>C6</code> matches an entry on the Accounts tab.</p>
+
+  <h3>Half my transactions are <code>Misc</code></h3>
+  <p>The keyword rules don't yet cover those merchants. Add rows on the <strong>Categories</strong> tab, then run <span class="menu">Recategorize Ledger from Rules</span>.</p>
+
+  <h3>The palette didn't paint</h3>
+  <p>Some cells you've manually filled override the script. Pick the palette again, or reset the manual fill via <strong>Format → Conditional formatting → Clear</strong>.</p>
+
+  <h3>My Custom budget disappeared</h3>
+  <p>Switching profiles overwrites the targets. The script snapshots Custom values before any switch — switch back to Custom and they return. If they don't, the snapshot wasn't saved (run <span class="menu">Save Current Values as Custom</span> next time before switching).</p>
+
+  <h3>The sheet feels slow</h3>
+  <p>Past about 3,000 transactions, recalc gets sluggish. Run <span class="menu">Renumber Ledger</span> and consider archiving older months to a copy.</p>
+</section>
+
+</main>
+
+<footer class="brand">
+  Column &amp; Co. <span class="dot">·</span> The Foundation v2.1 <span class="dot">·</span> columnandco.com
+</footer>
+
+<script>
+  document.querySelectorAll('nav.tabs button').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('nav.tabs button').forEach(function (b) { b.classList.remove('active'); });
+      document.querySelectorAll('main section').forEach(function (s) { s.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>
