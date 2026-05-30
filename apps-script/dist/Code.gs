@@ -881,6 +881,11 @@ function buildAccounts_(sheet, mode) {
 
 // ── Transactions — the ledger (mock: generated 6-month ledger) ────────
 function buildTransactions_(sheet, mode) {
+  // sheet.clear() (via chrome_) does not remove a basic filter, and a
+  // second createFilter() throws. Tear down any prior filter first.
+  var existingFilter = sheet.getFilter();
+  if (existingFilter) existingFilter.remove();
+
   chrome_(sheet, TABS.TX, 'G');
   var r = titleRow_(sheet, 'G', 'Transactions',
     'Your ledger. Import a CSV or type by hand. Feeds every other tab.');
@@ -920,6 +925,10 @@ function buildTransactions_(sheet, mode) {
 
   setColWidths_(sheet, [110, 280, 110, 150, 170, 200, 90]);
   sheet.hideColumns(7); // Month is a helper column
+
+  // Per-column filter icons on the header row. Spans all 7 cols (incl. the
+  // hidden Month helper, so unhiding G lets a power user filter by yyyy-mm).
+  sheet.getRange(headerRow, 1, 1 + 5000, 7).createFilter();
 }
 
 // Build a realistic 6-month ledger (Dec 2025 – May 2026) whose monthly
