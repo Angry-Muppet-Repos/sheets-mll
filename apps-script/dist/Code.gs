@@ -969,7 +969,9 @@ function buildEngine_(sheet, mode) {
     return parts[1] + '-' + ('0' + mi).slice(-2);
   });
   sheet.getRange('A1').setValue('metric \\ month').setFontWeight('bold');
-  sheet.getRange(1, 2, 1, 24).setValues([monthCodes]).setFontWeight('bold');
+  // Force text format BEFORE setValues — otherwise some locales auto-parse
+  // "2026-05" to a date, which then breaks DATEVALUE() chains downstream.
+  sheet.getRange(1, 2, 1, 24).setNumberFormat('@').setValues([monthCodes]).setFontWeight('bold');
 
   // Rows 2-21: 20 fixed categories. Each cell SUMIFS expenses (abs) for that month+cat.
   var txAmount = "'" + TABS.TX + "'!$C:$C";
@@ -1127,7 +1129,7 @@ function buildDashboard_(sheet, mode) {
   chrome_(sheet, TABS.DASHBOARD, 'L', 'VIEWING MONTH · MAY 2026');
   // Replace the static breadcrumb with a live formula so it tracks N4.
   sheet.getRange('A3').setFormula(
-    '="VIEWING MONTH · "&UPPER(TEXT(DATEVALUE(INDEX(cc_engine_months,1,N4+1)&"-01"),"mmm yyyy"))&"  "');
+    '="VIEWING MONTH · "&UPPER(TEXT(IFERROR(DATEVALUE(INDEX(cc_engine_months,1,N4+1)&"-01"),INDEX(cc_engine_months,1,N4+1)),"mmm yyyy"))&"  "');
   var r = titleRow_(sheet, 'L', 'Dashboard',
     'Your money at a glance. Updated automatically as transactions come in.');
 
@@ -1137,7 +1139,7 @@ function buildDashboard_(sheet, mode) {
 
   // Month label + 6 pills
   setCell_(sheet, 'A' + r, {
-    formula: '=TEXT(DATEVALUE(INDEX(cc_engine_months,1,N4+1)&"-01"),"mmmm yyyy")',
+    formula: '=TEXT(IFERROR(DATEVALUE(INDEX(cc_engine_months,1,N4+1)&"-01"),INDEX(cc_engine_months,1,N4+1)),"mmmm yyyy")',
     merge: 'C' + r, font: FONT.DISPLAY, size: 26, bold: true, color: BRAND.FOREST });
   var pillMonths = ['Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May'];
   for (var i = 0; i < 6; i++) {
@@ -1174,7 +1176,7 @@ function buildDashboard_(sheet, mode) {
   // Top spending table (left, cols A-H) + Month Snapshot (right, I-L)
   sectionLabel_(sheet, 'A' + r, 'H' + r, 'TOP SPENDING');
   sheet.getRange('A' + r).setFormula(
-    '="TOP SPENDING · "&UPPER(TEXT(DATEVALUE(INDEX(cc_engine_months,1,N4+1)&"-01"),"mmm yyyy"))');
+    '="TOP SPENDING · "&UPPER(TEXT(IFERROR(DATEVALUE(INDEX(cc_engine_months,1,N4+1)&"-01"),INDEX(cc_engine_months,1,N4+1)),"mmm yyyy"))');
   sectionLabel_(sheet, 'I' + r, 'L' + r, 'MONTH SNAPSHOT');
   r += 1;
   sheet.getRange(r, 1, 1, 5).setValues([['Category', 'Spent', 'Budget', '% of Budget', 'Status']])
@@ -1211,11 +1213,12 @@ function buildDashboard_(sheet, mode) {
   sectionLabel_(sheet, 'A' + r, 'F' + r, 'SPENDING BREAKDOWN');
   sectionLabel_(sheet, 'G' + r, 'L' + r, 'AI INSIGHTS');
   r += 1;
-  // donut data block (hidden-ish, cols A-B)
+  // Donut data lives off-screen in cols N-O so it doesn't leak below the chart.
   var bdStart = r;
-  sheet.getRange(bdStart, 1, MOCK.breakdown.length, 2).setValues(MOCK.breakdown);
-  sheet.getRange(bdStart, 2, MOCK.breakdown.length, 1).setNumberFormat('$#,##0');
-  buildDonut_(sheet, bdStart, MOCK.breakdown.length);
+  var BD_COL = 14;
+  sheet.getRange(bdStart, BD_COL, MOCK.breakdown.length, 2).setValues(MOCK.breakdown);
+  sheet.getRange(bdStart, BD_COL + 1, MOCK.breakdown.length, 1).setNumberFormat('$#,##0');
+  buildDonut_(sheet, bdStart, MOCK.breakdown.length, BD_COL);
 
   // AI insights — Forest-on-cream, 3 callouts
   for (var a = 0; a < MOCK.ai_insights.length; a++) {
@@ -1234,8 +1237,8 @@ function buildDashboard_(sheet, mode) {
   setColWidths_(sheet, [120, 80, 80, 90, 70, 50, 60, 60, 110, 90, 70, 70]);
 }
 
-function buildDonut_(sheet, dataStartRow, n) {
-  var range = sheet.getRange(dataStartRow, 1, n, 2);
+function buildDonut_(sheet, dataStartRow, n, dataCol) {
+  var range = sheet.getRange(dataStartRow, dataCol || 1, n, 2);
   var chart = sheet.newChart().asPieChart().setOption('pieHole', 0.6)
     .addRange(range).setPosition(dataStartRow, 1, 0, 0)
     .setOption('legend', { position: 'right', textStyle: { fontSize: 11 } })

@@ -280,7 +280,9 @@ function buildEngine_(sheet, mode) {
     return parts[1] + '-' + ('0' + mi).slice(-2);
   });
   sheet.getRange('A1').setValue('metric \\ month').setFontWeight('bold');
-  sheet.getRange(1, 2, 1, 24).setValues([monthCodes]).setFontWeight('bold');
+  // Force text format BEFORE setValues — otherwise some locales auto-parse
+  // "2026-05" to a date, which then breaks DATEVALUE() chains downstream.
+  sheet.getRange(1, 2, 1, 24).setNumberFormat('@').setValues([monthCodes]).setFontWeight('bold');
 
   // Rows 2-21: 20 fixed categories. Each cell SUMIFS expenses (abs) for that month+cat.
   var txAmount = "'" + TABS.TX + "'!$C:$C";
