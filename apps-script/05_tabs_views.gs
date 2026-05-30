@@ -234,12 +234,18 @@ function buildTrends_(sheet, mode) {
   sheet.getRange('N6').setValue('window (6/12/24)').setFontColor(BRAND.CAPTION).setFontSize(8);
   var wins = [6, 12, 24];
   for (var i = 0; i < 3; i++) {
-    var active = (wins[i] === 6);
     setCell_(sheet, sheet.getRange(r, 10 + i).getA1Notation(), { value: wins[i] + ' mo',
       font: FONT.BODY, size: 11, bold: true, h: 'center', v: 'middle',
-      bg: active ? BRAND.FOREST : BRAND.CREAM, color: active ? BRAND.PARCHMENT : BRAND.BODY });
-    if (active) themable_(sheet.getName(), 'primary', sheet.getRange(r, 10 + i).getA1Notation());
+      bg: BRAND.FOREST, color: BRAND.PARCHMENT });
+    themable_(sheet.getName(), 'primary', sheet.getRange(r, 10 + i).getA1Notation());
   }
+  // CF: paint inactive pills cream. Pill values are "6 mo"/"12 mo"/"24 mo"; N7 holds the int.
+  var winRange = sheet.getRange(r, 10, 1, 3);
+  var winInactive = SpreadsheetApp.newConditionalFormatRule()
+    .whenFormulaSatisfied('=' + sheet.getRange(r, 10).getA1Notation() + '<>$N$7&" mo"')
+    .setBackground(BRAND.CREAM).setFontColor(BRAND.BODY).setBold(true)
+    .setRanges([winRange]).build();
+  sheet.setConditionalFormatRules(sheet.getConditionalFormatRules().concat([winInactive]));
 
   // KPI strip — averages over the window
   var avg = function (row) {
