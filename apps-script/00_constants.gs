@@ -140,15 +140,16 @@ var MOCK = {
     ['Utilities', 360], ['Entertainment', 255], ['Subscriptions', 180], ['Personal Care', 180],
     ['Gifts & Donations', 280], ['Health & Medical', 165], ['Insurance', 220], ['Misc', 860]
   ],
-  // goals [name, type, target, current, deadline, status, note]
+  // goals [name, type, source, target, deadline] — Current/Status/Note/%Complete
+  // are formulas now; see buildGoals_ for the per-type logic.
   goals: [
-    ['Emergency Fund', 'Savings Target', 22000, 22800, 'Dec 2026', 'on', '3–4 months expenses. At 3.3 months — almost there.'],
-    ['Japan Trip Fund', 'Savings Target', 5000, 1700, 'Sep 2026', 'fair', 'Set a transfer rule: $200/mo to Ally Savings labeled Travel.'],
-    ['Amex Gold Payoff', 'Debt Payoff', 1840, 1840, 'Dec 2026', 'fair', 'Starting balance $1,850. Pay $100 extra/mo above minimum.'],
-    ['Food & Dining', 'Spending Limit', 650, 922, 'Monthly', 'over', 'Biggest leak. Cut delivery apps — cook 4 nights/week.'],
-    ['Shopping', 'Spending Limit', 500, 618, 'Monthly', 'over', 'Amazon rule: 24-hour wait before buying.'],
-    ['Entertainment', 'Spending Limit', 240, 255, 'Monthly', 'fair', 'Streaming + events. Currently on track.'],
-    ['Monthly Savings Rate', 'Savings Rate', 20, 31.8, 'Ongoing', 'on', 'Goal: 20%+. Currently crushing it at 31.8%.']
+    ['Emergency Fund',       'Savings Target', 'Ally Savings',       22000, 'Dec 2026'],
+    ['Japan Trip Fund',      'Savings Target', 'Ally Sinking Fund',   5000, 'Sep 2026'],
+    ['Amex Gold Payoff',     'Debt Payoff',    'Amex Gold Card',      1840, 'Dec 2026'],
+    ['Food & Dining',        'Spending Limit', 'Food & Dining',        650, 'Monthly'],
+    ['Shopping',             'Spending Limit', 'Shopping',             500, 'Monthly'],
+    ['Entertainment',        'Spending Limit', 'Entertainment',        240, 'Monthly'],
+    ['Monthly Savings Rate', 'Savings Rate',   '',                    0.20, 'Ongoing']
   ],
   health: {
     composite: 72, grade: 'Good',

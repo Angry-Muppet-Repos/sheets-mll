@@ -154,32 +154,51 @@ function buildDashboard_(sheet, mode) {
   sheet.getRange(r, 1, 1, 5).setValues([['Category', 'Spent', 'Budget', '% of Budget', 'Status']])
     .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
   var tsStart = r + 1;
-  for (var t = 0; t < MOCK.top_spending.length; t++) {
-    var row = MOCK.top_spending[t]; var rr = tsStart + t;
-    sheet.getRange(rr, 1).setValue(row[0]);
-    sheet.getRange(rr, 2).setValue(row[1]).setNumberFormat('$#,##0');
-    sheet.getRange(rr, 3).setValue(row[2]).setNumberFormat('$#,##0');
-    sheet.getRange(rr, 4).setFormula('=B' + rr + '/C' + rr).setNumberFormat('0%');
-    sheet.getRange(rr, 5).setFormula('=IF(B' + rr + '<=C' + rr + ',"On Track",IF(B' + rr + '<=C' + rr + '*1.1,"Fair","Over"))');
-    // pacing bar in col G via sparkline
+  var TOP_N = 8;
+  // Live ranking: pull the top 8 spent values from _Engine for the active month,
+  // each row's Category is the matching engine row's label.
+  var monthCol = 'cc_dashboard_month+1';
+  var actualsCol = 'INDEX(_Engine!$B$2:$Y$26,,' + monthCol + ')';
+  for (var t = 0; t < TOP_N; t++) {
+    var rank = t + 1;
+    var rr = tsStart + t;
+    sheet.getRange(rr, 1).setFormula(
+      '=IFERROR(INDEX(_Engine!$A$2:$A$26,MATCH(LARGE(' + actualsCol + ',' + rank + '),' + actualsCol + ',0)),"")');
+    sheet.getRange(rr, 2).setFormula('=IFERROR(LARGE(' + actualsCol + ',' + rank + '),0)').setNumberFormat('$#,##0');
+    sheet.getRange(rr, 3).setFormula("=IFERROR(VLOOKUP(A" + rr + ",'Monthly Budget'!$B$17:$E$41,4,FALSE),0)").setNumberFormat('$#,##0');
+    sheet.getRange(rr, 4).setFormula('=IFERROR(B' + rr + '/C' + rr + ',0)').setNumberFormat('0%');
+    sheet.getRange(rr, 5).setFormula(
+      '=IF(A' + rr + '="","",IF(C' + rr + '=0,"—",IF(B' + rr + '<=C' + rr + ',"On Track",IF(B' + rr + '<=C' + rr + '*1.1,"Fair","Over"))))');
     sheet.getRange(rr, 6, 1, 2).merge();
-    sheet.getRange(rr, 6).setFormula('=SPARKLINE(B' + rr + ',{"charttype","bar";"max",C' + rr + ';"color1","' + BRAND.FOREST + '"})');
+    sheet.getRange(rr, 6).setFormula(
+      '=IF(A' + rr + '="","",SPARKLINE(B' + rr + ',{"charttype","bar";"max",MAX(B' + rr + ',C' + rr + ');"color1","' + BRAND.FOREST + '"}))');
     if (t % 2 === 1) { var z = sheet.getRange(rr, 1, 1, 5).getA1Notation(); sheet.getRange(z).setBackground(PALETTE_BY_ID.light.zebra); themable_(sheet.getName(), 'zebra', z); }
   }
-  statusChipCF_(sheet, sheet.getRange(tsStart, 5, MOCK.top_spending.length, 1).getA1Notation());
+  statusChipCF_(sheet, sheet.getRange(tsStart, 5, TOP_N, 1).getA1Notation());
 
-  // Month snapshot
-  var snap = [['Income', MOCK.snapshot.income], ['Expenses', MOCK.snapshot.expenses], ['Net', MOCK.snapshot.net],
-    ['Savings Rate', MOCK.snapshot.savings_rate / 100], ['Avg Daily Spend', MOCK.snapshot.avg_daily],
-    ['Transactions', MOCK.snapshot.transactions], ['Largest Expense', MOCK.snapshot.largest_expense]];
+  // Month snapshot — all live formulas keyed off cc_dashboard_month + the TX ledger.
+  // Active-month code (e.g. "2026-05") drives SUMIFS/COUNTIFS over TX!H (the
+  // hidden Month helper col on Transactions).
+  var monthCode = 'INDEX(cc_engine_months,1,' + monthCol + ')';
+  var snap = [
+    ['Income',          '=IFERROR(INDEX(_Engine!$B$27:$Y$27,1,' + monthCol + '),0)',                          '$#,##0'],
+    ['Expenses',        '=IFERROR(INDEX(_Engine!$B$28:$Y$28,1,' + monthCol + '),0)',                          '$#,##0'],
+    ['Net',             '=IFERROR(INDEX(_Engine!$B$29:$Y$29,1,' + monthCol + '),0)',                          '$#,##0'],
+    ['Savings Rate',    '=IFERROR(INDEX(_Engine!$B$30:$Y$30,1,' + monthCol + '),0)',                          '0.0%'],
+    ['Avg Daily Spend', '=IFERROR(-SUMIFS(Transactions!$C:$C,Transactions!$H:$H,' + monthCode +
+                          ',Transactions!$C:$C,"<0")/DAY(EOMONTH(IFERROR(DATEVALUE(' + monthCode +
+                          '&"-01"),' + monthCode + '),0)),0)',                                                 '$#,##0'],
+    ['Transactions',    '=COUNTIFS(Transactions!$H:$H,' + monthCode + ',Transactions!$C:$C,"<>0")',            '#,##0'],
+    ['Largest Expense', '=IFERROR(-MINIFS(Transactions!$C:$C,Transactions!$H:$H,' + monthCode + '),0)',        '$#,##0']
+  ];
   for (var sI = 0; sI < snap.length; sI++) {
     var sr = tsStart + sI;
     setCell_(sheet, sheet.getRange(sr, 9).getA1Notation(), { value: snap[sI][0], merge: sheet.getRange(sr, 10).getA1Notation(), font: FONT.BODY, size: 11, color: BRAND.BODY });
     var vcell = sheet.getRange(sr, 11, 1, 2).merge();
-    vcell.setValue(snap[sI][1]).setFontFamily(FONT.BODY).setFontWeight('bold').setFontColor(BRAND.FOREST).setHorizontalAlignment('right');
-    if (sI === 3) vcell.setNumberFormat('0.0%'); else if (sI !== 5) vcell.setNumberFormat('$#,##0');
+    vcell.setFormula(snap[sI][1]).setNumberFormat(snap[sI][2])
+      .setFontFamily(FONT.BODY).setFontWeight('bold').setFontColor(BRAND.FOREST).setHorizontalAlignment('right');
   }
-  r = tsStart + Math.max(MOCK.top_spending.length, snap.length) + 2;
+  r = tsStart + Math.max(TOP_N, snap.length) + 2;
 
   // Spending Breakdown (donut, native chart) + AI Insights panel
   sectionLabel_(sheet, 'A' + r, 'F' + r, 'SPENDING BREAKDOWN');
@@ -295,15 +314,19 @@ function buildTrends_(sheet, mode) {
 }
 
 function buildTrendsChart_(sheet, atRow) {
-  // pull last-6 month labels + income/expenses into a small block for the chart
-  var labels = MOCK.months_24.slice(18).map(function (m) { return [m[0].replace(' 20', " '")]; });
-  var inc = MOCK.months_24.slice(18).map(function (m) { return [m[1]]; });
-  var exp = MOCK.months_24.slice(18).map(function (m) { return [m[2]]; });
-  // stash in far columns (P,Q,R) for the chart source
+  // Live chart data: last 6 months read straight from _Engine. Engine cols
+  // T..Y = engine indices 19..24 = the most-recent 6 months.
   sheet.getRange(atRow, 16, 1, 3).setValues([['Month', 'Income', 'Expenses']]);
-  sheet.getRange(atRow + 1, 16, 6, 1).setValues(labels);
-  sheet.getRange(atRow + 1, 17, 6, 1).setValues(inc);
-  sheet.getRange(atRow + 1, 18, 6, 1).setValues(exp);
+  for (var i = 0; i < 6; i++) {
+    var rr = atRow + 1 + i;
+    var engineCol = 19 + i;  // 1-based col index inside _Engine!B:Y
+    var monthCell = 'INDEX(_Engine!$B$1:$Y$1,1,' + engineCol + ')';
+    // Month label as "mmm yyyy". Falls back to raw value if DATEVALUE can't parse.
+    sheet.getRange(rr, 16).setFormula(
+      '=TEXT(IFERROR(DATEVALUE(' + monthCell + '&"-01"),' + monthCell + '),"mmm yyyy")');
+    sheet.getRange(rr, 17).setFormula('=INDEX(_Engine!$B$27:$Y$27,1,' + engineCol + ')');
+    sheet.getRange(rr, 18).setFormula('=INDEX(_Engine!$B$28:$Y$28,1,' + engineCol + ')');
+  }
   var range = sheet.getRange(atRow, 16, 7, 3);
   var chart = sheet.newChart().asColumnChart()
     .addRange(range).setPosition(atRow, 1, 0, 0)
@@ -433,23 +456,42 @@ function buildNetWorth_(sheet, mode) {
   // Hero Forest panel (rows r..r+5) — paint, don't pre-merge
   sheet.getRange(r, 1, 6, 12).setBackground(BRAND.FOREST);
   themable_(sheet.getName(), 'primary', sheet.getRange(r, 1, 6, 12).getA1Notation());
+  // Investments live in cells I{INV_START}:I{INV_START+inv.length-1} once the
+  // budget-accounts/investments block below renders. Net Worth = sum of
+  // account balances + sum of investments. I15:I30 is a deliberately wide
+  // range so growth doesn't break the formulas.
+  var INV_START = CONTENT_START_ROW + 9;  // r=6 → hero 6..11 → +7 to row 13 → header 14 → data 15
+  var INV_END   = INV_START + 15;
+  var invSum    = 'SUM($I$' + INV_START + ':$I$' + INV_END + ')';
+  var acctSum   = 'SUM(Accounts!$E$10:$E$21)';
+  var assetsF   = 'SUMIF(Accounts!$E$10:$E$21,">0")+' + invSum;
+  var liabF     = 'ABS(SUMIF(Accounts!$E$10:$E$21,"<0"))';
+  var ncfF      = 'IFERROR(INDEX(_Engine!$B$29:$Y$29,1,cc_dashboard_month+1),0)';
+
   setCell_(sheet, 'A' + r, { value: 'TOTAL NET WORTH', merge: 'F' + r, font: FONT.BODY, size: 10, bold: true, color: BRAND.GOLD, bg: BRAND.FOREST });
-  setCell_(sheet, 'A' + (r + 1), { value: nw.total, merge: 'F' + (r + 2), font: FONT.DISPLAY, size: 48, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST, v: 'middle' });
+  setCell_(sheet, 'A' + (r + 1), {
+    formula: '=' + acctSum + '+' + invSum,
+    merge: 'F' + (r + 2), font: FONT.DISPLAY, size: 48, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST, v: 'middle' });
   sheet.getRange(r + 1, 1).setNumberFormat('$#,##0');
   // 48pt characters need ~60px of vertical room — default row height clips the top of the $.
   sheet.setRowHeight(r + 1, 36);
   sheet.setRowHeight(r + 2, 36);
-  setCell_(sheet, 'A' + (r + 3), { value: '+' + money_(nw.change_mo) + ' this month', merge: 'F' + (r + 3), font: FONT.BODY, size: 12, color: BRAND.GOLD, bg: BRAND.FOREST });
-  // sparkline of 6-month history (right)
+  // Sub-line tracks NetCashFlow for the active month — an honest approximation
+  // of monthly net-worth movement (excludes investment-only gains/losses).
+  setCell_(sheet, 'A' + (r + 3), {
+    formula: '=TEXT(' + ncfF + ',"+$#,##0;-$#,##0;$0")&" this month"',
+    merge: 'F' + (r + 3), font: FONT.BODY, size: 12, color: BRAND.GOLD, bg: BRAND.FOREST });
+  // 6-month history sparkline stays static — making this live requires a
+  // monthly balance-snapshot mechanism we don't have yet. Demo only.
   sheet.getRange(r + 1, 8, 6, 1).setValues(nw.history.map(function (v) { return [v]; }));
   sheet.hideColumns(8);
   setCell_(sheet, 'I' + r, { value: 'NET WORTH · 6 MO', merge: 'L' + r, font: FONT.BODY, size: 10, bold: true, color: BRAND.GOLD, bg: BRAND.FOREST });
   var spark = sheet.getRange(r + 1, 9, 1, 4).merge();
   spark.setFormula(sparkLine_('H' + (r + 1) + ':H' + (r + 6), BRAND.GOLD)).setBackground(BRAND.FOREST);
   themable_(sheet.getName(), 'primary', spark.getA1Notation());
-  // asset / liability cards — stacked so neither number wraps mid-string
+  // Assets / Liabilities — stacked 2-line text built inline so the merge can stay narrow.
   setCell_(sheet, 'I' + (r + 3), {
-    value: 'Assets ' + money_(nw.assets) + '\nLiabilities ' + money_(nw.liabilities),
+    formula: '="Assets $"&TEXT(' + assetsF + ',"#,##0")&CHAR(10)&"Liabilities $"&TEXT(' + liabF + ',"#,##0")',
     merge: 'L' + (r + 4), font: FONT.DISPLAY, size: 14, color: BRAND.PARCHMENT, bg: BRAND.FOREST, wrap: true, v: 'middle' });
   r += 7;
 

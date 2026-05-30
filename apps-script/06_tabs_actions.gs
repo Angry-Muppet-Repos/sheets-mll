@@ -155,47 +155,115 @@ function buildMonthlyBudget_(sheet, mode) {
 function buildGoals_(sheet, mode) {
   chrome_(sheet, TABS.GOALS, 'L');
   var r = titleRow_(sheet, 'L', 'Goals',
-    'Pick a type, a target, a deadline. Progress tracks automatically as transactions come in.');
+    'Pick a type, a source, a target. Current and Status track live from your data.');
 
-  var hdr = ['Goal Name', 'Type', 'Target', 'Current', '% Complete', 'Deadline', 'Status', 'Note'];
-  sheet.getRange(r, 1, 1, 8).setValues([hdr]).setFontWeight('bold').setBackground(BRAND.FOREST)
+  var hdr = ['Goal Name', 'Type', 'Source', 'Target', 'Current', '% Complete', 'Deadline', 'Status', 'Note'];
+  sheet.getRange(r, 1, 1, 9).setValues([hdr]).setFontWeight('bold').setBackground(BRAND.FOREST)
     .setFontColor(BRAND.PARCHMENT).setFontFamily(FONT.BODY).setFontSize(10);
-  themable_(sheet.getName(), 'primary', sheet.getRange(r, 1, 1, 8).getA1Notation());
+  themable_(sheet.getName(), 'primary', sheet.getRange(r, 1, 1, 9).getA1Notation());
   var start = r + 1;
   var goals = (mode === 'mock') ? MOCK.goals : [];
-  for (var i = 0; i < Math.max(goals.length, 7); i++) {
+  var rowCount = Math.max(goals.length, 7);
+
+  // Hidden helper: union of Accounts + Categories names for the Source dropdown.
+  // Spills from M{start}; FILTER drops blanks (custom-slot rows, empty account rows).
+  sheet.getRange(start, 13).setFormula(
+    '={FILTER(cc_accounts_list,LEN(cc_accounts_list)>0);FILTER(cc_tx_categories,LEN(cc_tx_categories)>0)}');
+
+  for (var i = 0; i < rowCount; i++) {
     var rr = start + i;
     if (i < goals.length) {
       var g = goals[i];
-      sheet.getRange(rr, 1).setValue(g[0]);
-      sheet.getRange(rr, 2).setValue(g[1]);
-      sheet.getRange(rr, 3).setValue(g[2]).setNumberFormat(g[1] === 'Savings Rate' ? '0"%"' : '$#,##0');
-      sheet.getRange(rr, 4).setValue(g[3]).setNumberFormat(g[1] === 'Savings Rate' ? '0.0"%"' : '$#,##0');
-      sheet.getRange(rr, 5).setFormula('=SPARKLINE(D' + rr + ',{"charttype","bar";"max",C' + rr +
-        ';"color1",IF(D' + rr + '/C' + rr + '>1,"' + BRAND.GARNET + '",IF(D' + rr + '/C' + rr + '>0.85,"' + BRAND.GOLD + '","' + BRAND.FOREST + '"))})');
-      sheet.getRange(rr, 6).setValue(g[4]);
-      sheet.getRange(rr, 7).setValue(statusText_(g[5]));
-      sheet.getRange(rr, 8).setValue(g[6]).setFontColor(BRAND.BODY).setWrap(true);
+      sheet.getRange(rr, 1).setValue(g[0]);                 // A: name
+      sheet.getRange(rr, 2).setValue(g[1]);                 // B: type
+      sheet.getRange(rr, 3).setValue(g[2]).setBackground(BRAND.YELLOW); // C: source
+      sheet.getRange(rr, 4).setValue(g[3]).setBackground(BRAND.YELLOW); // D: target
+      sheet.getRange(rr, 7).setValue(g[4]);                 // G: deadline
+    } else {
+      // Empty seed rows still get yellow on Source/Target/Note so the buyer
+      // sees where to type.
+      sheet.getRange(rr, 3).setBackground(BRAND.YELLOW);
+      sheet.getRange(rr, 4).setBackground(BRAND.YELLOW);
     }
-    if (i % 2 === 1) { var z = sheet.getRange(rr, 1, 1, 8).getA1Notation(); sheet.getRange(z).setBackground(PALETTE_BY_ID.light.zebra); themable_(sheet.getName(), 'zebra', z); }
+    sheet.getRange(rr, 9).setBackground(BRAND.YELLOW).setWrap(true); // I: note (always editable)
+
+    // Per-row number format: Savings Rate uses %, all others $.
+    var fmt = '=IF($B' + rr + '="Savings Rate","0.0%","$#,##0")';
+    // Apps Script doesn't accept formula-as-format, so we just set both based on
+    // mock data here. When the buyer changes Type later, they'll need to adjust
+    // the format manually OR we set both formats unconditionally to a smart one.
+    // Use a per-row check at build time:
+    var isRate = (i < goals.length && goals[i][1] === 'Savings Rate');
+    sheet.getRange(rr, 4).setNumberFormat(isRate ? '0.0%' : '$#,##0');
+    sheet.getRange(rr, 5).setNumberFormat(isRate ? '0.0%' : '$#,##0');
+
+    // E: Current — type-aware live formula.
+    sheet.getRange(rr, 5).setFormula(
+      '=IFS(' +
+        '$B' + rr + '="Spending Limit", IFERROR(INDEX(_Engine!$B$2:$Y$26,MATCH($C' + rr + ',_Engine!$A$2:$A$26,0),cc_dashboard_month+1),""),' +
+        '$B' + rr + '="Savings Target", IFERROR(VLOOKUP($C' + rr + ',Accounts!$A$10:$E$21,5,FALSE),""),' +
+        '$B' + rr + '="Debt Payoff", IFERROR(VLOOKUP($C' + rr + ',Accounts!$A$10:$D$21,4,FALSE)-VLOOKUP($C' + rr + ',Accounts!$A$10:$E$21,5,FALSE),""),' +
+        '$B' + rr + '="Savings Rate", IFERROR(INDEX(_Engine!$B$30:$Y$30,1,cc_dashboard_month+1),0),' +
+        'TRUE,"")');
+
+    // F: % Complete — sparkline bar, type-aware color (high=good for save/debt/rate; high=bad for spend).
+    sheet.getRange(rr, 6).setFormula(
+      '=IFERROR(SPARKLINE($E' + rr + ',{"charttype","bar";"max",$D' + rr + ';"color1",' +
+        'IF(OR($B' + rr + '="Savings Target",$B' + rr + '="Debt Payoff",$B' + rr + '="Savings Rate"),' +
+          'IF($E' + rr + '/$D' + rr + '>=1,"' + BRAND.FOREST + '",IF($E' + rr + '/$D' + rr + '>=0.75,"' + BRAND.GOLD + '","' + BRAND.GARNET + '")),' +
+          'IF($E' + rr + '/$D' + rr + '>1,"' + BRAND.GARNET + '",IF($E' + rr + '/$D' + rr + '>0.85,"' + BRAND.GOLD + '","' + BRAND.FOREST + '"))' +
+        ')}),"")');
+
+    // H: Status — type-aware.
+    sheet.getRange(rr, 8).setFormula(
+      '=IFS(' +
+        'OR($B' + rr + '="",$E' + rr + '="",$D' + rr + '=""),"",' +
+        '$B' + rr + '="Spending Limit", IF($E' + rr + '<=$D' + rr + ',"On Track",IF($E' + rr + '<=$D' + rr + '*1.1,"Fair","Over")),' +
+        '$B' + rr + '="Savings Target", IF($E' + rr + '>=$D' + rr + ',"On Track",IF($E' + rr + '>=$D' + rr + '*0.75,"Fair","Over")),' +
+        '$B' + rr + '="Debt Payoff", IF($E' + rr + '>=$D' + rr + ',"On Track",IF($E' + rr + '>=$D' + rr + '*0.75,"Fair","Over")),' +
+        '$B' + rr + '="Savings Rate", IF($E' + rr + '>=0.2,"On Track",IF($E' + rr + '>=0.1,"Fair","Over")),' +
+        'TRUE,"")');
+
+    // N (hidden): forecast gap helper — positive remaining $ for incomplete Savings Target goals only.
+    sheet.getRange(rr, 14).setFormula(
+      '=IF(AND($B' + rr + '="Savings Target",ISNUMBER($E' + rr + '),$E' + rr + '<$D' + rr + '),$D' + rr + '-$E' + rr + ',0)');
+
+    if (i % 2 === 1) { var z = sheet.getRange(rr, 1, 1, 9).getA1Notation(); sheet.getRange(z).setBackground(PALETTE_BY_ID.light.zebra); themable_(sheet.getName(), 'zebra', z); }
   }
+
+  // Type dropdown
   var typeRule = SpreadsheetApp.newDataValidation()
     .requireValueInList(['Savings Target', 'Debt Payoff', 'Spending Limit', 'Savings Rate'], true).build();
-  sheet.getRange(start, 2, 7, 1).setDataValidation(typeRule);
-  statusChipCF_(sheet, sheet.getRange(start, 7, 7, 1).getA1Notation());
+  sheet.getRange(start, 2, rowCount, 1).setDataValidation(typeRule);
 
-  // Forecast strip — Forest panel: gold label row + brand-voice copy row
-  var fr = start + Math.max(goals.length, 7) + 1;
+  // Source dropdown — union of accounts + categories, sourced from hidden col M.
+  var sourceRule = SpreadsheetApp.newDataValidation()
+    .requireValueInRange(sheet.getRange(start, 13, 50, 1), true).setAllowInvalid(true).build();
+  sheet.getRange(start, 3, rowCount, 1).setDataValidation(sourceRule);
+
+  statusChipCF_(sheet, sheet.getRange(start, 8, rowCount, 1).getA1Notation());
+
+  // Forecast strip — Forest panel with a live formula picking the biggest-gap
+  // Savings Target goal and projecting months at current NetCashFlow pace.
+  var fr = start + rowCount + 1;
   setCell_(sheet, 'A' + fr, { value: 'FORECAST', merge: 'L' + fr,
     font: FONT.BODY, size: 10, bold: true, color: BRAND.GOLD, bg: BRAND.FOREST, v: 'middle' });
   themable_(sheet.getName(), 'primary', sheet.getRange(fr, 1, 1, 12).getA1Notation());
+
+  var gapRange = 'N' + start + ':N' + (start + rowCount - 1);
+  var nameRange = 'A' + start + ':A' + (start + rowCount - 1);
+  var ncf = 'INDEX(_Engine!$B$29:$Y$29,1,cc_dashboard_month+1)';
   setCell_(sheet, 'A' + (fr + 1), {
-    value: 'Japan Trip Fund hits target by Oct 2026 — one month late. Bump the monthly transfer from $200 to $275 and you hit September.',
+    formula: '=IF(MAX(' + gapRange + ')<=0,"All Savings Target goals met — pick a new target!",' +
+      'IF(' + ncf + '<=0,"Negative cash flow this month — trim before adding a new goal.",' +
+      'INDEX(' + nameRange + ',MATCH(MAX(' + gapRange + '),' + gapRange + ',0))&" hits target in ~"&' +
+      'ROUND(MAX(' + gapRange + ')/' + ncf + ',0)&" months at current pace ($"&TEXT(' + ncf + ',"#,##0")&"/mo saved)."))',
     merge: 'L' + (fr + 2), font: FONT.BODY, size: 13, color: BRAND.PARCHMENT, bg: BRAND.FOREST, wrap: true, v: 'middle' });
   themable_(sheet.getName(), 'primary', sheet.getRange(fr + 1, 1, 2, 12).getA1Notation());
 
   footer_(sheet, fr + 4, 'L');
-  setColWidths_(sheet, [170, 130, 90, 90, 120, 90, 80, 220, 60, 60, 60, 60]);
+  setColWidths_(sheet, [140, 110, 130, 80, 80, 110, 90, 80, 180, 60, 60, 60]);
+  sheet.hideColumns(13, 2);  // M (source union) + N (forecast gaps)
 }
 
 // ── Bank Import Guide ─────────────────────────────────────────────────
