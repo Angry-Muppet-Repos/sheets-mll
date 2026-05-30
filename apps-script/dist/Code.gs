@@ -1455,6 +1455,9 @@ function buildNetWorth_(sheet, mode) {
   setCell_(sheet, 'A' + r, { value: 'TOTAL NET WORTH', merge: 'F' + r, font: FONT.BODY, size: 10, bold: true, color: BRAND.GOLD, bg: BRAND.FOREST });
   setCell_(sheet, 'A' + (r + 1), { value: nw.total, merge: 'F' + (r + 2), font: FONT.DISPLAY, size: 48, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST, v: 'middle' });
   sheet.getRange(r + 1, 1).setNumberFormat('$#,##0');
+  // 48pt characters need ~60px of vertical room — default row height clips the top of the $.
+  sheet.setRowHeight(r + 1, 36);
+  sheet.setRowHeight(r + 2, 36);
   setCell_(sheet, 'A' + (r + 3), { value: '+' + money_(nw.change_mo) + ' this month', merge: 'F' + (r + 3), font: FONT.BODY, size: 12, color: BRAND.GOLD, bg: BRAND.FOREST });
   // sparkline of 6-month history (right)
   sheet.getRange(r + 1, 8, 6, 1).setValues(nw.history.map(function (v) { return [v]; }));
