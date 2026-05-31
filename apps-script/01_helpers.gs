@@ -161,3 +161,31 @@ function money_(n) {
   var s = String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   return (neg ? '−$' : '$') + s;
 }
+
+// ── Engine month helpers ──────────────────────────────────────────────
+// _Engine is a 24-column rolling window. Its row-1 headers are 'YYYY-MM'
+// strings ending in the anchor's calendar month. The helpers below are
+// the single source of truth — buildEngine_ writes them, rollEngineForward_
+// reads/rewrites them, onOpen/importTransactions watch them.
+
+// 'YYYY-MM' for the given Date's calendar month.
+function monthCodeOfDate_(d) {
+  var y = d.getFullYear();
+  var m = d.getMonth() + 1;
+  return y + '-' + (m < 10 ? '0' + m : '' + m);
+}
+
+// Returns 24 'YYYY-MM' strings, oldest first, newest = anchor's calendar
+// month. So index 23 is the anchor month, index 0 is 23 months earlier.
+function monthCodesEndingAt_(anchorDate) {
+  var codes = [];
+  var y = anchorDate.getFullYear();
+  var m = anchorDate.getMonth();   // 0-based
+  for (var i = 23; i >= 0; i--) {
+    var dy = y, dm = m - i;
+    while (dm < 0) { dm += 12; dy -= 1; }
+    var mm = dm + 1;
+    codes.push(dy + '-' + (mm < 10 ? '0' + mm : '' + mm));
+  }
+  return codes;
+}

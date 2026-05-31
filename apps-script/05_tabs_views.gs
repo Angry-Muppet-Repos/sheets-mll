@@ -2,15 +2,16 @@
  * Column & Co. — The Foundation v2.1
  * 05 · View tabs: Start Here, Dashboard, Trends, Health Score, Net Worth.
  *
- * _Engine month columns: B..Y = 24 months (Jun24..May26). The current
- * mock month (May 2026) is column Y (index 23, 0-based). Views read the
- * active month via the cc_dashboard_month cell so the month pills re-drive
- * every figure.
+ * _Engine month columns: B..Y = a rolling 24-month window ending in the
+ * current calendar month (anchored at build, re-anchored on import or on
+ * open if today is past). Column Y is always "this month"; column B is
+ * 23 months earlier. Views read the active month via the cc_dashboard_month
+ * cell so the Dashboard month pills re-drive every figure.
  */
 
 var ENG = "'" + '_Engine' + "'";       // qualified sheet ref
-var CUR_MONTH_COL = 25;                 // Y — May 2026
-var CUR_MONTH_IDX = 23;                 // 0-based
+var CUR_MONTH_COL = 25;                 // Y — newest engine month
+var CUR_MONTH_IDX = 23;                 // 0-based — Y is the active default
 
 // ── Start Here ────────────────────────────────────────────────────────
 function buildStartHere_(sheet) {
@@ -99,28 +100,37 @@ function buildStartHere_(sheet) {
 
 // ── Dashboard ─────────────────────────────────────────────────────────
 function buildDashboard_(sheet, mode) {
-  chrome_(sheet, TABS.DASHBOARD, 'L', 'VIEWING MONTH · MAY 2026');
+  chrome_(sheet, TABS.DASHBOARD, 'L', 'VIEWING MONTH');
   // Replace the static breadcrumb with a live formula so it tracks N4.
   sheet.getRange('A3').setFormula(
     '="VIEWING MONTH · "&UPPER(TEXT(IFERROR(DATEVALUE(INDEX(cc_engine_months,1,N4+1)&"-01"),INDEX(cc_engine_months,1,N4+1)),"mmm yyyy"))&"  "');
   var r = titleRow_(sheet, 'L', 'Dashboard',
     'Your money at a glance. Updated automatically as transactions come in.');
 
-  // active month index cell (named cc_dashboard_month) at N4 — set in build
-  sheet.getRange('N4').setValue(CUR_MONTH_IDX);
+  // Active month index cell (named cc_dashboard_month) at N4. Seeded with
+  // a formula that picks the newest engine column with non-zero income
+  // (so a buyer building blank lands on whatever they imported), else
+  // falls back to column Y (= newest engine month = "this month").
+  sheet.getRange('N4').setFormula(
+    '=IFERROR(LARGE(ARRAYFORMULA(IF(' + ENG + '!$B$27:$Y$27>0,COLUMN(' + ENG +
+    '!$B$27:$Y$27)-2)),1),23)');
   sheet.getRange('N3').setValue('active_month_idx (0-23)').setFontColor(BRAND.CAPTION).setFontSize(8);
 
-  // Month label + 6 pills
+  // Month label + 6 pills. Pill labels are formulas reading the last 6
+  // engine headers, so the pills auto-shift when the engine rolls forward.
   setCell_(sheet, 'A' + r, {
     formula: '=TEXT(IFERROR(DATEVALUE(INDEX(cc_engine_months,1,N4+1)&"-01"),INDEX(cc_engine_months,1,N4+1)),"mmmm yyyy")',
     merge: 'C' + r, font: FONT.DISPLAY, size: 26, bold: true, color: BRAND.FOREST });
-  var pillMonths = ['Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May'];
   for (var i = 0; i < 6; i++) {
     var col = 6 + i;
-    setCell_(sheet, sheet.getRange(r, col).getA1Notation(), {
-      value: pillMonths[i], font: FONT.BODY, size: 11, bold: true, h: 'center', v: 'middle',
+    var engineIdx = 19 + i;  // pills represent engine columns 19..24 (T..Y)
+    var pillCellA1 = sheet.getRange(r, col).getA1Notation();
+    setCell_(sheet, pillCellA1, {
+      formula: '=TEXT(IFERROR(DATEVALUE(INDEX(cc_engine_months,1,' + engineIdx +
+        ')&"-01"),INDEX(cc_engine_months,1,' + engineIdx + ')),"mmm")',
+      font: FONT.BODY, size: 11, bold: true, h: 'center', v: 'middle',
       bg: BRAND.FOREST, color: BRAND.PARCHMENT });
-    themable_(sheet.getName(), 'primary', sheet.getRange(r, col).getA1Notation());
+    themable_(sheet.getName(), 'primary', pillCellA1);
   }
   // CF: paint inactive pills cream (active pill = the one whose column matches N4-12).
   var pillRange = sheet.getRange(r, 6, 1, 6);

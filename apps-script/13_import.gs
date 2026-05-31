@@ -87,6 +87,25 @@ function importTransactions() {
   }
   if (!out.length && !skipped) { ss.toast('No valid rows parsed.', CC.BRAND, 4); return; }
 
+  // If any imported row's calendar month is past the engine's last column,
+  // roll the rolling 24-month window forward so the new month aggregates
+  // and shows up as a Dashboard pill. Anchored on the latest imported date.
+  var rolledTo = '';
+  if (out.length) {
+    var maxDate = null;
+    for (var od = 0; od < out.length; od++) {
+      var d = out[od][0];
+      if (d instanceof Date && (!maxDate || d > maxDate)) maxDate = d;
+    }
+    if (maxDate) {
+      var lastCode = lastEngineMonthCode_();
+      var maxCode = monthCodeOfDate_(maxDate);
+      if (lastCode && maxCode > lastCode) {
+        if (rollEngineForward_(maxDate)) rolledTo = maxCode;
+      }
+    }
+  }
+
   if (out.length) {
     var firstEmpty = findFirstEmptyTxRow_(tx);
     tx.getRange(firstEmpty, 1, out.length, 6).setValues(out);
@@ -145,6 +164,7 @@ function importTransactions() {
   if (income.length > REVIEW_INCOME_ROW_COUNT) {
     parts.push('(' + (income.length - REVIEW_INCOME_ROW_COUNT) + ' beyond the review block)');
   }
+  if (rolledTo) parts.push('engine rolled to ' + rolledTo);
   ss.toast(parts.join(' · '), CC.BRAND, 6);
 }
 

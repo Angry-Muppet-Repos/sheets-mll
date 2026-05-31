@@ -510,6 +510,34 @@ function money_(n) {
   var s = String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   return (neg ? '−$' : '$') + s;
 }
+
+// ── Engine month helpers ──────────────────────────────────────────────
+// _Engine is a 24-column rolling window. Its row-1 headers are 'YYYY-MM'
+// strings ending in the anchor's calendar month. The helpers below are
+// the single source of truth — buildEngine_ writes them, rollEngineForward_
+// reads/rewrites them, onOpen/importTransactions watch them.
+
+// 'YYYY-MM' for the given Date's calendar month.
+function monthCodeOfDate_(d) {
+  var y = d.getFullYear();
+  var m = d.getMonth() + 1;
+  return y + '-' + (m < 10 ? '0' + m : '' + m);
+}
+
+// Returns 24 'YYYY-MM' strings, oldest first, newest = anchor's calendar
+// month. So index 23 is the anchor month, index 0 is 23 months earlier.
+function monthCodesEndingAt_(anchorDate) {
+  var codes = [];
+  var y = anchorDate.getFullYear();
+  var m = anchorDate.getMonth();   // 0-based
+  for (var i = 23; i >= 0; i--) {
+    var dy = y, dm = m - i;
+    while (dm < 0) { dm += 12; dy -= 1; }
+    var mm = dm + 1;
+    codes.push(dy + '-' + (mm < 10 ? '0' + mm : '' + mm));
+  }
+  return codes;
+}
 /**
  * Column & Co. — The Foundation v2.1
  * 02 · Brand chrome — the non-negotiable 3-row letterhead + footer.
@@ -854,7 +882,7 @@ function buildAccounts_(sheet, mode) {
   var firstRow = r + 1;
   var rows = (mode === 'mock')
     ? MOCK.net_worth.budget_accounts.map(function (a) {
-        return [a[0], a[1], a[2], a[3], a[3], new Date(2026, 4, 1), ''];
+        return [a[0], a[1], a[2], a[3], a[3], new Date(), ''];
       })
     : [];
   var capacity = Math.max(rows.length, 12);
@@ -932,23 +960,33 @@ function buildTransactions_(sheet, mode) {
   sheet.getRange(headerRow, 1, 1 + 5000, 7).createFilter();
 }
 
-// Build a realistic 6-month ledger (Dec 2025 – May 2026) whose monthly
-// category sums reproduce the mock story so the formula-driven _Engine
-// shows the right numbers.
+// Build a realistic 6-month ledger ending in today's calendar month, with
+// monthly category sums that reproduce the mock story (MOCK.months_24's
+// trailing 6 entries). We borrow the figures, but slide the *dates* to
+// the trailing 6 months ending today — so the demo always lines up with
+// the rolling engine window regardless of when the buyer runs Build.
 function generateMockLedger_() {
   var rows = [];
-  var months = MOCK.months_24.slice(18); // last 6 = Dec25..May26
+  var monthFigures = MOCK.months_24.slice(18); // 6 [label, income, expenses, …] rows
   var accounts = ['Chase Joint Checking', 'Amex Gold Card', 'Chase Sapphire Card', 'Elena Checking', 'Marcus Checking'];
   // category spend weights from the current-month breakdown
   var breakdownMap = {}; MOCK.breakdown.forEach(function (b) { breakdownMap[b[0]] = b[1]; });
   var totalBreakdown = MOCK.breakdown.reduce(function (s, b) { return s + b[1]; }, 0);
 
-  for (var m = 0; m < months.length; m++) {
-    var label = months[m][0];                 // e.g. 'May 2026'
-    var parts = label.split(' ');
-    var monthIdx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(parts[0]);
-    var year = Number(parts[1]);
-    var income = months[m][1], expenses = months[m][2];
+  // Trailing 6 (year, monthIdx) pairs ending in today's calendar month,
+  // oldest first — so they line up positionally with monthFigures, which
+  // is also oldest-first.
+  var today = new Date();
+  var monthDates = [];
+  for (var k = 5; k >= 0; k--) {
+    var d = new Date(today.getFullYear(), today.getMonth() - k, 1);
+    monthDates.push({ year: d.getFullYear(), monthIdx: d.getMonth() });
+  }
+
+  for (var m = 0; m < monthFigures.length; m++) {
+    var year = monthDates[m].year;
+    var monthIdx = monthDates[m].monthIdx;
+    var income = monthFigures[m][1], expenses = monthFigures[m][2];
 
     // income — one direct-deposit row
     rows.push([new Date(year, monthIdx, 1), 'DIRECT DEPOSIT - ACME CO', income, 'Income', 'Chase Joint Checking', '']);
@@ -986,12 +1024,11 @@ function mockMerchant_(cat) {
 
 // ── _Engine — formula-driven aggregation (SUMIFS over Transactions) ───
 function buildEngine_(sheet, mode) {
-  // Row 1: 24 month headers (YYYY-MM), Jun24..May26
-  var monthCodes = MOCK.months_24.map(function (m) {
-    var parts = m[0].split(' ');
-    var mi = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(parts[0]) + 1;
-    return parts[1] + '-' + ('0' + mi).slice(-2);
-  });
+  // Row 1: 24 rolling-window month headers (YYYY-MM) ending in today's
+  // calendar month. Column Y is always "this month"; column B is 23
+  // months earlier. The downstream views reference $B..$Y by position,
+  // so rolling the window forward is a single setValues on row 1.
+  var monthCodes = monthCodesEndingAt_(new Date());
   sheet.getRange('A1').setValue('metric \\ month').setFontWeight('bold');
   // Force text format BEFORE setValues — otherwise some locales auto-parse
   // "2026-05" to a date, which then breaks DATEVALUE() chains downstream.
@@ -1050,19 +1087,50 @@ function columnToLetter_(col) {
   while (col > 0) { var m = (col - 1) % 26; letter = String.fromCharCode(65 + m) + letter; col = Math.floor((col - 1) / 26); }
   return letter;
 }
+
+// ── Re-anchor the engine's rolling 24-month window ────────────────────
+// Rewrites _Engine!B1:Y1 to end in anchorDate's calendar month. Every
+// downstream SUMIFS references row 1 by position, so the aggregation
+// re-targets the new months automatically — no formula rewrite needed.
+// Idempotent: re-running with the same anchor is a no-op.
+// Returns true if the window actually shifted, false if it was already
+// anchored correctly (caller decides whether to toast).
+function rollEngineForward_(anchorDate) {
+  var ss = SpreadsheetApp.getActive();
+  var eng = ss.getSheetByName(TABS.ENGINE);
+  if (!eng) return false;
+  var newCodes = monthCodesEndingAt_(anchorDate);
+  var current = eng.getRange(1, 2, 1, 24).getValues()[0];
+  var same = true;
+  for (var i = 0; i < 24; i++) {
+    if (String(current[i]) !== newCodes[i]) { same = false; break; }
+  }
+  if (same) return false;
+  eng.getRange(1, 2, 1, 24).setNumberFormat('@').setValues([newCodes]);
+  return true;
+}
+
+// Returns the 'YYYY-MM' currently in _Engine!Y1, or '' if engine missing.
+function lastEngineMonthCode_() {
+  var ss = SpreadsheetApp.getActive();
+  var eng = ss.getSheetByName(TABS.ENGINE);
+  if (!eng) return '';
+  return String(eng.getRange(1, 25).getValue() || '');
+}
 /**
  * Column & Co. — The Foundation v2.1
  * 05 · View tabs: Start Here, Dashboard, Trends, Health Score, Net Worth.
  *
- * _Engine month columns: B..Y = 24 months (Jun24..May26). The current
- * mock month (May 2026) is column Y (index 23, 0-based). Views read the
- * active month via the cc_dashboard_month cell so the month pills re-drive
- * every figure.
+ * _Engine month columns: B..Y = a rolling 24-month window ending in the
+ * current calendar month (anchored at build, re-anchored on import or on
+ * open if today is past). Column Y is always "this month"; column B is
+ * 23 months earlier. Views read the active month via the cc_dashboard_month
+ * cell so the Dashboard month pills re-drive every figure.
  */
 
 var ENG = "'" + '_Engine' + "'";       // qualified sheet ref
-var CUR_MONTH_COL = 25;                 // Y — May 2026
-var CUR_MONTH_IDX = 23;                 // 0-based
+var CUR_MONTH_COL = 25;                 // Y — newest engine month
+var CUR_MONTH_IDX = 23;                 // 0-based — Y is the active default
 
 // ── Start Here ────────────────────────────────────────────────────────
 function buildStartHere_(sheet) {
@@ -1151,28 +1219,37 @@ function buildStartHere_(sheet) {
 
 // ── Dashboard ─────────────────────────────────────────────────────────
 function buildDashboard_(sheet, mode) {
-  chrome_(sheet, TABS.DASHBOARD, 'L', 'VIEWING MONTH · MAY 2026');
+  chrome_(sheet, TABS.DASHBOARD, 'L', 'VIEWING MONTH');
   // Replace the static breadcrumb with a live formula so it tracks N4.
   sheet.getRange('A3').setFormula(
     '="VIEWING MONTH · "&UPPER(TEXT(IFERROR(DATEVALUE(INDEX(cc_engine_months,1,N4+1)&"-01"),INDEX(cc_engine_months,1,N4+1)),"mmm yyyy"))&"  "');
   var r = titleRow_(sheet, 'L', 'Dashboard',
     'Your money at a glance. Updated automatically as transactions come in.');
 
-  // active month index cell (named cc_dashboard_month) at N4 — set in build
-  sheet.getRange('N4').setValue(CUR_MONTH_IDX);
+  // Active month index cell (named cc_dashboard_month) at N4. Seeded with
+  // a formula that picks the newest engine column with non-zero income
+  // (so a buyer building blank lands on whatever they imported), else
+  // falls back to column Y (= newest engine month = "this month").
+  sheet.getRange('N4').setFormula(
+    '=IFERROR(LARGE(ARRAYFORMULA(IF(' + ENG + '!$B$27:$Y$27>0,COLUMN(' + ENG +
+    '!$B$27:$Y$27)-2)),1),23)');
   sheet.getRange('N3').setValue('active_month_idx (0-23)').setFontColor(BRAND.CAPTION).setFontSize(8);
 
-  // Month label + 6 pills
+  // Month label + 6 pills. Pill labels are formulas reading the last 6
+  // engine headers, so the pills auto-shift when the engine rolls forward.
   setCell_(sheet, 'A' + r, {
     formula: '=TEXT(IFERROR(DATEVALUE(INDEX(cc_engine_months,1,N4+1)&"-01"),INDEX(cc_engine_months,1,N4+1)),"mmmm yyyy")',
     merge: 'C' + r, font: FONT.DISPLAY, size: 26, bold: true, color: BRAND.FOREST });
-  var pillMonths = ['Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May'];
   for (var i = 0; i < 6; i++) {
     var col = 6 + i;
-    setCell_(sheet, sheet.getRange(r, col).getA1Notation(), {
-      value: pillMonths[i], font: FONT.BODY, size: 11, bold: true, h: 'center', v: 'middle',
+    var engineIdx = 19 + i;  // pills represent engine columns 19..24 (T..Y)
+    var pillCellA1 = sheet.getRange(r, col).getA1Notation();
+    setCell_(sheet, pillCellA1, {
+      formula: '=TEXT(IFERROR(DATEVALUE(INDEX(cc_engine_months,1,' + engineIdx +
+        ')&"-01"),INDEX(cc_engine_months,1,' + engineIdx + ')),"mmm")',
+      font: FONT.BODY, size: 11, bold: true, h: 'center', v: 'middle',
       bg: BRAND.FOREST, color: BRAND.PARCHMENT });
-    themable_(sheet.getName(), 'primary', sheet.getRange(r, col).getA1Notation());
+    themable_(sheet.getName(), 'primary', pillCellA1);
   }
   // CF: paint inactive pills cream (active pill = the one whose column matches N4-12).
   var pillRange = sheet.getRange(r, 6, 1, 6);
@@ -1968,6 +2045,14 @@ function buildBankImport_(sheet) {
 function onOpen() {
   buildMenu_();
   hideSystemTabs_();
+  // Quiet auto-roll: if the calendar has moved past the engine's last
+  // column, shift the rolling 24-month window forward to today. No-op
+  // when already anchored. Wrapped — onOpen must never throw.
+  try {
+    var lastCode = lastEngineMonthCode_();
+    var todayCode = monthCodeOfDate_(new Date());
+    if (lastCode && todayCode > lastCode) rollEngineForward_(new Date());
+  } catch (e) {}
   var dp = PropertiesService.getDocumentProperties();
   if (!dp.getProperty('cc_first_open')) {
     var start = SpreadsheetApp.getActive().getSheetByName(TABS.START);
@@ -2376,6 +2461,25 @@ function importTransactions() {
   }
   if (!out.length && !skipped) { ss.toast('No valid rows parsed.', CC.BRAND, 4); return; }
 
+  // If any imported row's calendar month is past the engine's last column,
+  // roll the rolling 24-month window forward so the new month aggregates
+  // and shows up as a Dashboard pill. Anchored on the latest imported date.
+  var rolledTo = '';
+  if (out.length) {
+    var maxDate = null;
+    for (var od = 0; od < out.length; od++) {
+      var d = out[od][0];
+      if (d instanceof Date && (!maxDate || d > maxDate)) maxDate = d;
+    }
+    if (maxDate) {
+      var lastCode = lastEngineMonthCode_();
+      var maxCode = monthCodeOfDate_(maxDate);
+      if (lastCode && maxCode > lastCode) {
+        if (rollEngineForward_(maxDate)) rolledTo = maxCode;
+      }
+    }
+  }
+
   if (out.length) {
     var firstEmpty = findFirstEmptyTxRow_(tx);
     tx.getRange(firstEmpty, 1, out.length, 6).setValues(out);
@@ -2434,6 +2538,7 @@ function importTransactions() {
   if (income.length > REVIEW_INCOME_ROW_COUNT) {
     parts.push('(' + (income.length - REVIEW_INCOME_ROW_COUNT) + ' beyond the review block)');
   }
+  if (rolledTo) parts.push('engine rolled to ' + rolledTo);
   ss.toast(parts.join(' · '), CC.BRAND, 6);
 }
 

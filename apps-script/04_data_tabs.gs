@@ -151,7 +151,7 @@ function buildAccounts_(sheet, mode) {
   var firstRow = r + 1;
   var rows = (mode === 'mock')
     ? MOCK.net_worth.budget_accounts.map(function (a) {
-        return [a[0], a[1], a[2], a[3], a[3], new Date(2026, 4, 1), ''];
+        return [a[0], a[1], a[2], a[3], a[3], new Date(), ''];
       })
     : [];
   var capacity = Math.max(rows.length, 12);
@@ -229,23 +229,33 @@ function buildTransactions_(sheet, mode) {
   sheet.getRange(headerRow, 1, 1 + 5000, 7).createFilter();
 }
 
-// Build a realistic 6-month ledger (Dec 2025 – May 2026) whose monthly
-// category sums reproduce the mock story so the formula-driven _Engine
-// shows the right numbers.
+// Build a realistic 6-month ledger ending in today's calendar month, with
+// monthly category sums that reproduce the mock story (MOCK.months_24's
+// trailing 6 entries). We borrow the figures, but slide the *dates* to
+// the trailing 6 months ending today — so the demo always lines up with
+// the rolling engine window regardless of when the buyer runs Build.
 function generateMockLedger_() {
   var rows = [];
-  var months = MOCK.months_24.slice(18); // last 6 = Dec25..May26
+  var monthFigures = MOCK.months_24.slice(18); // 6 [label, income, expenses, …] rows
   var accounts = ['Chase Joint Checking', 'Amex Gold Card', 'Chase Sapphire Card', 'Elena Checking', 'Marcus Checking'];
   // category spend weights from the current-month breakdown
   var breakdownMap = {}; MOCK.breakdown.forEach(function (b) { breakdownMap[b[0]] = b[1]; });
   var totalBreakdown = MOCK.breakdown.reduce(function (s, b) { return s + b[1]; }, 0);
 
-  for (var m = 0; m < months.length; m++) {
-    var label = months[m][0];                 // e.g. 'May 2026'
-    var parts = label.split(' ');
-    var monthIdx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(parts[0]);
-    var year = Number(parts[1]);
-    var income = months[m][1], expenses = months[m][2];
+  // Trailing 6 (year, monthIdx) pairs ending in today's calendar month,
+  // oldest first — so they line up positionally with monthFigures, which
+  // is also oldest-first.
+  var today = new Date();
+  var monthDates = [];
+  for (var k = 5; k >= 0; k--) {
+    var d = new Date(today.getFullYear(), today.getMonth() - k, 1);
+    monthDates.push({ year: d.getFullYear(), monthIdx: d.getMonth() });
+  }
+
+  for (var m = 0; m < monthFigures.length; m++) {
+    var year = monthDates[m].year;
+    var monthIdx = monthDates[m].monthIdx;
+    var income = monthFigures[m][1], expenses = monthFigures[m][2];
 
     // income — one direct-deposit row
     rows.push([new Date(year, monthIdx, 1), 'DIRECT DEPOSIT - ACME CO', income, 'Income', 'Chase Joint Checking', '']);
@@ -283,12 +293,11 @@ function mockMerchant_(cat) {
 
 // ── _Engine — formula-driven aggregation (SUMIFS over Transactions) ───
 function buildEngine_(sheet, mode) {
-  // Row 1: 24 month headers (YYYY-MM), Jun24..May26
-  var monthCodes = MOCK.months_24.map(function (m) {
-    var parts = m[0].split(' ');
-    var mi = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(parts[0]) + 1;
-    return parts[1] + '-' + ('0' + mi).slice(-2);
-  });
+  // Row 1: 24 rolling-window month headers (YYYY-MM) ending in today's
+  // calendar month. Column Y is always "this month"; column B is 23
+  // months earlier. The downstream views reference $B..$Y by position,
+  // so rolling the window forward is a single setValues on row 1.
+  var monthCodes = monthCodesEndingAt_(new Date());
   sheet.getRange('A1').setValue('metric \\ month').setFontWeight('bold');
   // Force text format BEFORE setValues — otherwise some locales auto-parse
   // "2026-05" to a date, which then breaks DATEVALUE() chains downstream.
@@ -346,4 +355,34 @@ function columnToLetter_(col) {
   var letter = '';
   while (col > 0) { var m = (col - 1) % 26; letter = String.fromCharCode(65 + m) + letter; col = Math.floor((col - 1) / 26); }
   return letter;
+}
+
+// ── Re-anchor the engine's rolling 24-month window ────────────────────
+// Rewrites _Engine!B1:Y1 to end in anchorDate's calendar month. Every
+// downstream SUMIFS references row 1 by position, so the aggregation
+// re-targets the new months automatically — no formula rewrite needed.
+// Idempotent: re-running with the same anchor is a no-op.
+// Returns true if the window actually shifted, false if it was already
+// anchored correctly (caller decides whether to toast).
+function rollEngineForward_(anchorDate) {
+  var ss = SpreadsheetApp.getActive();
+  var eng = ss.getSheetByName(TABS.ENGINE);
+  if (!eng) return false;
+  var newCodes = monthCodesEndingAt_(anchorDate);
+  var current = eng.getRange(1, 2, 1, 24).getValues()[0];
+  var same = true;
+  for (var i = 0; i < 24; i++) {
+    if (String(current[i]) !== newCodes[i]) { same = false; break; }
+  }
+  if (same) return false;
+  eng.getRange(1, 2, 1, 24).setNumberFormat('@').setValues([newCodes]);
+  return true;
+}
+
+// Returns the 'YYYY-MM' currently in _Engine!Y1, or '' if engine missing.
+function lastEngineMonthCode_() {
+  var ss = SpreadsheetApp.getActive();
+  var eng = ss.getSheetByName(TABS.ENGINE);
+  if (!eng) return '';
+  return String(eng.getRange(1, 25).getValue() || '');
 }

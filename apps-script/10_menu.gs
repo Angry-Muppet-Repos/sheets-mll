@@ -6,6 +6,14 @@
 function onOpen() {
   buildMenu_();
   hideSystemTabs_();
+  // Quiet auto-roll: if the calendar has moved past the engine's last
+  // column, shift the rolling 24-month window forward to today. No-op
+  // when already anchored. Wrapped — onOpen must never throw.
+  try {
+    var lastCode = lastEngineMonthCode_();
+    var todayCode = monthCodeOfDate_(new Date());
+    if (lastCode && todayCode > lastCode) rollEngineForward_(new Date());
+  } catch (e) {}
   var dp = PropertiesService.getDocumentProperties();
   if (!dp.getProperty('cc_first_open')) {
     var start = SpreadsheetApp.getActive().getSheetByName(TABS.START);
