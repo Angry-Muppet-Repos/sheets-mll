@@ -2,8 +2,9 @@
  * Column & Co. — The Foundation v2.1
  * 00 · Constants — single source of truth for the whole build.
  *
- * Brand colors, type tokens, the 16 in-sheet palettes, the 10 budget
- * profiles, the 20-category list, and the Marcus & Elena Brooks mock data.
+ * Brand colors, type tokens, the 24 in-sheet palettes, the 10 budget
+ * profiles, the 20 fixed categories + 5 custom slots, and the Marcus &
+ * Elena Brooks mock data.
  * Mirrors data/palettes.json, data/profiles.json, and reference/data.js
  * from the design handoff. Keep in sync if those change.
  */
@@ -67,7 +68,7 @@ var CATEGORIES = [
 // dropdown, Engine SUMIFS rows, and Monthly Budget rows automatically.
 var CUSTOM_CATEGORY_SLOTS = 5;
 
-// ── 16 in-sheet palettes (product feature) ────────────────────────────
+// ── 24 in-sheet palettes (product feature) ────────────────────────────
 var PALETTES = [
   { id: 'light',         name: 'Light',           primary: '#1C3D2E', mid: '#2D5C45', accent: '#C5A95A', bg: '#FAF8F2', zebra: '#EEF2EC', dark: '#111827', accentLight: '#F0EBD8' },
   { id: 'warm-greige',   name: 'Warm Greige',     primary: '#3D2B1F', mid: '#5C4033', accent: '#C8873A', bg: '#FAF6F1', zebra: '#F0E8DC', dark: '#1C1009', accentLight: '#F5E6D3' },
