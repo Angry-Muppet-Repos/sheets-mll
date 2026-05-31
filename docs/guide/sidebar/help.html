@@ -194,8 +194,10 @@
   <ol>
     <li><strong>Extensions → Apps Script</strong>. A new tab opens.</li>
     <li>Delete the placeholder <code>Code.gs</code> content.</li>
-    <li>Paste in <code>ColumnCo_Foundation_v2.gs</code> from your download. Save.</li>
+    <li>For each <code>.gs</code> file in your download, <strong>File → New → Script</strong>, name it to match, paste the contents. Save.</li>
+    <li>For the sidebar: <strong>File → New → HTML</strong>, name it <code>Help</code>, paste in <code>Help.html</code>.</li>
     <li>Reload the sheet. The <span class="menu">💳 Column &amp; Co.</span> menu appears.</li>
+    <li>Run <span class="menu">💳 → Setup → Build workbook (mock data or blank)</span> to lay out all 14 tabs.</li>
   </ol>
   <p>First menu click prompts for permission. The script asks for <code>spreadsheets.currentonly</code> — the narrowest scope Google offers. Approve.</p>
 
@@ -203,18 +205,22 @@
   <p>Go to <strong>Accounts</strong>. One row per checking account, credit card, savings account. Name, Type, Owner, current balance. The <strong>Last Updated</strong> column stamps itself — don't touch it.</p>
   <p>Investments (401(k), brokerage, IRA) go on <strong>Net Worth</strong>, not Accounts.</p>
 
-  <h2><span class="step-num">4</span> Import your first month</h2>
+  <h2><span class="step-num">4</span> Pick your profile</h2>
+  <p>On <strong>Monthly Budget</strong>, run <span class="menu">💳 → Apply Budget Profile</span>. Ten profiles — Dave Ramsey through Kakeibo through HCOL Renter through Custom.</p>
+  <p><strong>Preset %</strong> (Cream, locked) is the canonical numbers. <strong>Override %</strong> (yellow, column D) is where your tweaks go — leave blank to use the preset, or type a percent to override. Each profile keeps its own overrides.</p>
+
+  <h2><span class="step-num">5</span> Import your first month</h2>
   <ol>
     <li>Export 30 days of CSV from your bank.</li>
-    <li>On <strong>Bank Import Guide</strong>, type the account name in <code>C6</code>.</li>
-    <li>Paste the CSV into the green paste-zone box.</li>
-    <li><span class="menu">💳 Column &amp; Co. → Import Bank Transactions</span>.</li>
+    <li>On <strong>Bank Import Guide</strong>, pick your account from the <code>C10</code> dropdown.</li>
+    <li>Paste the CSV anywhere in the green zone.</li>
+    <li><span class="menu">💳 → Import Bank Transactions</span>.</li>
+    <li>Cursor jumps to <strong>Review Income</strong> (confirm Yes/No) or <strong>Uncategorized Merchants</strong> (pick a category to save a permanent rule).</li>
   </ol>
-  <p>Toast confirms the count. Chase, BoA, Wells, Cap One, Ally, Citi, USAA, Discover, Amex headers all recognized. Unmatched rows become <code>Misc</code> — clean them up on Transactions.</p>
+  <p>Chase, BoA, Wells, Cap One, Ally, Citi, USAA, Discover, Amex headers all recognized. Re-importing is safe — duplicates are skipped.</p>
 
-  <h2><span class="step-num">5</span> Pick your look</h2>
-  <p>Top-right swatch button on any tab — sixteen palettes. Pick one, sheet repaints. The brand chrome stays locked; only the interior changes.</p>
-  <p>Then pick a budget profile: <span class="menu">💳 Column &amp; Co. → Apply Budget Profile</span>. Ten profiles, from Dave Ramsey to Kakeibo. The Monthly Budget tab fills in. Editing any yellow cell flips you into Custom mode automatically, and your values are saved.</p>
+  <h2><span class="step-num">6</span> Pick your look</h2>
+  <p><span class="menu">💳 → Apply Theme</span> — 24 palettes. Pick one, sheet repaints. The brand chrome stays locked; only the interior changes.</p>
 
   <div class="callout">You're operational. Open <strong>Dashboard</strong> — KPIs, donut, AI Insights all reading your data. Open <strong>Health Score</strong> for the one-number read. Open <strong>Trends</strong> for the six-month sparklines.</div>
 </section>
@@ -225,42 +231,42 @@
 
   <div class="menu-entry">
     <div class="name">Add Account…</div>
-    <p class="desc"><em>Pending live <code>.gs</code> documentation.</em> Prompts you for a new account row on the Accounts tab.</p>
+    <p class="desc">Prompts for an account name, appends a new row to Accounts with sensible defaults (Checking, Joint, today's date), and parks your cursor on Starting Balance. Duplicate names are rejected case-insensitively.</p>
   </div>
 
   <div class="menu-entry">
     <div class="name">Import Bank Transactions</div>
-    <p class="desc">Parses the CSV in the Bank Import Guide paste zone, sniffs the header against nine bank formats, auto-categorizes against your Categories rules, and appends to Transactions. Income rows surface in the Review block for confirmation.</p>
+    <p class="desc">Reads the paste zone, sniffs the header against nine bank formats, dedupes against the ledger, auto-categorizes, and appends to Transactions. Cursor jumps to <strong>Review Income</strong> (rows 65-84) or <strong>Uncategorized Merchants</strong> (rows 89-108) — whichever needs you.</p>
   </div>
 
   <div class="menu-entry">
     <div class="name">Clear Paste Zone</div>
-    <p class="desc">Wipes the paste-zone box back to its placeholder. Confirmation dialog first.</p>
+    <p class="desc">Empties the 50×8 paste-zone grid. Confirmation dialog first. Review and Uncategorized queues are untouched.</p>
   </div>
 
   <div class="menu-entry">
     <div class="name">Recategorize Ledger from Rules</div>
-    <p class="desc"><em>Pending live <code>.gs</code> documentation.</em> Re-applies the current Categories keyword rules to transactions already in the ledger. Use after editing rules.</p>
+    <p class="desc">Walks every Misc row in Transactions and reapplies your keyword rules (longest match wins). Rows you've manually categorized are never overwritten.</p>
   </div>
 
   <div class="menu-entry">
     <div class="name">Sort Transactions by Date</div>
-    <p class="desc"><em>Pending live <code>.gs</code> documentation.</em> Sorts the Transactions tab newest-first (or oldest-first — confirm against shipped <code>.gs</code>).</p>
+    <p class="desc">Sorts the ledger newest-first. Imports already trigger this — use the menu item after manually adding rows.</p>
   </div>
 
   <div class="menu-entry">
     <div class="name">Apply Theme ▸</div>
-    <p class="desc">Submenu of the 16 in-sheet palettes. Pick one; the script repaints every content cell. The brand chrome stays locked. Your selection persists across reloads.</p>
+    <p class="desc">Submenu of all 24 palettes. Active palette has a <code>✓</code>. Repaints every content cell on every tab; the brand chrome stays locked. Choice persists across reloads.</p>
   </div>
 
   <div class="menu-entry">
     <div class="name">Apply Budget Profile ▸</div>
-    <p class="desc">Submenu of the 10 profiles. Pick one; the Monthly Budget tab fills its 20 target cells. Active profile gets a <code>✓</code>. Switching from Custom snapshots your edits first.</p>
+    <p class="desc">Submenu of the 10 profiles plus <em>Clear overrides for current profile…</em>. Active profile has a <code>✓</code>. Each profile keeps its own overrides — switching never loses your tweaks.</p>
   </div>
 
   <div class="menu-entry">
     <div class="name">Renumber Ledger</div>
-    <p class="desc">Re-applies data validation dropdowns and number formats to the Transactions tab after a big CSV import. Idempotent — safe to run anytime.</p>
+    <p class="desc">Re-applies data validation dropdowns and number formats to all 5,000 rows of Transactions. Idempotent — safe to run anytime.</p>
   </div>
 
   <div class="menu-entry">
@@ -270,7 +276,7 @@
 
   <div class="menu-entry">
     <div class="name">Setup ▸</div>
-    <p class="desc"><em>Pending live <code>.gs</code> documentation.</em> Sub-items not yet documented.</p>
+    <p class="desc"><strong>Destructive.</strong> Rebuilds the entire workbook from scratch — every tab, named range, and Document Property is reset. Two options: <em>Build workbook (mock data)</em> seeds with Marcus &amp; Elena Brooks; <em>Build workbook (blank)</em> seeds with no data. Use once on a fresh install or to start over.</p>
   </div>
 </section>
 

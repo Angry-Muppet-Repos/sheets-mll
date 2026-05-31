@@ -43,21 +43,30 @@ The header row wasn't recognized. The script sniffs against nine bank formats �
 3. Delete any preamble lines (some banks prepend `"Account: XXXX-1234"` metadata above the header).
 4. Re-paste. Re-run.
 
-### "Account not found"
+### "Account not in Accounts list"
 
-The name you typed in **C6** doesn't exactly match a row on the Accounts tab. It's case-sensitive and whitespace-sensitive.
+**C10** is a dropdown sourced from your Accounts list. If the dropdown is empty or doesn't show the account you mean, you need to add it first.
 
-1. Open Accounts.
-2. Copy the exact account name from column A.
-3. Paste into **C6** on Bank Import Guide.
-4. Re-run the import.
+Either:
+
+- **`💳 Column & Co. → Add Account…`** — type the name, the script appends a row to Accounts with sensible defaults and parks your cursor on the Starting Balance cell.
+- Or open the Accounts tab directly and fill in a row by hand.
+
+Either way, return to Bank Import Guide and pick the new name from the C10 dropdown.
 
 ### Half my transactions came in as `Misc`
 
-The keyword rules don't cover those merchants. Two ways to fix:
+The keyword rules don't cover those merchants — but the script makes this a one-click fix.
 
-- **One-off:** open Transactions, change the Category dropdown on each row.
-- **Permanent:** open Categories. In the Keyword Rules table, add a row: keyword (case-insensitive partial match, e.g. `TRADER JOE`) and Category (e.g. `Food & Dining`). Then run `💳 Column & Co. → Recategorize Ledger from Rules` to re-tag the rows already in the ledger.
+**Best option — the Uncategorized Merchants block** on Bank Import Guide (rows 89-108). After every import, Misc rows are grouped here by a suggested keyword, with their hit count and a sample amount. Pick a category from the dropdown in column E — the script:
+
+1. Saves a permanent keyword rule on the Categories tab.
+2. Reapplies it to past Misc rows in the ledger.
+3. Writes a confirmation in the Status column: `Rule saved ✓ · 5 rows updated`.
+
+**One-off fix.** Open Transactions and change the Category dropdown on the specific row. Doesn't save a rule, so the next import of the same merchant will hit Misc again.
+
+**Manual rule add.** Open Categories, scroll to the Keyword Rules table (columns E-G), add a row: keyword (case-insensitive, UPPERCASE convention, longest-match-wins) + Category dropdown. Then run `💳 Column & Co. → Recategorize Ledger from Rules` to re-tag past Misc rows.
 
 ### Income rows came in as expenses (or vice versa)
 
@@ -65,10 +74,12 @@ The sign convention is: **negative = expense, positive = income.** Most banks ex
 
 ### Duplicate transactions after re-importing the same month
 
-The script doesn't de-duplicate. Import the same CSV twice and you get the rows twice. Two strategies:
+The script deduplicates by `Date + Description + Amount`. Re-importing the same CSV is safe — duplicates are skipped, and the toast tells you how many: `Imported 47 · 3 duplicates skipped`.
 
-- **Sort by date, eyeball, delete duplicates.** Fast for small imports.
-- **Be disciplined: each CSV export covers a date range. Don't overlap them.** Export 5/1–5/31, then 6/1–6/30. Never 5/1–6/15.
+If you're seeing actual duplicates in the ledger:
+
+- Two transactions with the same date, description, and amount on the same account are legitimately ambiguous (e.g. two $6.75 Starbucks on the same morning). The script can't distinguish them and treats one as a duplicate. Add the missing row by hand on Transactions if you need to.
+- A description that differs by a single character (`SHELL OIL 575421` vs `SHELL OIL 575422`) is *not* a duplicate by the script's definition. That's correct behavior — different stores, different receipts.
 
 ---
 
@@ -80,11 +91,15 @@ Some cell you manually filled is overriding the script. The script writes the pa
 
 Try: pick the palette again. If certain cells still look wrong, select them, **Format → Clear formatting**, then re-pick the palette.
 
-### The profile switched but my Custom values disappeared
+### The profile switched but my overrides disappeared
 
-The script snapshots Custom values to Document Properties when you switch *away from* Custom. If the snapshot wasn't there, switching back to Custom shows empty cells.
+Each profile keeps its own overrides under a Document Property key (`cc_overrides_<profile-id>`). They should survive any profile switch.
 
-If the snapshot is gone for good: rebuild Custom from the closest preset, then run `💳 Column & Co. → Save Current Values as Custom` (if your menu has this item) to save the snapshot. Going forward it'll persist.
+If they don't:
+
+- Confirm you weren't in a different profile than you think. The active profile is the one with a `✓` in the menu submenu.
+- Confirm you didn't run `Clear overrides for current profile…` — that's the only menu action that wipes them.
+- A workbook rebuild (`💳 → Setup → Build workbook (...)`) intentionally wipes every saved override. If you ran one, the overrides are gone for good.
 
 ### The active profile checkmark is wrong
 

@@ -1,4 +1,4 @@
-# Quickstart · Five steps to a working sheet
+# Quickstart · Six steps to a working sheet
 
 You can stop reading after this section and have The Foundation running. Everything else in this guide is reference for when you want to go deeper.
 
@@ -6,86 +6,114 @@ Time: about ten minutes. You need a Google account, your bank's CSV export, and 
 
 ---
 
-## 1 · Make your copy
+## 1 · Install the script
 
-Open `the_foundation_v2_BLANK.xlsx` in Google Drive. Right-click → **Open with → Google Sheets**. Then **File → Save as Google Sheets**.
+The `.gs` files in your download are what wire up the `💳 Column & Co.` menu — CSV import, theme swaps, profile picker, the rest.
 
-You now own a Google Sheets copy of the workbook. The original `.xlsx` is your backup — keep it.
+1. Open your `the_foundation_v2_BLANK.xlsx` in Google Drive. Right-click → **Open with → Google Sheets**, then **File → Save as Google Sheets**.
+2. Go to **Extensions → Apps Script**. A new tab opens.
+3. Delete the placeholder `Code.gs` content.
+4. Open each `.gs` file from your download in a text editor, copy the contents, and paste each into a new script file in the editor (`File → New → Script`). Name them to match (`00_constants.gs`, `01_helpers.gs`, and so on). Save (`Cmd/Ctrl + S`).
+5. Add the sidebar: `File → New → HTML`, name it `Help` (the script loads it via `HtmlService.createHtmlOutputFromFile('Help')`). Paste in `Help.html` from your download. Save.
+6. Close the Apps Script tab and reload your sheet.
 
-> A note on ownership: this copy lives in your Drive. Column & Co. never sees it. No subscription, no third party. The file is yours.
+A new menu appears at the top: **💳 Column & Co.** That's the control panel.
+
+> First click of any menu item triggers a Google permission dialog. The script requests `spreadsheets.currentonly` — the narrowest scope Google offers. It can read and write *this workbook only*. Approve.
 
 ---
 
-## 2 · Install the script
+## 2 · Build the workbook
 
-The `.gs` file in your download is what wires up the `💳 Column & Co.` menu — CSV import, theme swaps, profile picker, and the rest.
+The freshly-pasted script is a blank canvas. Run the builder to lay out all 14 tabs, the brand chrome, named ranges, and seed data.
 
-1. In your copy of the sheet, go to **Extensions → Apps Script**. A new tab opens.
-2. Delete the placeholder `Code.gs` content.
-3. Open `ColumnCo_Foundation_v2.gs` from your download in a text editor. Copy the entire file.
-4. Paste it into the Apps Script editor. Click the **save** icon (or `Cmd/Ctrl + S`).
-5. Close the Apps Script tab and reload your sheet.
+- `💳 Column & Co. → Setup → Build workbook (mock data)` — populates everything with the Marcus & Elena Brooks demo. Useful so you can see what "good" looks like before importing your own data.
+- `💳 Column & Co. → Setup → Build workbook (blank)` — same layout, no transactions or accounts. Start here if you don't want to delete demo data later.
 
-A new menu appears at the top: **💳 Column & Co.** That's the control panel for everything the sheet does beyond what spreadsheet cells can do on their own.
+Either one runs in a few seconds. The sheet lands you on **Start Here**.
 
-The first time you click an item in that menu, Google asks for permission. The script needs to read and write *this workbook only* — the scope is `spreadsheets.currentonly`, the narrowest one Google offers. Approve it.
+> **This is destructive.** Both options wipe every tab. Don't run a build over data you care about.
 
 ---
 
 ## 3 · Add your accounts
 
-Go to the **Accounts** tab. Add one row per place your money lives:
+Go to the **Accounts** tab. One row per place your money lives:
 
 - Every checking account
 - Every credit card
 - Every savings account
 - Every cash envelope you care about
 
-For each row: type the account name, pick the type, enter today's balance, and (for credit cards) the statement day. The **Last Updated** column stamps itself when you edit a balance — don't touch it.
+For each row: type the account name, pick the type from the dropdown (Checking · Savings · Credit · Loan · Investment), pick the owner, enter today's balance. The **Last Updated** column stamps itself when you edit a balance — don't touch it.
 
 If you have investments — brokerage, 401(k), Roth IRA — those go on the **Net Worth** tab, not Accounts. Accounts is for the money that moves day to day. Net Worth is for the money that sits.
 
+**Shortcut.** From Bank Import Guide, use `💳 Column & Co. → Add Account…` to add a row without leaving the import flow. The dialog asks for a name, the script appends a row with sensible defaults (Checking, Joint, today's date) and parks your cursor on the Starting Balance cell.
+
 ---
 
-## 4 · Import your first month
+## 4 · Pick your profile
 
-Go to the **Bank Import Guide** tab.
+Go to **Monthly Budget**. Run `💳 Column & Co. → Apply Budget Profile` and pick the one closest to your life:
+
+| Profile | Best for |
+|---|---|
+| Dave Ramsey | Aggressive debt-snowball. Big housing/food slices. |
+| 50/30/20 | Senator Warren's rule. Half on needs, 30% wants, 20% savings + debt. |
+| FIRE | Optimized for a 50%+ savings rate. Lean fixed costs. |
+| Zero-Based | YNAB-style. Every dollar named. Nothing unassigned. |
+| Anti-Budget | Paula Pant. Pay yourself 20% off the top. |
+| Kakeibo | Japanese mindful method. Four buckets. |
+| New Parent | Childcare is the second-largest line. 529 priority. |
+| Self-Employed | 1099. 25% escrowed for quarterly taxes. |
+| HCOL Renter | NYC, SF, Seattle, Boston, DC. Rent eats 40%. |
+| Custom | Click any yellow cell to edit. |
+
+The **Preset %** column (Cream, locked) fills with that profile's recommended percentages. The **Override %** column (yellow, editable) is where your tweaks go — leave it blank to use the preset, or type a percent (`10%` or just `10`) to override that line. Target % and Target $ recompute automatically.
+
+Each profile keeps its **own** overrides. Switching to FIRE and back to Dave Ramsey doesn't lose your Ramsey tweaks.
+
+---
+
+## 5 · Import your first month
+
+Go to the **Bank Import Guide** tab. Five steps are pinned at the top — the digits on steps 4 and 5 turn into live counts when there's work to do.
 
 1. In your bank's website, export the last 30 days as CSV.
-2. Open the CSV in any text editor (or the bank's download itself). Copy all of it.
-3. In cell **C6** of the Bank Import Guide, type the account name you want these transactions to land in. Use the same spelling as the **Accounts** tab.
-4. Paste your CSV into the merged paste-zone box below.
+2. Open the CSV in any text editor (or the download itself). Copy all of it.
+3. On Bank Import Guide, pick your account from the **C10** dropdown.
+4. Paste your CSV anywhere in the green zone. First non-empty row is treated as the header.
 5. Open **💳 Column & Co. → Import Bank Transactions**.
 
-A toast appears: `Imported 47 transactions`. The rows land in the **Transactions** tab, categorized using the keyword rules on the **Categories** tab. Anything the rules don't match becomes `Misc` — you'll clean that up in a few minutes.
+The toast tells you what happened: `Imported 47 · 3 duplicates skipped · 5 fell to Misc · 1 income row for review`. The cursor jumps to whichever queue still needs you:
 
-The sheet recognizes nine bank CSV formats out of the box: Chase, Bank of America, Wells Fargo, Capital One, Ally, Citi, USAA, Discover, Amex. If yours isn't one of those, the script still tries to sniff the columns.
+- **Review Income** (rows 65-84) — every positive-amount row, with a Yes/No dropdown. Confirm each before it counts toward income.
+- **Uncategorized Merchants** (rows 89-108) — every `Misc` row, grouped by suggested keyword. Pick a category from the dropdown in column E — the script saves a permanent rule *and* reapplies it to your past Misc rows in one move.
 
-> Income shows up in a separate **Review Income** block on the same tab. Confirm each row, then it joins the ledger.
+The sheet recognizes nine bank CSV formats out of the box (Chase, BoA, Wells Fargo, Cap One, Ally, Citi, USAA, Discover, Amex). Duplicates are detected by `Date + Description + Amount` — re-importing the same CSV is safe.
 
 ---
 
-## 5 · Pick your look
+## 6 · Pick your look
 
-Top-right corner of any tab, there's a swatch button — sixteen color palettes. Click it, pick one. The whole sheet repaints.
+Top-right of the menu: **`💳 Column & Co. → Apply Theme`**. Twenty-four palettes, from `Light` (the brand-aligned default) through `Sage`, `Espresso`, `Maize & Navy`, `Garnet & Gold`, all the way to `Olive & Cream`. The active one has a `✓`.
 
-The brand chrome on every tab (Forest header, Canopy sub-band, Harvest Gold rule) stays put — that's the constant. Everything inside it is yours to color.
+Pick one. Every KPI card, every zebra row, every section header, every sparkline takes the new colors. The brand chrome (Forest header, Canopy sub-band, Harvest Gold rule) **does not change** — that's the constant.
 
-You can also pick a budget profile: **💳 Column & Co. → Apply Budget Profile**. Ten profiles ship with the sheet — 50/30/20, Zero-Based, Anti-Budget, Kakeibo, New Parent, Self-Employed, HCOL Renter, and three more. Pick the one closest to your life. The Monthly Budget tab fills in. You can edit any number after — that switches you into Custom mode automatically, and your numbers are saved.
+Your choice persists across reloads.
 
 ---
 
 ## You're operational
 
-Open the **Dashboard** tab. Your KPI cards, donut chart, and AI Insights panel are reading from the transactions you just imported. Open **Trends** — six-month sparklines, one per category. Open **Health Score** — a 0–100 read on your money, with the biggest opportunity called out at the top.
+Open the **Dashboard** tab. KPI cards, donut chart, top spending, and the AI Insights panel are all reading from the transactions you just imported. Open **Trends** — six-month sparklines, one per category, plus an Income-vs-Expenses combo chart. Open **Health Score** — a live 0–100 composite, five weighted indicators, and a "Biggest Opportunity" callout that names the single category most worth fixing.
 
 From here:
 
 - **Set a goal** — see *Recipes · Track a Goal*.
 - **Ask Claude or ChatGPT to read your sheet** — see *Recipes · The AI prompt*.
-- **Make the budget yours** — see *Recipes · Build a Custom budget*.
+- **Tweak your budget** — see *Recipes · Override a budget profile*.
 - **Something not working** — see *Troubleshooting*.
-
-The reference sections that follow document every menu item, every tab, and every recipe in detail. Read what you need, ignore the rest.
 
 — *Column & Co. · Life, Organized.*

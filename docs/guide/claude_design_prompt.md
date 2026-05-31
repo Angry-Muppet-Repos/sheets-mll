@@ -122,9 +122,9 @@ Below the body, a small "What's in this guide" stack:
 - **Troubleshooting** — when something doesn't work
 - **Appendix** — palettes, profiles, named ranges
 
-### Pages 3–7 — Quickstart (one page per step)
+### Pages 3–8 — Quickstart (one page per step)
 
-3-row chrome header on every page, with the Canopy sub-band reading `SETUP GUIDE · STEP X OF 5` right-aligned in Harvest Gold tracked caps.
+3-row chrome header on every page, with the Canopy sub-band reading `SETUP GUIDE · STEP X OF 6` right-aligned in Harvest Gold tracked caps.
 
 Each step page has:
 
@@ -135,23 +135,25 @@ Each step page has:
 
 **Step copy (use verbatim):**
 
-**Step 1 · Make your copy.** Open `the_foundation_v2_BLANK.xlsx` in Google Drive. Right-click → Open with → Google Sheets. Then File → Save as Google Sheets. The file lives in your Drive — Column & Co. never sees it.
+**Step 1 · Install the script.** Open `the_foundation_v2_BLANK.xlsx` in Google Drive. File → Save as Google Sheets. Extensions → Apps Script. Delete the placeholder; for each `.gs` file in your download create a new script file and paste; for the sidebar create an HTML file named `Help` and paste in `Help.html`. Save. Reload the sheet. The `💳 Column & Co.` menu appears between Extensions and Help. First click prompts for permission — the scope is `spreadsheets.currentonly`, the narrowest Google offers. Approve.
 
-**Step 2 · Install the script.** Extensions → Apps Script. Delete the placeholder content. Paste in `ColumnCo_Foundation_v2.gs` from your download. Save. Reload the sheet. The `💳 Column & Co.` menu appears between Extensions and Help. The first click prompts for permission — the scope is `spreadsheets.currentonly`, the narrowest Google offers. Approve.
+**Step 2 · Build the workbook.** `💳 Column & Co. → Setup → Build workbook (mock data)` for the Marcus & Elena Brooks demo, or `Build workbook (blank)` to start with empty tabs. The builder lays out all 14 tabs, named ranges, and seed data in a few seconds. This is destructive — don't run it over data you care about.
 
-**Step 3 · Add your accounts.** Go to the Accounts tab. One row per checking account, credit card, savings account. Name · Type · Owner · current balance. The Last Updated column stamps itself — don't touch it. Investments live on Net Worth, not Accounts.
+**Step 3 · Add your accounts.** Go to the Accounts tab. One row per checking account, credit card, savings account. Name · Type · Owner · current balance. The Last Updated column stamps itself — don't touch it. Investments live on Net Worth, not Accounts. Shortcut: `💳 → Add Account…` adds a row with sensible defaults.
 
-**Step 4 · Import your first month.** On Bank Import Guide, type the account name in cell C6. Paste your bank CSV into the green paste-zone box below. Run `💳 Column & Co. → Import Bank Transactions`. The script sniffs nine bank formats (Chase, BoA, Wells, Cap One, Ally, Citi, USAA, Discover, Amex) and auto-categorizes against your Categories rules.
+**Step 4 · Pick your profile.** On Monthly Budget, run `💳 → Apply Budget Profile`. Pick the one closest to your life. **Preset %** (Cream, locked) is the canonical recommendation; **Override %** (yellow, column D) is where your tweaks go. Leave blank to use the preset, or type a percent to override. Each profile keeps its own overrides — switching never loses your tweaks.
 
-**Step 5 · Pick your look.** Top-right swatch button on any tab — sixteen palettes. Pick one, sheet repaints. Then pick a budget profile from `💳 Column & Co. → Apply Budget Profile`. Ten profiles from Dave Ramsey to Kakeibo. Editing any yellow cell flips you to Custom mode, and your values are saved.
+**Step 5 · Import your first month.** On Bank Import Guide, pick your account from the C10 dropdown. Paste your CSV anywhere in the green zone. Run `💳 → Import Bank Transactions`. The script sniffs nine bank formats (Chase, BoA, Wells, Cap One, Ally, Citi, USAA, Discover, Amex), dedupes against the ledger, auto-categorizes, and surfaces two queues: Review Income (rows 65-84) and Uncategorized Merchants (rows 89-108). The cursor jumps to whichever needs you. Picking a Category on an Uncategorized row saves a permanent rule and recategorizes past Misc rows in one move.
 
-### Pages 8–11 — Menu Reference
+**Step 6 · Pick your look.** `💳 → Apply Theme` — 24 palettes from Light through Sage, Espresso, Garnet & Gold, Midnight, Ocean & Coral, all the way to Olive & Cream. Pick one, sheet repaints. The brand chrome stays locked.
+
+### Pages 9–13 — Menu Reference
 
 3-row chrome. Canopy sub-band reads `MENU REFERENCE · 💳 COLUMN & CO.`
 
 A 2-column layout. Each menu item is one entry: name in Jost 500 13pt Forest, then a 12pt Jost 300 paragraph. Items separated by a 1px Harvest Gold hairline at 24pt vertical spacing.
 
-> *Note for design pass: the canonical content for this section is being written against the live `.gs` file. If the markdown file `02_menu_reference.md` is still showing "pending" entries, hold this section blank — do not improvise menu behavior.*
+The canonical content lives in `02_menu_reference.md`. Use those words verbatim. Each entry has the same four sub-headings: *What it does · When to use it · What it touches · Gotcha*.
 
 Menu items to lay out (in order):
 
@@ -160,13 +162,13 @@ Menu items to lay out (in order):
 3. Clear Paste Zone
 4. Recategorize Ledger from Rules
 5. Sort Transactions by Date
-6. Apply Theme ▸ *(submenu — list all 16 palettes as a single dense reference, see appendix table)*
-7. Apply Budget Profile ▸ *(submenu — list all 10 profiles, see appendix table)*
+6. Apply Theme ▸ *(submenu — list all 24 palettes; reference the Appendix A grid)*
+7. Apply Budget Profile ▸ *(submenu — list all 10 profiles, plus the `Clear overrides for current profile…` action)*
 8. Renumber Ledger
 9. Help…
-10. Setup ▸
+10. Setup ▸ *(submenu — Build workbook (mock data), Build workbook (blank). Flag as destructive.)*
 
-For the two submenus, drop a small 2-column table inline showing palette/profile name + one-line description.
+For the two big submenus, drop a small 2-column table inline showing palette/profile name + one-line description.
 
 ### Pages 12–23 — Tab Tour (one page per visible tab)
 
@@ -229,13 +231,13 @@ Pull all entries verbatim from `05_troubleshooting.md`.
 
 3-row chrome. Canopy sub-band reads `APPENDIX · REFERENCE TABLES`.
 
-#### Appendix A — Palette table (one full page)
+#### Appendix A — Palette table (one full spread, 2 pages)
 
-A 4×4 grid of 16 palette tiles. Each tile is ~120pt × 100pt:
+A 6×4 grid of 24 palette tiles. Each tile is ~100pt × 90pt:
 
 - Three horizontal stripes showing Primary / Mid / Accent
-- Below the stripes: palette name in Playfair italic 13pt
-- Below the name: the three hex codes in Jost 11pt tabular nums, Forest at 60%
+- Below the stripes: palette name in Playfair italic 12pt
+- Below the name: the three hex codes in Jost 10pt tabular nums, Forest at 60%
 
 Use the exact hex codes from the table below.
 
@@ -256,6 +258,14 @@ Use the exact hex codes from the table below.
 | Forest & White | `#154733` | `#1E6048` | `#FFFFFF` |
 | Royal & Gold | `#002D72` | `#003D9C` | `#B5A642` |
 | Silver & Black | `#1A1A1A` | `#2D2D2D` | `#A8A9AD` |
+| Midnight | `#0B1F3A` | `#142E55` | `#14B8A6` |
+| Burgundy | `#5C0A1A` | `#7A0E22` | `#E8D5B5` |
+| Mocha | `#5C3A21` | `#7A4F2D` | `#D4A574` |
+| Indigo & Blush | `#2E1F6B` | `#3D2A8C` | `#EAB0B8` |
+| Pine & Brass | `#1F3A2E` | `#2E5544` | `#B8964A` |
+| Ocean & Coral | `#0F4858` | `#166075` | `#F47B6A` |
+| Charcoal & Mint | `#2C2C2E` | `#44444A` | `#A8D5BA` |
+| Olive & Cream | `#3D4A1F` | `#56672E` | `#C8B27A` |
 | Custom | `#1B2A4A` | `#2C3E6B` | `#C8873A` |
 
 #### Appendix B — Budget profile table (one full page)

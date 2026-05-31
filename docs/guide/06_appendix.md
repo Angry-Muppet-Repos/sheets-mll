@@ -4,7 +4,7 @@ Quick-lookup data. Most buyers won't need this section. It's here so power users
 
 ---
 
-## A · The 16 palettes
+## A · The 24 palettes
 
 These are the buyer-selectable interior palettes. The brand chrome (Forest header, Canopy sub-band, Harvest Gold rule) **never** changes — only the content area.
 
@@ -25,6 +25,14 @@ These are the buyer-selectable interior palettes. The brand chrome (Forest heade
 | Forest & White | `#154733` | `#1E6048` | `#FFFFFF` |
 | Royal & Gold | `#002D72` | `#003D9C` | `#B5A642` |
 | Silver & Black | `#1A1A1A` | `#2D2D2D` | `#A8A9AD` |
+| Midnight | `#0B1F3A` | `#142E55` | `#14B8A6` |
+| Burgundy | `#5C0A1A` | `#7A0E22` | `#E8D5B5` |
+| Mocha | `#5C3A21` | `#7A4F2D` | `#D4A574` |
+| Indigo & Blush | `#2E1F6B` | `#3D2A8C` | `#EAB0B8` |
+| Pine & Brass | `#1F3A2E` | `#2E5544` | `#B8964A` |
+| Ocean & Coral | `#0F4858` | `#166075` | `#F47B6A` |
+| Charcoal & Mint | `#2C2C2E` | `#44444A` | `#A8D5BA` |
+| Olive & Cream | `#3D4A1F` | `#56672E` | `#C8B27A` |
 | Custom | `#1B2A4A` | `#2C3E6B` | `#C8873A` |
 
 ---
@@ -50,7 +58,9 @@ Full per-category numbers are in `data/profiles.json` in the design handoff.
 
 ---
 
-## C · The 20 categories (locked order)
+## C · The 20 fixed categories (locked order) + 5 custom slots
+
+The 20 fixed categories:
 
 ```
 Housing, Food & Dining, Transportation, Shopping,
@@ -60,7 +70,17 @@ Debt Payments, Education, Travel, Pets,
 Childcare, Business, Taxes, Misc
 ```
 
-This list is shared by Monthly Budget, Transactions, Categories, and the Dashboard breakdown. Don't rename — the categorization rules and the `_Engine` SUMIFS reference these strings verbatim.
+Plus **5 buyer-named custom slots** (the yellow rows on the Categories tab). Name them anything (`Vacation 2026`, `Sailing`, `In-Laws`) — slot names flow into:
+
+- The Transactions Category dropdown
+- The Monthly Budget targets table (rows 37-41)
+- The `_Engine` aggregation rows (rows 22-26)
+- The Categories keyword-rules dropdown (so you can route a merchant straight into a custom slot)
+- The Trends sparkline table
+
+Don't rename the fixed 20 — the keyword rules and `_Engine` SUMIFS reference those strings verbatim.
+
+Two reserved system categories — `Income` and `Transfer` — exist on Categories rows 36-37 so the Transactions dropdown picks them up. Don't delete them.
 
 ---
 
@@ -68,35 +88,23 @@ This list is shared by Monthly Budget, Transactions, Categories, and the Dashboa
 
 These are the named ranges the workbook ships with. **Data → Named ranges** to view in the live sheet. Most buyers never touch them — they're listed so power users can write their own formulas against the data model.
 
-### Dashboard
-
-| Range | What it holds |
-|---|---|
-| `dashboard_active_month` | Single cell. Index 0..23 into `_Engine` for the currently selected month. |
-| `dashboard_kpi_income` | Current-month income KPI value. |
-| `dashboard_kpi_expenses` | Current-month expenses KPI. |
-| `dashboard_kpi_net` | Current-month net cash flow. |
-| `dashboard_kpi_savings_rate` | Current-month savings rate (decimal). |
-| `dashboard_top_spending` | 8-row × 4-column block driving the Top Spending table. |
-| `dashboard_breakdown` | 12-row × 2-column block driving the donut. |
-
-### Trends
-
-| Range | What it holds |
-|---|---|
-| `trends_window` | Single cell. `6`, `12`, or `24`. |
-| `trends_months` | Dynamic — the active slice of `_Engine`'s month columns. |
-| `trends_category_rows` | The per-category rows driving the sparkline table. |
-
-### Monthly Budget
-
-| Range | What it holds |
-|---|---|
-| `budget_active_profile` | Single cell. Profile ID string (`dave-ramsey`, `50-30-20`, `custom`, etc.). |
-| `budget_income` | Monthly income value. |
-| `budget_targets` | `C10:C29` — the 20 target cells. |
-| `budget_total` | `=SUM(budget_targets)`. |
-| `budget_savings_rate` | Savings row / income. |
+| Range | Where | What it holds |
+|---|---|---|
+| `cc_active_palette` | `_Config!B40` | Currently active palette ID. |
+| `cc_active_profile` | `_Config!B41` | Currently active profile ID. |
+| `cc_palettes` | `_Config!A3:I18` | Palette table (id · name · primary · mid · accent · bg · zebra · dark · accentLight). |
+| `cc_profiles` | `_Config!C22:X31` | 10 profiles × 20 categories + metadata. |
+| `cc_categories` | `Categories!A11:A35` | 20 fixed category names + 5 custom slots. |
+| `cc_tx_categories` | `Categories!A11:A37` | Source for the Transactions Category dropdown (the 25 above plus Income and Transfer). |
+| `cc_keyword_rules` | `Categories!E11:G200` | Keyword → category → note rule table. |
+| `cc_budget_income` | `Monthly Budget!C13` | Live formula from `_Engine` — most-recent month's income. |
+| `cc_budget_targets` | `Monthly Budget!F17:F41` | 25 Target $ values (Target % × income). |
+| `cc_engine_months` | `_Engine!B1:Y1` | 24 month codes (YYYY-MM), Jun24..May26. |
+| `cc_engine_data` | `_Engine!B2:Y30` | The full aggregation block — 29 rows × 24 months. |
+| `cc_dashboard_month` | `Dashboard!N4` | Active-month index, 0..23. Drives every figure on Dashboard. |
+| `cc_trends_window` | `Trends!N7` | `6`, `12`, or `24`. |
+| `cc_health_composite` | `Health Score!B9` | The live 0–100 composite. |
+| `cc_accounts_list` | `Accounts!A10:A21` | Source for the Account dropdown on Transactions and Bank Import. |
 
 ---
 
@@ -109,8 +117,9 @@ These persist per workbook copy across reloads. Apps Script writes them; the buy
 | `cc_first_open` | `'true'` | `onOpen()` on first open. Controls the auto-jump to Start Here. |
 | `cc_active_palette` | Palette ID | `applyTheme()` |
 | `cc_active_profile` | Profile ID | `applyProfile()` |
-| `cc_custom_profile` | JSON string of category → target | `saveCustomProfile()` |
-| `cc_buyer_names` | JSON `[name1, name2]` | Start Here input |
+| `cc_overrides_<profile-id>` | JSON `{ category: percent }` of overrides per profile | `onEdit` on the Override column |
+| `cc_theme_map` | JSON map of `{ sheetName: { role: [a1, ...] } }` recorded at build time | `buildWorkbook()` |
+| `cc_build_mode` | `'mock'` or `'blank'` | `buildWorkbook()` |
 
 To inspect from Apps Script: `PropertiesService.getDocumentProperties().getProperties()`. To reset all (use sparingly): `.deleteAllProperties()`.
 

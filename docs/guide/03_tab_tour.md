@@ -6,13 +6,13 @@ The Foundation has twelve visible tabs plus three hidden system tabs. They're or
 
 ## Start Here
 
-The first tab you see when you open the workbook. Re-orients you on a return visit, walks a new buyer through the 5-step setup, and surfaces the two hero features — the **16-palette tile picker** and the **LLM-ready prompt block** you can paste into Claude or ChatGPT.
+The first tab you see when you open the workbook. Re-orients you on a return visit, walks a new buyer through the 6-step setup, and surfaces the two hero features — the **24-palette tile grid** and the **LLM-ready prompt block** you can paste into Claude or ChatGPT.
 
-**You touch:** the palette tiles to swap your theme, and the buyer-names cells (these feed the Owner dropdown on Accounts).
+**You touch:** the palette tiles for at-a-glance reference (theme swaps actually run from `💳 Column & Co. → Apply Theme`). The LLM prompt block is a copy-paste source — select the text in the dark code block and paste it into Claude or ChatGPT.
 
 **Computed for you:** nothing — this tab is static content.
 
-> If the menu didn't appear, you're probably here because the script hasn't been installed yet. Jump to *Quickstart · Step 2*.
+> If the menu didn't appear, you're probably here because the script hasn't been installed yet. Jump to *Quickstart · Step 1*.
 
 ---
 
@@ -51,22 +51,25 @@ Your everyday view. Current-month money at a glance — KPIs, top spending categ
 
 ## Monthly Budget
 
-Where you tell the sheet what you *want* to spend. Pick one of ten profiles or set every target yourself.
+Where you tell the sheet what you *want* to spend. Pick one of ten profiles. Tweak any line. The Preset stays locked; your tweaks live in a separate Override column the script auto-saves per profile.
 
 **You touch:**
-- Your monthly income (the big number near the top — buyer-edited)
 - A profile from `💳 Column & Co. → Apply Budget Profile`. The active profile gets a `✓`.
-- Any yellow cell in the targets table. Editing a yellow cell flips you into **Custom** mode and saves your values for later.
+- Any cell in the **Override %** column (yellow, column D). Leave blank to use the Preset; type a percent (`10%` or just `10`) to override.
+- The 5 custom-category-slot names on the **Categories** tab — those names flow back into the budget as additional rows automatically.
 
 **Computed for you:**
-- The 20 category targets fill from the profile
-- Total Budgeted with `+$X free` or `-$X over` against your income
-- Savings Rate from your Savings line
-- The pacing bars and chips on Dashboard and Health Score read from these targets
+- **Preset %** (C, locked Cream) — the canonical numbers for the active profile.
+- **Target %** (E) — `IF(D="", C, D)`. Override wins; otherwise Preset.
+- **Target $** (F) — `Target % × Monthly Income`. This is what Dashboard and Health Score read from.
+- **Δ %** (G) — how far your override drifts from the preset, colored Garnet over and Canopy under.
+- The hero KPIs at top right (Preset Total vs With Overrides) and the Forest footer bar (Monthly Income, Preset Total, With Overrides, Savings Rate).
 
 **The ten profiles:** Dave Ramsey · 50/30/20 · FIRE · Zero-Based · Anti-Budget · Kakeibo · New Parent · Self-Employed · HCOL Renter · Custom. Each comes with a one-line blurb explaining when it fits.
 
-> **Switching profiles overwrites your targets.** If you've made edits in Custom mode and switch away, the script snapshots your Custom values first so they survive a round trip back.
+**Each profile keeps its own overrides.** Switching from Dave Ramsey to FIRE doesn't lose your Ramsey tweaks — they come back when you switch back. To start over within a profile, use `💳 Column & Co. → Apply Budget Profile → Clear overrides for current profile…`.
+
+> **Monthly Income (C13) is a live formula** reading the most-recent month's actual income from `_Engine`. Don't overtype it — let it follow your data.
 
 ---
 
@@ -125,20 +128,22 @@ The ledger. Every transaction lives here — imported from CSV via Bank Import G
 
 ## Bank Import Guide
 
-The "paste your CSV here" surface. Three steps, one button.
+The "paste your CSV here" surface. Five live steps pinned to the top — the digits on steps 4 and 5 turn into live counts when there's work to do (or `✓` when there isn't).
 
 **You touch:**
-1. **C6** — type the account name. Must match an entry on the Accounts tab exactly.
-2. **The green paste zone** — paste your CSV. A 5-row preview is already there as a placeholder; your paste replaces it.
+1. **C10** — the account dropdown. Pick the account these transactions belong to. (If the dropdown doesn't include it, use `💳 → Add Account…` first.)
+2. **The green paste zone** (A12:H61) — paste your CSV anywhere inside. First non-empty row is treated as the header.
 3. **💳 Column & Co. → Import Bank Transactions** — run it.
+4. **Review Income** (rows 65-84) — confirm Yes/No for each positive-amount row before it counts as income.
+5. **Uncategorized Merchants** (rows 89-108) — pick a Category from the dropdown to save a permanent keyword rule *and* recategorize past Misc rows in one move.
 
 **Computed for you:**
-- The header row is sniffed against nine bank formats (Chase, BoA, Wells Fargo, Cap One, Ally, Citi, USAA, Discover, Amex). The right Date / Description / Amount columns are picked automatically.
-- Each row is categorized against the keyword rules on the Categories tab.
-- Unmatched rows become `Misc` — clean them up on Transactions.
-- Positive-amount rows surface in the **Review Income** block below the paste zone. Confirm Yes/No on each before they're treated as income in your Health Score.
+- The header row is sniffed against nine bank formats (Chase, BoA, Wells Fargo, Cap One, Ally, Citi, USAA, Discover, Amex). The right Date / Description / Amount (or Debit/Credit pair) columns are picked automatically.
+- Each row is categorized against the keyword rules on the Categories tab (longest match wins).
+- Duplicates are detected by `Date + Description + Amount` — re-importing the same CSV is safe.
+- The cursor jumps to whichever follow-up queue has work for you.
 
-> When you're done, run `💳 Column & Co. → Clear Paste Zone` to wipe the box back to its placeholder.
+> When the queues are clear, run `💳 Column & Co. → Clear Paste Zone` to empty the box for the next bank.
 
 ---
 
@@ -175,11 +180,13 @@ The register of every place your money lives. Updates feed Net Worth automatical
 
 ## Categories
 
-The 20 spending categories and the keyword rules that drive auto-categorization on CSV import.
+The 20 fixed spending categories, the 5 custom slots you can name yourself, and the keyword rules that drive auto-categorization on CSV import.
 
-**You touch:** the keyword rules table. Add a row when you find a merchant the importer keeps mis-categorizing.
+**You touch:**
+- The 5 yellow **custom-slot** rows. Type a name (e.g. `Vacation 2026`) and the slot flows into the Transactions category dropdown, the Monthly Budget targets table, and the `_Engine` aggregation rows automatically. Leave a slot blank to skip it.
+- The **keyword rules** table (columns E-G). Add a row when you find a merchant the importer keeps mis-categorizing. The Category column is a dropdown — picking a custom-slot name routes future imports straight into your custom category.
 
-**The 20 categories:**
+**The 20 fixed categories:**
 
 ```
 Housing, Food & Dining, Transportation, Shopping,
@@ -189,21 +196,21 @@ Debt Payments, Education, Travel, Pets,
 Childcare, Business, Taxes, Misc
 ```
 
-Ships pre-populated with about 80 default rules covering the major US merchants (Whole Foods, Trader Joe's, Starbucks, Shell, Chevron, Netflix, Spotify, Amazon, Target, Comcast, PG&E, Geico, and the rest).
+Ships pre-populated with about 130 keyword rules covering the major US merchants (Whole Foods, Trader Joe's, Starbucks, Shell, Chevron, Netflix, Spotify, Amazon Prime, Amazon, Target, Comcast, PG&E, Geico, IRS, Treasury, and the rest).
 
-**Order matters.** When two keywords could match a transaction, the first one wins. Reorder rows manually if you need to.
+**Longest match wins.** When two rules could match a description, the longer keyword takes priority. `AMAZON PRIME` beats `AMAZON`. Rule order doesn't matter; specificity does.
 
-> After editing rules, run `💳 Column & Co. → Recategorize Ledger from Rules` to re-apply them to transactions you've already imported.
+> After editing rules — adding a row, fixing a typo — run `💳 Column & Co. → Recategorize Ledger from Rules` to re-apply them to Misc rows already in your ledger. Rows you've manually categorized are never overwritten.
 
 ---
 
 ## _Engine *(hidden)*
 
-The aggregation tab. Twenty-two rows × twenty-four months of SUMIFS results that every chart and table reads from. Hidden because performance and because you don't want to accidentally edit it.
+The aggregation tab. Twenty-nine rows (20 fixed categories + 5 custom slots + Income / Expenses / NetCashFlow / SavingsRate) × twenty-four months of live SUMIFS results that every chart and table reads from. Hidden because performance and because you don't want to accidentally edit it.
 
 **You touch:** nothing. It's hidden for a reason.
 
-**Computed for you:** every per-month per-category sum in the workbook. Dashboard, Trends, Health Score, and Goals all read from here instead of running SUMIFS against the 5,000-row ledger.
+**Computed for you:** every per-month per-category sum in the workbook. Dashboard, Trends, Health Score, Net Worth, and Goals all read from here via INDEX into the monthly columns instead of running SUMIFS against the 5,000-row ledger.
 
 If you ever need to unhide it for debugging: right-click any tab → Show hidden sheets. Re-hide before sharing the file.
 
