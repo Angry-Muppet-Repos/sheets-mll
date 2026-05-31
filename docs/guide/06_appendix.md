@@ -99,8 +99,8 @@ These are the named ranges the workbook ships with. **Data → Named ranges** to
 | `cc_keyword_rules` | `Categories!E11:G200` | Keyword → category → note rule table. |
 | `cc_budget_income` | `Monthly Budget!C13` | Live formula from `_Engine` — most-recent month's income. |
 | `cc_budget_targets` | `Monthly Budget!F17:F41` | 25 Target $ values (Target % × income). |
-| `cc_engine_months` | `_Engine!B1:Y1` | 24 month codes (YYYY-MM), Jun24..May26. |
-| `cc_engine_data` | `_Engine!B2:Y30` | The full aggregation block — 29 rows × 24 months. |
+| `cc_engine_months` | `_Engine!B1:Y1` | Rolling 24-month window of YYYY-MM codes ending in the current calendar month. Auto-shifts forward on build, on open, and on imports past column Y. |
+| `cc_engine_data` | `_Engine!B2:Y30` | The full aggregation block — 29 rows (20 fixed + 5 custom + Income/Expenses/NetCashFlow/SavingsRate) × the rolling 24-month window. |
 | `cc_dashboard_month` | `Dashboard!N4` | Active-month index, 0..23. Drives every figure on Dashboard. |
 | `cc_trends_window` | `Trends!N7` | `6`, `12`, or `24`. |
 | `cc_health_composite` | `Health Score!B9` | The live 0–100 composite. |
@@ -136,11 +136,11 @@ To inspect from Apps Script: `PropertiesService.getDocumentProperties().getPrope
 | **Custom profile** | Your own budget targets, saved automatically when you edit any preset. |
 | **Forest** | The primary brand color (`#1C3D2E`). Used for headers, hero bars, big numerals. |
 | **Harvest Gold** | The brand accent color (`#C5A95A`). Used for the 3px rule, the tagline, callout labels. |
-| **`_Engine`** | Hidden system tab. 22 rows × 24 months of pre-aggregated SUMIFS that drive every chart. |
+| **`_Engine`** | Hidden system tab. 29 rows × a rolling 24-month window ending in the current calendar month. Pre-aggregated SUMIFS drive every chart. The window auto-rolls forward on build, on open, and on imports past column Y. |
 | **`_Schema`** | Hidden system tab. Plain-English data dictionary that lets Claude or ChatGPT read your workbook. |
 | **Named range** | A label that points to a cell or range, so formulas reference `budget_targets` instead of `'Monthly Budget'!C10:C29`. |
 | **Pacing bar** | The horizontal bar in the Top Spending table showing percent of budget consumed. |
 | **Profile** | A pre-set budget methodology (Dave Ramsey, 50/30/20, FIRE, etc.). 10 ship. |
 | **Sparkline** | A tiny inline chart. Used per-category on Trends and as the 6-month line on Net Worth. |
 | **Status chip** | On Track / Fair / Over. Color-coded label on Dashboard, Health Score, and Goals. |
-| **Tile picker** | The 16-palette grid you open from the top-right swatch button. |
+| **Tile picker** | The 24-palette grid shown on Start Here (theme swaps actually run from `💳 → Apply Theme`). |

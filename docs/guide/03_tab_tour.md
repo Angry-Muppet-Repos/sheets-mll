@@ -206,11 +206,17 @@ Ships pre-populated with about 130 keyword rules covering the major US merchants
 
 ## _Engine *(hidden)*
 
-The aggregation tab. Twenty-nine rows (20 fixed categories + 5 custom slots + Income / Expenses / NetCashFlow / SavingsRate) × twenty-four months of live SUMIFS results that every chart and table reads from. Hidden because performance and because you don't want to accidentally edit it.
+The aggregation tab. Twenty-nine rows (20 fixed categories + 5 custom slots + Income / Expenses / NetCashFlow / SavingsRate) × a **rolling 24-month window ending in the current calendar month**.
 
 **You touch:** nothing. It's hidden for a reason.
 
 **Computed for you:** every per-month per-category sum in the workbook. Dashboard, Trends, Health Score, Net Worth, and Goals all read from here via INDEX into the monthly columns instead of running SUMIFS against the 5,000-row ledger.
+
+**The window rolls automatically.** Column Y is always "this month"; column B is 23 months earlier. The window re-anchors in three places:
+
+- On `💳 → Setup → Build workbook` — anchored to today.
+- On open — if the calendar has moved past column Y since last opened, the window quietly shifts forward.
+- On `Import Bank Transactions` — if any imported row's month is past column Y, the window shifts to include it. The import toast tells you: `… · engine rolled to 2026-09`.
 
 If you ever need to unhide it for debugging: right-click any tab → Show hidden sheets. Re-hide before sharing the file.
 
@@ -218,7 +224,7 @@ If you ever need to unhide it for debugging: right-click any tab → Show hidden
 
 ## _Config *(hidden)*
 
-Stores the 16 palette definitions, the 10 profile definitions, and a few other lookups. Hidden, system-managed.
+Stores the 24 palette definitions, the 10 profile definitions, and a few other lookups. Hidden, system-managed.
 
 ---
 

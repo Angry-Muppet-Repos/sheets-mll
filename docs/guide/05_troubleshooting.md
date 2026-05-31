@@ -109,9 +109,19 @@ The checkmark reads from Document Properties. If you cleared properties or resto
 
 ## Data & display
 
+### I imported a new month but Dashboard still shows last month
+
+The Dashboard pills represent the trailing 6 months of the rolling `_Engine` window. Three things can be true at once here:
+
+1. **The pill itself didn't appear yet.** Reload the sheet. `onOpen` checks the calendar against the engine's last column and rolls the window forward if today is past. The new pill appears after the reload.
+2. **The active month didn't change.** Pills don't auto-select. After the new month appears, click its pill to make it active.
+3. **The import already rolled it.** When `Import Bank Transactions` finds a row past the current engine window, the toast tells you: `… · engine rolled to 2026-09`. If you didn't see that in the toast, no roll happened — your imported rows are within the existing 24-month window.
+
+If the pill still doesn't appear after a reload, unhide `_Engine` (right-click any tab → Show hidden sheets) and check that row 1 column Y has today's month code. If it doesn't, run `💳 → Setup → Build workbook` to re-anchor (destructive — back up first).
+
 ### A formula shows `#REF!` or `#NAME?`
 
-Most often this means a named range got deleted. The sheet relies on about 15 named ranges (`dashboard_active_month`, `budget_targets`, `trends_window`, etc.) — see the Appendix.
+Most often this means a named range got deleted. The sheet relies on about 15 named ranges (`cc_dashboard_month`, `cc_budget_targets`, `cc_trends_window`, etc.) — see the Appendix.
 
 **Data → Named ranges** to inspect. If one is missing, recreate it from the spec in the Appendix.
 
