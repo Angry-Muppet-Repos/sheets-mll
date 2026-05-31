@@ -2409,6 +2409,15 @@ function importTransactions() {
     rowsAsArrays = lines.map(parseCsvLine_);
   } else {
     var raw = imp.getRange(12, 1, IMPORT_PASTE_ROW_COUNT, IMPORT_PASTE_COL_COUNT).getValues();
+    // Dump the raw cell types + values for the first 6 rows so we can see
+    // exactly what Sheets handed us when a buyer reports silent drops.
+    // (Apps Script → Executions → expand the latest run → Logger output.)
+    for (var dbgR = 0; dbgR < Math.min(6, raw.length); dbgR++) {
+      Logger.log('grid row ' + dbgR + ': ' + raw[dbgR].map(function (c) {
+        var t = (c instanceof Date) ? 'Date' : typeof c;
+        return t + '=' + JSON.stringify(c);
+      }).join(' | '));
+    }
     rowsAsArrays = raw
       .map(function (r) { return r.map(function (c) { return c === null ? '' : c; }); })
       .filter(function (r) { return r.some(function (c) { return String(c).trim() !== ''; }); });
@@ -2420,6 +2429,7 @@ function importTransactions() {
 
   var header = rowsAsArrays[0].map(function (c) { return String(c); });
   var cols = sniffColumns_(header);
+  Logger.log('header=' + JSON.stringify(header) + ' cols=' + JSON.stringify(cols));
   if (cols.amount < 0 || cols.date < 0) {
     ss.toast('Could not detect Date/Amount columns. Supported headers: Date, Description/Memo/Payee, Amount (or Debit/Credit pair).', CC.BRAND, 6);
     return;
@@ -2437,29 +2447,61 @@ function importTransactions() {
     seen[dedupKey(existing[e][0], existing[e][1], existing[e][2])] = true;
   }
 
+  // Drop-bucket counters: every data row lands in exactly one bucket so the
+  // toast can report the cause when something silently vanishes.
   var rules = loadKeywordRules_(ss);
-  var out = [], income = [], miscDescs = [], skipped = 0, misc = 0;
+  var out = [], income = [], miscDescs = [];
+  var counts = { imported: 0, dup: 0, amountNull: 0, dateBad: 0, rowShort: 0 };
   for (var i = 1; i < rowsAsArrays.length; i++) {
     var f = rowsAsArrays[i];
-    if (!f || f.length < 2) continue;
+    if (!f || f.length < 2) { counts.rowShort++; Logger.log('row ' + i + ': SHORT len=' + (f ? f.length : 'null')); continue; }
     var date = parseDate_(f[cols.date]);
     var desc = String(f[cols.desc] != null ? f[cols.desc] : '').trim();
     var amount = parseAmount_(f, cols);
-    if (amount === null) continue;
+    if (amount === null) {
+      counts.amountNull++;
+      Logger.log('row ' + i + ': AMOUNT_NULL date=' + JSON.stringify(f[cols.date]) +
+        ' desc=' + JSON.stringify(desc.slice(0, 40)) +
+        ' raw_amt=' + JSON.stringify(f[cols.amount]) +
+        ' (type=' + (f[cols.amount] instanceof Date ? 'Date' : typeof f[cols.amount]) + ')');
+      continue;
+    }
+    if (!(date instanceof Date)) {
+      // parseDate_ returned the raw string — Sheets/JS couldn't parse it. Log
+      // but don't drop; the Transactions Month formula will likely also fail,
+      // which the buyer will notice and can fix manually.
+      counts.dateBad++;
+      Logger.log('row ' + i + ': DATE_BAD raw=' + JSON.stringify(f[cols.date]));
+    }
     var key = dedupKey(date, desc, amount);
-    if (seen[key]) { skipped++; continue; }
+    if (seen[key]) {
+      counts.dup++;
+      Logger.log('row ' + i + ': DUP key=' + key);
+      continue;
+    }
     seen[key] = true;
     var category;
     if (amount > 0) {
       category = 'Income';
     } else {
       category = categorize_(desc, rules);
-      if (category === 'Misc') { misc++; miscDescs.push({ desc: desc, amount: amount }); }
+      if (category === 'Misc') { miscDescs.push({ desc: desc, amount: amount }); }
     }
     out.push([date, desc, amount, category, account, '']);
     if (amount > 0) income.push([date, desc, amount]);
+    counts.imported++;
+    Logger.log('row ' + i + ': OK ' + (amount > 0 ? 'INCOME' : 'EXPENSE') +
+      ' date=' + (date instanceof Date ? Utilities.formatDate(date, tz, 'yyyy-MM-dd') : 'STR') +
+      ' amt=' + amount + ' cat=' + category);
   }
-  if (!out.length && !skipped) { ss.toast('No valid rows parsed.', CC.BRAND, 4); return; }
+  Logger.log('counts=' + JSON.stringify(counts));
+  // Only short-circuit when the loop saw nothing at all — if we have drops to
+  // report (dup, amount null, bad date), fall through so the toast surfaces them.
+  if (!out.length && !counts.dup && !counts.amountNull && !counts.dateBad) {
+    ss.toast('No valid rows parsed.', CC.BRAND, 6);
+    return;
+  }
+  var misc = miscDescs.length;
 
   // If any imported row's calendar month is past the engine's last column,
   // roll the rolling 24-month window forward so the new month aggregates
@@ -2531,15 +2573,20 @@ function importTransactions() {
     imp.setActiveRange(imp.getRange(UNCAT_SECTION_ROW, 1));
   }
 
-  var parts = ['Imported ' + out.length];
-  if (skipped) parts.push(skipped + ' duplicates skipped');
+  var parts = ['Imported ' + counts.imported];
+  if (counts.dup) parts.push(counts.dup + ' duplicate' + (counts.dup === 1 ? '' : 's') + ' skipped');
+  if (counts.amountNull) parts.push(counts.amountNull + ' dropped (no amount) — check Apps Script log');
+  if (counts.dateBad) parts.push(counts.dateBad + ' bad date — kept but tagged');
   if (misc) parts.push(misc + ' fell to Misc');
   if (income.length) parts.push(income.length + ' income row' + (income.length === 1 ? '' : 's') + ' for review');
   if (income.length > REVIEW_INCOME_ROW_COUNT) {
     parts.push('(' + (income.length - REVIEW_INCOME_ROW_COUNT) + ' beyond the review block)');
   }
   if (rolledTo) parts.push('engine rolled to ' + rolledTo);
-  ss.toast(parts.join(' · '), CC.BRAND, 6);
+  // Pin longer when something needs the buyer's attention; the previous 6s
+  // was the reason the diagnostic toast in this bug went unread.
+  var pinFor = (counts.dup || counts.amountNull || counts.dateBad || rolledTo) ? 12 : 8;
+  ss.toast(parts.join(' · '), CC.BRAND, pinFor);
 }
 
 function readExistingTx_(tx) {
