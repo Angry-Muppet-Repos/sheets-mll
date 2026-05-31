@@ -54,6 +54,16 @@ Either:
 
 Either way, return to Bank Import Guide and pick the new name from the C10 dropdown.
 
+### Some rows imported and others vanished
+
+The post-import toast names every bucket that's not zero, so you can tell *why* something didn't land:
+
+- **`Imported 12 · 4 duplicates skipped`** — those 4 rows already exist on Transactions with the same date, description, and amount. Most common cause: you clicked **Run Import** twice on the same paste (the script doesn't auto-clear the paste zone). Clear A12:H61 by hand and re-paste a fresh copy if you actually want them in again.
+- **`Imported 12 · 4 dropped (no amount) — check Apps Script log`** — those 4 rows had a header column the script thought was Amount, but the cell came back empty or non-numeric. Open **Extensions → Apps Script → Executions**, click the latest `importTransactions` row, and the log shows the raw cell value for every dropped row. Send that excerpt to support if the format looks valid — the parser may need a tweak.
+- **`Imported 12 · 1 bad date — kept but tagged`** — the script couldn't parse the date column for one row but imported it anyway with the raw string. The Month formula on Transactions will show `#VALUE!` for that row; fix the date by hand.
+
+If the toast moves too fast to read, the same line is saved in the Apps Script Executions log alongside a per-row trace.
+
 ### Half my transactions came in as `Misc`
 
 The keyword rules don't cover those merchants — but the script makes this a one-click fix.
