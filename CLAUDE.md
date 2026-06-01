@@ -26,29 +26,39 @@ Then read at minimum:
 
 These specs are the source of truth. Memory from past sessions is not.
 
-## What this repo does NOT contain
+## Source of truth: the bound .gs file
 
-- The production `ColumnCo_Foundation_v2.gs` is **not in this repo** — it
-  lives in the bound Google Sheets workbook. If you need to see the menu
-  builder, the import function, or the build functions (`buildMockWorkbook`,
-  `buildBlankWorkbook`), ask Dan to paste the relevant block. Do not guess
-  signatures or cell refs.
-- The actual workbook layout is also not in this repo. When SHEET_REFS
-  matter (column letters, row counts, named range cells), confirm against
-  spec OR ask Dan to share his workbook. The two spec docs sometimes
-  contradict (e.g. tab spec vs. data-model named-range catalog) — when they
-  do, the workbook is ground truth.
+The production Apps Script lives at `apps_script/ColumnCo_Foundation_v2.gs`
+(committed to this repo). Edit it directly when fixing bugs — do not
+ship "drop-in patches" or new helper files unless the user asks for that
+format. Push the updated full file; Dan will paste it back into the
+bound workbook editor and re-run `Setup → Build workbook (mock data)`
+and `Setup → Build workbook (blank)` to regenerate the shipping templates.
+
+Files in the .gs are organized into numbered sections (00 · Constants,
+01 · Helpers, 02 · Brand chrome, 03 · Build orchestrator, 04 · Data + system
+tabs, 05 · View tabs, 06 · Action tabs, 10 · Menu + triggers, 11 · Theme
+engine, 12 · Budget-profile engine, 13 · Bank CSV import) — grep by
+function name to find what you need.
+
+If Dan edits the .gs in the workbook editor between sessions, he should
+re-paste the latest version here so the repo stays in sync. If the two
+diverge, the workbook is ground truth.
 
 ## Confirmed workbook facts (verified May 2026)
 
-- **Categories tab — Region 1** (rows 2-26, cols A/B/C):
-  - Rows 2-21: 20 fixed categories. Type column B locked at `Expense`.
-  - Rows 22-26: 5 editable custom slots. Type column B has a dropdown
-    (`Expense` / `Income` / `Transfer`). Wired by `_applyCustomSlotTypeValidation_()`
-    called from `buildMockWorkbook` and `buildBlankWorkbook`.
-- **Categories tab — Region 2** (cols E/F/G): keyword rules
-  (E=Keyword, F=Category, G=Notes). Named range `cc_keyword_rules`.
-- Buyers never run setup. Everything ships configured by the build functions.
+- Rows 1-5 of every tab: locked brand chrome (Forest header, Canopy band,
+  Gold rule, spacer). Title block at rows 6-8.
+- **Categories tab** (built by `buildCategories_` in section 04):
+  - Row 9: section labels. Row 10: column headers.
+  - Rows 11-30: 20 fixed categories. Type col B = `Expense` (dropdown).
+  - Rows 31-35: 5 editable custom slots. Yellow Name + yellow Type
+    dropdown (`Expense` / `Income` / `Transfer`). Wired by
+    `applyCategoryValidation_(sheet, 11)` which now covers all 25 rows.
+  - Rows 36-37: Income / Transfer system rows (locked).
+  - Cols E/F/G rows 11+: keyword rules. Named range `cc_keyword_rules`.
+- Buyers never run setup. Everything ships configured by `buildWorkbook(mode)`
+  which is invoked via `Setup → Build workbook (mock data)` / `(blank)`.
 
 ## How to work on this product
 
