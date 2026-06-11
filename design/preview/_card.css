@@ -1,0 +1,71 @@
+/* Shared preview-card frame.
+   Each card is ~700px wide. We strip outer titles/framing because the
+   Design System tab renders the asset name outside the card.            */
+@import url('../colors_and_type.css');
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--cc-parchment);
+  color: var(--cc-forest);
+  font-family: var(--cc-font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.card {
+  width: 700px;
+  padding: 28px;
+  background: var(--cc-parchment);
+}
+
+.card-row {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.swatch {
+  flex: 1;
+  border-radius: var(--cc-radius-md);
+  padding: 16px;
+  min-height: 110px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid rgba(28,61,46,0.08);
+}
+.swatch .name {
+  font-family: var(--cc-font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.1;
+}
+.swatch .hex {
+  font-family: var(--cc-font-body);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.swatch .role {
+  font-family: var(--cc-font-body);
+  font-weight: 500;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+.label-eyebrow {
+  font-family: var(--cc-font-body);
+  font-weight: 500;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--cc-canopy);
+}

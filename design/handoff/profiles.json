@@ -1,0 +1,155 @@
+{
+  "$schema": "Column & Co. Foundation v2 — Monthly Budget profile spec",
+  "version": "2.1.0",
+  "generated_from": "ui_kits/foundation/tabs-actions.jsx (BUDGET_PROFILES)",
+  "income_baseline": 10230,
+  "categories": [
+    "Housing", "Food & Dining", "Transportation", "Shopping",
+    "Utilities", "Entertainment", "Subscriptions", "Personal Care",
+    "Gifts & Donations", "Health & Medical", "Insurance", "Savings",
+    "Debt Payments", "Education", "Travel", "Pets",
+    "Childcare", "Business", "Taxes", "Misc"
+  ],
+  "profiles": [
+    {
+      "id": "dave-ramsey",
+      "name": "Dave Ramsey",
+      "sub": "Envelopes · Baby Steps",
+      "blurb": "The Ramsey Method: big slices for housing and food, every dollar named, aggressive debt snowball, 3-6 month emergency fund.",
+      "income": 10230,
+      "targets": {
+        "Housing": 2400, "Food & Dining": 900, "Transportation": 800, "Shopping": 250,
+        "Utilities": 360, "Entertainment": 150, "Subscriptions": 60, "Personal Care": 150,
+        "Gifts & Donations": 250, "Health & Medical": 200, "Insurance": 450, "Savings": 1500,
+        "Debt Payments": 1500, "Education": 0, "Travel": 0, "Pets": 100,
+        "Childcare": 0, "Business": 0, "Taxes": 0, "Misc": 160
+      }
+    },
+    {
+      "id": "50-30-20",
+      "name": "50/30/20",
+      "sub": "Needs · Wants · Savings",
+      "blurb": "Senator Warren's rule. 50% needs (housing, food, transport, insurance), 30% wants (dining out, shopping, entertainment), 20% savings + debt.",
+      "income": 10230,
+      "targets": {
+        "Housing": 2400, "Food & Dining": 750, "Transportation": 650, "Shopping": 620,
+        "Utilities": 380, "Entertainment": 400, "Subscriptions": 180, "Personal Care": 200,
+        "Gifts & Donations": 300, "Health & Medical": 200, "Insurance": 450, "Savings": 1500,
+        "Debt Payments": 550, "Education": 100, "Travel": 400, "Pets": 150,
+        "Childcare": 0, "Business": 0, "Taxes": 0, "Misc": 700
+      }
+    },
+    {
+      "id": "fire",
+      "name": "FIRE",
+      "sub": "Financial Independence · Retire Early",
+      "blurb": "Optimized for a 50%+ savings rate. Lean fixed costs, minimal discretionary, max retirement and brokerage contributions. The r/financialindependence playbook.",
+      "income": 10230,
+      "targets": {
+        "Housing": 1800, "Food & Dining": 500, "Transportation": 400, "Shopping": 200,
+        "Utilities": 340, "Entertainment": 100, "Subscriptions": 30, "Personal Care": 80,
+        "Gifts & Donations": 150, "Health & Medical": 150, "Insurance": 400, "Savings": 5200,
+        "Debt Payments": 300, "Education": 0, "Travel": 200, "Pets": 80,
+        "Childcare": 0, "Business": 0, "Taxes": 0, "Misc": 300
+      }
+    },
+    {
+      "id": "zero-based",
+      "name": "Zero-Based",
+      "sub": "Every dollar gets a job · YNAB-style",
+      "blurb": "Income minus expenses equals zero. Nothing left unassigned. Real-world realistic: room for travel, education, eating out, plus disciplined savings.",
+      "income": 10230,
+      "targets": {
+        "Housing": 2400, "Food & Dining": 750, "Transportation": 600, "Shopping": 500,
+        "Utilities": 380, "Entertainment": 240, "Subscriptions": 120, "Personal Care": 200,
+        "Gifts & Donations": 300, "Health & Medical": 200, "Insurance": 450, "Savings": 2200,
+        "Debt Payments": 700, "Education": 50, "Travel": 300, "Pets": 130,
+        "Childcare": 0, "Business": 0, "Taxes": 0, "Misc": 710
+      }
+    },
+    {
+      "id": "anti-budget",
+      "name": "Anti-Budget",
+      "sub": "Paula Pant · Save first, spend the rest",
+      "blurb": "Pay yourself 20% off the top into savings + retirement. Don't track the rest by category — if savings happens automatically, the spending takes care of itself.",
+      "income": 10230,
+      "targets": {
+        "Housing": 2200, "Food & Dining": 700, "Transportation": 550, "Shopping": 600,
+        "Utilities": 360, "Entertainment": 350, "Subscriptions": 150, "Personal Care": 180,
+        "Gifts & Donations": 300, "Health & Medical": 200, "Insurance": 420, "Savings": 2050,
+        "Debt Payments": 500, "Education": 100, "Travel": 400, "Pets": 130,
+        "Childcare": 0, "Business": 0, "Taxes": 0, "Misc": 1040
+      }
+    },
+    {
+      "id": "kakeibo",
+      "name": "Kakeibo",
+      "sub": "Japanese 4-bucket · Needs · Wants · Culture · Unexpected",
+      "blurb": "A 100-year-old Japanese mindful-money practice. Four hand-written buckets — survival, optional, culture & growth, and the unexpected. Reflect at month-end on what each category bought you.",
+      "income": 10230,
+      "targets": {
+        "Housing": 2200, "Food & Dining": 750, "Transportation": 550, "Shopping": 350,
+        "Utilities": 360, "Entertainment": 300, "Subscriptions": 90, "Personal Care": 150,
+        "Gifts & Donations": 250, "Health & Medical": 200, "Insurance": 420, "Savings": 2200,
+        "Debt Payments": 400, "Education": 300, "Travel": 350, "Pets": 100,
+        "Childcare": 0, "Business": 0, "Taxes": 0, "Misc": 1260
+      }
+    },
+    {
+      "id": "new-parent",
+      "name": "New Parent",
+      "sub": "Young family · childcare + 529 priority",
+      "blurb": "Childcare is now the second-largest line. Health & medical and insurance climb. Discretionary (travel, dining, entertainment) compresses to make room — and a 529 contribution lands under Education.",
+      "income": 10230,
+      "targets": {
+        "Housing": 2400, "Food & Dining": 900, "Transportation": 550, "Shopping": 350,
+        "Utilities": 380, "Entertainment": 100, "Subscriptions": 80, "Personal Care": 120,
+        "Gifts & Donations": 150, "Health & Medical": 350, "Insurance": 550, "Savings": 1100,
+        "Debt Payments": 500, "Education": 200, "Travel": 100, "Pets": 80,
+        "Childcare": 1800, "Business": 0, "Taxes": 0, "Misc": 520
+      }
+    },
+    {
+      "id": "self-employed",
+      "name": "Self-Employed",
+      "sub": "1099 · 25% tax set-aside · biz expenses",
+      "blurb": "Built for freelancers, contractors, and Etsy sellers. A quarter of every dollar earned is escrowed for quarterly taxes. Business pulls a real line. Self-paid health insurance is heavier than a W-2 budget.",
+      "income": 10230,
+      "targets": {
+        "Housing": 1900, "Food & Dining": 600, "Transportation": 450, "Shopping": 250,
+        "Utilities": 320, "Entertainment": 150, "Subscriptions": 100, "Personal Care": 120,
+        "Gifts & Donations": 150, "Health & Medical": 200, "Insurance": 700, "Savings": 1200,
+        "Debt Payments": 400, "Education": 150, "Travel": 200, "Pets": 80,
+        "Childcare": 0, "Business": 600, "Taxes": 2560, "Misc": 100
+      }
+    },
+    {
+      "id": "hcol-renter",
+      "name": "HCOL Renter",
+      "sub": "High-cost city · 40% housing · student loans",
+      "blurb": "For NYC, SF, Seattle, Boston, DC. Rent eats 40%. Student-loan payments get a serious line. Less car, less stuff, more transit. Savings is what's left — and that's okay, the location is the investment.",
+      "income": 10230,
+      "targets": {
+        "Housing": 4100, "Food & Dining": 800, "Transportation": 350, "Shopping": 300,
+        "Utilities": 280, "Entertainment": 200, "Subscriptions": 100, "Personal Care": 150,
+        "Gifts & Donations": 100, "Health & Medical": 150, "Insurance": 280, "Savings": 900,
+        "Debt Payments": 1100, "Education": 50, "Travel": 300, "Pets": 80,
+        "Childcare": 0, "Business": 0, "Taxes": 0, "Misc": 990
+      }
+    },
+    {
+      "id": "custom",
+      "name": "Custom",
+      "sub": "You set every target",
+      "blurb": "Click any yellow cell to edit. Totals update live. Build a profile that matches your real life — then save it as your personal default.",
+      "income": 10230,
+      "targets": {
+        "Housing": 2400, "Food & Dining": 650, "Transportation": 600, "Shopping": 500,
+        "Utilities": 380, "Entertainment": 240, "Subscriptions": 120, "Personal Care": 200,
+        "Gifts & Donations": 300, "Health & Medical": 180, "Insurance": 400, "Savings": 1800,
+        "Debt Payments": 700, "Education": 50, "Travel": 250, "Pets": 120,
+        "Childcare": 0, "Business": 0, "Taxes": 0, "Misc": 200
+      }
+    }
+  ]
+}

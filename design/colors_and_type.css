@@ -1,0 +1,305 @@
+/* =====================================================================
+   COLUMN & CO. — DESIGN TOKENS
+   Brand: Column & Co. · Life, Organized.
+   Source: COLUMN_CO_BRAND_GUIDELINES.md (v1.0, 2026)
+   ===================================================================== */
+
+/* Fonts: load from Google Fonts (free) — Playfair Display + Jost */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Jost:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* ---------- BRAND PALETTE (Green & Cream) ------------------------ */
+  /* The 5 brand colors. Use these for ALL brand communications.        */
+  --cc-forest:        #1C3D2E;  /* primary — logo, headings, dark cards */
+  --cc-canopy:        #2D5C45;  /* primary mid — subheads, sub-bands    */
+  --cc-harvest-gold:  #C5A95A;  /* accent — sparingly, never as bg      */
+  --cc-cream:         #F0EBD8;  /* warm bg — sections, zebra rows       */
+  --cc-parchment:     #FAF8F2;  /* light bg — page bg, card bg          */
+
+  /* ---------- SECONDARY COLORWAY: NAVY & GOLD ----------------------- */
+  /* Reserved for FUTURE PRODUCTS. Green & Cream remains the default    */
+  /* brand colorway today. To use Navy & Gold, set                      */
+  /* `data-cc-colorway="navy"` on your root element — see the override  */
+  /* block below.                                                       */
+  --cc-navy:           #1B2A4A;  /* primary navy           */
+  --cc-navy-mid:       #2C3E6B;  /* mid navy               */
+  --cc-navy-gold:      #C8873A;  /* warmer gold accent     */
+  --cc-navy-gold-lt:   #F5D9B0;  /* gold tint              */
+  --cc-navy-cream:     #F7F6F2;  /* warmer cream           */
+
+  /* DO NOT USE: pure black (#000) or pure white (#FFF).
+     Always use --cc-forest and --cc-parchment as their replacements.   */
+
+  /* ---------- FOREGROUND / SURFACE ROLES --------------------------- */
+  --cc-fg-primary:     #1C3D2E;            /* main text, headings       */
+  --cc-fg-body:        rgba(28, 61, 46, 0.75); /* body @ 75% opacity     */
+  --cc-fg-muted:       rgba(28, 61, 46, 0.50); /* captions @ 50%         */
+  --cc-fg-on-dark:     #FAF8F2;            /* text on Forest/Canopy     */
+  --cc-fg-on-gold:     #1C3D2E;            /* text on Harvest Gold      */
+
+  --cc-bg-page:        #FAF8F2;            /* page bg                   */
+  --cc-bg-card:        #FAF8F2;            /* card bg                   */
+  --cc-bg-section:     #F0EBD8;            /* section bg, zebra warm    */
+  --cc-bg-dark:        #1C3D2E;            /* dark hero / footer        */
+  --cc-bg-dark-mid:    #2D5C45;            /* dark sub-band             */
+
+  --cc-divider:        rgba(28, 61, 46, 0.12);
+  --cc-divider-gold:   #C5A95A;
+  --cc-input-bg:       #FFFDE7;            /* yellow input cell — never repainted */
+
+  /* ---------- SEMANTIC (in-product only, NOT brand) ---------------- */
+  --cc-success:        #16a34a;            /* net-green KPI             */
+  --cc-success-bg:     #F0FFF4;            /* paste-zone bg             */
+  --cc-warning:        #C8873A;            /* warning chip              */
+  --cc-warning-bg:     #FFF7ED;
+  --cc-danger:         #7a2e2e;            /* expense red               */
+  --cc-danger-deep:    #832f30;
+  --cc-status-good:    #16a34a;
+  --cc-status-fair:    #C5A95A;
+  --cc-status-warn:    #C8873A;
+  --cc-status-bad:     #832f30;
+
+  /* ---------- TYPOGRAPHY ------------------------------------------- */
+  --cc-font-display:   'Playfair Display', 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --cc-font-body:      'Jost', 'Futura', 'Trebuchet MS', system-ui, sans-serif;
+
+  /* Letter spacing — tracked-out for labels/tagline */
+  --cc-tracking-label:  0.20em;
+  --cc-tracking-mid:    0.18em;
+  --cc-tracking-body:   0.02em;
+  --cc-tracking-tight:  0;
+
+  /* Type sizes (rem-based, root=16px) */
+  --cc-text-9:   0.5625rem;  /* 9px  — caption                 */
+  --cc-text-10:  0.625rem;   /* 10px — tagline / section label */
+  --cc-text-11:  0.6875rem;  /* 11px                           */
+  --cc-text-12:  0.75rem;    /* 12px — body sm                 */
+  --cc-text-13:  0.8125rem;  /* 13px                           */
+  --cc-text-14:  0.875rem;   /* 14px — body                    */
+  --cc-text-16:  1rem;       /* 16px                           */
+  --cc-text-18:  1.125rem;   /* 18px — product name min        */
+  --cc-text-20:  1.25rem;    /* 20px                           */
+  --cc-text-24:  1.5rem;     /* 24px                           */
+  --cc-text-28:  1.75rem;    /* 28px — product name max        */
+  --cc-text-32:  2rem;       /* 32px — brand name min          */
+  --cc-text-40:  2.5rem;     /* 40px                           */
+  --cc-text-48:  3rem;       /* 48px — brand name max          */
+  --cc-text-64:  4rem;       /* 64px — hero                    */
+
+  /* ---------- SPACING (8-pt scale + half-step) --------------------- */
+  --cc-space-1:  0.25rem;  /*  4px */
+  --cc-space-2:  0.5rem;   /*  8px */
+  --cc-space-3:  0.75rem;  /* 12px */
+  --cc-space-4:  1rem;     /* 16px */
+  --cc-space-5:  1.5rem;   /* 24px */
+  --cc-space-6:  2rem;     /* 32px */
+  --cc-space-7:  3rem;     /* 48px */
+  --cc-space-8:  4rem;     /* 64px */
+  --cc-space-9:  6rem;     /* 96px */
+
+  /* ---------- RADII ------------------------------------------------- */
+  /* Column & Co. is a sharp, structured brand. Radii are SMALL.        */
+  --cc-radius-0:   0;          /* sheet cells, primary surfaces  */
+  --cc-radius-sm:  2px;        /* chips, tiny pills              */
+  --cc-radius-md:  4px;        /* buttons, cards                 */
+  --cc-radius-lg:  8px;        /* large cards (rare)             */
+  --cc-radius-pill: 999px;     /* status pills only              */
+
+  /* ---------- BORDERS ---------------------------------------------- */
+  --cc-border-thin:   1px solid var(--cc-divider);
+  --cc-border-rule:   1px solid #C5A95A;  /* @kind other */  /* gold accent rule */
+  --cc-border-strong: 2px solid #1C3D2E;  /* @kind other */
+
+  /* ---------- SHADOWS ---------------------------------------------- */
+  /* Restrained shadow system — Column & Co. uses borders & color blocks
+     more than shadows. Never use drop shadows on the logo.            */
+  --cc-shadow-card:    0 1px 2px rgba(28, 61, 46, 0.06),
+                       0 1px 4px rgba(28, 61, 46, 0.04);
+  --cc-shadow-raised:  0 4px 12px rgba(28, 61, 46, 0.10),
+                       0 1px 2px rgba(28, 61, 46, 0.05);
+  --cc-shadow-focus:   0 0 0 3px rgba(197, 169, 90, 0.35);
+
+  /* ---------- MOTION ----------------------------------------------- */
+  --cc-ease:           cubic-bezier(0.4, 0.0, 0.2, 1);  /* @kind other */
+  --cc-ease-out:       cubic-bezier(0.0, 0.0, 0.2, 1);  /* @kind other */
+  --cc-dur-fast:       120ms;  /* @kind other */
+  --cc-dur:            180ms;  /* @kind other */
+  --cc-dur-slow:       320ms;  /* @kind other */
+}
+
+/* =====================================================================
+   SEMANTIC TYPE CLASSES — drop these into HTML directly.
+   ===================================================================== */
+
+.cc-brand-name {
+  font-family: var(--cc-font-display);
+  font-weight: 700;
+  font-size: var(--cc-text-48);
+  line-height: 1.05;
+  color: var(--cc-forest);
+  letter-spacing: -0.005em;
+}
+
+.cc-product-name {
+  font-family: var(--cc-font-display);
+  font-weight: 400;
+  font-style: italic;
+  font-size: var(--cc-text-24);
+  line-height: 1.2;
+  color: var(--cc-forest);
+}
+
+.cc-tagline {
+  font-family: var(--cc-font-body);
+  font-weight: 500;
+  font-size: var(--cc-text-11);
+  line-height: 1.2;
+  color: var(--cc-harvest-gold);
+  letter-spacing: var(--cc-tracking-label);
+  text-transform: uppercase;
+}
+
+.cc-section-label {
+  font-family: var(--cc-font-body);
+  font-weight: 500;
+  font-size: var(--cc-text-10);
+  line-height: 1.2;
+  color: var(--cc-canopy);
+  letter-spacing: var(--cc-tracking-mid);
+  text-transform: uppercase;
+}
+
+.cc-h1 {
+  font-family: var(--cc-font-display);
+  font-weight: 700;
+  font-size: var(--cc-text-48);
+  line-height: 1.1;
+  color: var(--cc-forest);
+}
+
+.cc-h2 {
+  font-family: var(--cc-font-display);
+  font-weight: 700;
+  font-size: var(--cc-text-32);
+  line-height: 1.15;
+  color: var(--cc-forest);
+}
+
+.cc-h3 {
+  font-family: var(--cc-font-display);
+  font-weight: 400;
+  font-style: italic;
+  font-size: var(--cc-text-24);
+  line-height: 1.2;
+  color: var(--cc-forest);
+}
+
+.cc-h4 {
+  font-family: var(--cc-font-body);
+  font-weight: 600;
+  font-size: var(--cc-text-14);
+  line-height: 1.3;
+  color: var(--cc-forest);
+  letter-spacing: 0.02em;
+}
+
+.cc-body {
+  font-family: var(--cc-font-body);
+  font-weight: 300;
+  font-size: var(--cc-text-14);
+  line-height: 1.55;
+  color: var(--cc-fg-body);
+  letter-spacing: var(--cc-tracking-body);
+}
+
+.cc-body-sm {
+  font-family: var(--cc-font-body);
+  font-weight: 300;
+  font-size: var(--cc-text-12);
+  line-height: 1.5;
+  color: var(--cc-fg-body);
+}
+
+.cc-caption {
+  font-family: var(--cc-font-body);
+  font-weight: 300;
+  font-size: var(--cc-text-10);
+  line-height: 1.4;
+  color: var(--cc-fg-muted);
+}
+
+.cc-data {
+  /* For numbers/figures inside the sheet — keep them aligned, tabular. */
+  font-family: var(--cc-font-body);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  color: var(--cc-forest);
+}
+
+.cc-data-big {
+  font-family: var(--cc-font-display);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--cc-text-32);
+  letter-spacing: -0.01em;
+  color: var(--cc-forest);
+}
+
+/* =====================================================================
+   IN-PRODUCT THEME PALETTES — Foundation v2 has 24 swappable palettes.
+   These are SHEET-INTERIOR colors, NOT brand colors. Use only inside
+   sheet-style mockups.
+   ===================================================================== */
+
+[data-cc-palette="light"]          { --pal-primary:#1C3D2E; --pal-mid:#2D5C45; --pal-accent:#C5A95A; --pal-accent-light:#F0EBD8; --pal-dark:#111827; --pal-bg:#FAF8F2; --pal-zebra:#EEF2EC; }
+[data-cc-palette="warm-greige"]    { --pal-primary:#3D2B1F; --pal-mid:#5C4033; --pal-accent:#C8873A; --pal-accent-light:#F5E6D3; --pal-dark:#1C1009; --pal-bg:#FAF6F1; --pal-zebra:#F0E8DC; }
+[data-cc-palette="cool-slate"]     { --pal-primary:#1E3A5F; --pal-mid:#2D5282; --pal-accent:#64748B; --pal-accent-light:#E2E8F0; --pal-dark:#0F2440; --pal-bg:#F8FAFC; --pal-zebra:#EFF6FF; }
+[data-cc-palette="sage"]           { --pal-primary:#2D4A3E; --pal-mid:#3D6455; --pal-accent:#8FAF7E; --pal-accent-light:#E8F5E0; --pal-dark:#1A2E25; --pal-bg:#F4F9F1; --pal-zebra:#EAF4E3; }
+[data-cc-palette="espresso"]       { --pal-primary:#2C1810; --pal-mid:#4A2C1A; --pal-accent:#C8873A; --pal-accent-light:#F5E6D3; --pal-dark:#120A04; --pal-bg:#FAF5F0; --pal-zebra:#F0E5D8; }
+[data-cc-palette="maize-navy"]     { --pal-primary:#003366; --pal-mid:#004080; --pal-accent:#FFCB05; --pal-accent-light:#FFF5B0; --pal-dark:#001A33; --pal-bg:#F5F8FF; --pal-zebra:#E8F0FF; }
+[data-cc-palette="scarlet-gray"]   { --pal-primary:#BB0000; --pal-mid:#CC0000; --pal-accent:#808080; --pal-accent-light:#E8E8E8; --pal-dark:#2C0000; --pal-bg:#F9F9F9; --pal-zebra:#EFEFEF; }
+[data-cc-palette="orange-navy"]    { --pal-primary:#002D6D; --pal-mid:#003D94; --pal-accent:#F47920; --pal-accent-light:#FFE4C4; --pal-dark:#001540; --pal-bg:#F5F8FF; --pal-zebra:#E8F0FF; }
+[data-cc-palette="green-gold"]     { --pal-primary:#154734; --pal-mid:#1A5C43; --pal-accent:#CBA135; --pal-accent-light:#FFF3C0; --pal-dark:#0A2419; --pal-bg:#F3FAF5; --pal-zebra:#E5F5EA; }
+[data-cc-palette="purple-gold"]    { --pal-primary:#4A1C7C; --pal-mid:#5E2499; --pal-accent:#FFC72C; --pal-accent-light:#FFF5B5; --pal-dark:#280D45; --pal-bg:#FAF5FF; --pal-zebra:#F3E8FF; }
+[data-cc-palette="crimson-white"]  { --pal-primary:#9B1B30; --pal-mid:#B52238; --pal-accent:#FFFFFF; --pal-accent-light:#F5F5F5; --pal-dark:#4A0010; --pal-bg:#FFF8F9; --pal-zebra:#FFE8EC; }
+[data-cc-palette="garnet-gold"]    { --pal-primary:#782F40; --pal-mid:#9B3B52; --pal-accent:#CBA135; --pal-accent-light:#FFF3C0; --pal-dark:#3D0A1A; --pal-bg:#FFF8F5; --pal-zebra:#FFE8DC; }
+[data-cc-palette="forest-white"]   { --pal-primary:#154733; --pal-mid:#1E6048; --pal-accent:#FFFFFF; --pal-accent-light:#F0FFF4; --pal-dark:#0A2819; --pal-bg:#F4FBF6; --pal-zebra:#E8F5EC; }
+[data-cc-palette="royal-gold"]     { --pal-primary:#002D72; --pal-mid:#003D9C; --pal-accent:#B5A642; --pal-accent-light:#F5F0C0; --pal-dark:#001040; --pal-bg:#F0F5FF; --pal-zebra:#E0ECFF; }
+[data-cc-palette="silver-black"]   { --pal-primary:#1A1A1A; --pal-mid:#2D2D2D; --pal-accent:#A8A9AD; --pal-accent-light:#E8E8E8; --pal-dark:#000000; --pal-bg:#F5F5F5; --pal-zebra:#EBEBEB; }
+[data-cc-palette="midnight"]       { --pal-primary:#0B1F3A; --pal-mid:#142E55; --pal-accent:#14B8A6; --pal-accent-light:#99F6E4; --pal-dark:#050E1C; --pal-bg:#F0F4F8; --pal-zebra:#E2E8F0; }
+[data-cc-palette="burgundy"]       { --pal-primary:#5C0A1A; --pal-mid:#7A0E22; --pal-accent:#E8D5B5; --pal-accent-light:#F5E8D5; --pal-dark:#2E0510; --pal-bg:#FAF5F0; --pal-zebra:#F0E6DA; }
+[data-cc-palette="mocha"]          { --pal-primary:#5C3A21; --pal-mid:#7A4F2D; --pal-accent:#D4A574; --pal-accent-light:#F0DCC2; --pal-dark:#2E1D10; --pal-bg:#FAF3EA; --pal-zebra:#F0E2CE; }
+[data-cc-palette="indigo-blush"]   { --pal-primary:#2E1F6B; --pal-mid:#3D2A8C; --pal-accent:#EAB0B8; --pal-accent-light:#F8DEE3; --pal-dark:#170F36; --pal-bg:#F7F4FA; --pal-zebra:#ECE5F5; }
+[data-cc-palette="pine-brass"]     { --pal-primary:#1F3A2E; --pal-mid:#2E5544; --pal-accent:#B8964A; --pal-accent-light:#E8D9A8; --pal-dark:#0E1D17; --pal-bg:#F2F8F4; --pal-zebra:#E1F0E7; }
+[data-cc-palette="ocean-coral"]    { --pal-primary:#0F4858; --pal-mid:#166075; --pal-accent:#F47B6A; --pal-accent-light:#FBC8BD; --pal-dark:#062430; --pal-bg:#F0F8FA; --pal-zebra:#DCEFF2; }
+[data-cc-palette="charcoal-mint"]  { --pal-primary:#2C2C2E; --pal-mid:#44444A; --pal-accent:#A8D5BA; --pal-accent-light:#D0EAD9; --pal-dark:#161617; --pal-bg:#F5F5F5; --pal-zebra:#E8E8E8; }
+[data-cc-palette="olive-cream"]    { --pal-primary:#3D4A1F; --pal-mid:#56672E; --pal-accent:#C8B27A; --pal-accent-light:#E8D9A8; --pal-dark:#1E2410; --pal-bg:#F7F4E8; --pal-zebra:#ECE5D0; }
+[data-cc-palette="custom"]         { --pal-primary:#1B2A4A; --pal-mid:#2C3E6B; --pal-accent:#C8873A; --pal-accent-light:#F5D9B0; --pal-dark:#111827; --pal-bg:#F3F4F6; --pal-zebra:#EEF0F5; }
+
+/* =====================================================================
+   COLORWAY OVERRIDE — for elements tagged data-cc-colorway="navy"
+   Swaps Green & Cream brand tokens to Navy & Gold for future products.
+   ===================================================================== */
+[data-cc-colorway="navy"] {
+  --cc-forest:        #1B2A4A;
+  --cc-canopy:        #2C3E6B;
+  --cc-harvest-gold:  #C8873A;
+  --cc-cream:         #EFE5D2;
+  --cc-parchment:     #F7F6F2;
+
+  --cc-fg-primary:    #1B2A4A;
+  --cc-fg-body:       rgba(27, 42, 74, 0.75);
+  --cc-fg-muted:      rgba(27, 42, 74, 0.50);
+  --cc-fg-on-dark:    #F7F6F2;
+  --cc-fg-on-gold:    #1B2A4A;
+
+  --cc-bg-page:       #F7F6F2;
+  --cc-bg-card:       #F7F6F2;
+  --cc-bg-section:    #EFE5D2;
+  --cc-bg-dark:       #1B2A4A;
+  --cc-bg-dark-mid:   #2C3E6B;
+
+  --cc-divider:       rgba(27, 42, 74, 0.12);
+  --cc-divider-gold:  #C8873A;
+}

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>columnandco.com — IA Wireframes</title>
+  <link rel="stylesheet" href="../colors_and_type.css">
+  <style>
+    html, body { margin: 0; padding: 0; background: #2a2a2a; font-family: 'Jost', sans-serif; }
+    #boot { color: #888; text-align: center; padding: 60px; font-family: 'Jost', sans-serif; }
+
+    /* Brand tokens used in wireframes */
+    :root {
+      --forest: #1C3D2E;
+      --canopy: #2D5C45;
+      --gold:   #C5A95A;
+      --cream:  #F0EBD8;
+      --parch:  #FAF8F2;
+      --garnet: #832F30;
+
+      /* Wireframe-specific neutrals */
+      --wf-line: #DCD9D0;
+      --wf-block: #E8E4D8;
+      --wf-block-dark: #C8C2B0;
+      --wf-bg: #FAF8F2;
+      --wf-card-bg: #FDFCF7;
+    }
+
+    /* Wireframe text helpers */
+    .pf { font-family: 'Playfair Display', serif; }
+    .jt { font-family: 'Jost', sans-serif; }
+    .mono { font-family: 'ui-monospace', 'SF Mono', Menlo, monospace; font-size: 11px; }
+
+    /* Wireframe primitives */
+    .wf-frame {
+      background: var(--wf-bg);
+      color: var(--forest);
+      font-family: 'Jost', sans-serif;
+      font-weight: 300;
+    }
+    .wf-section-label {
+      font-family: 'Jost', sans-serif;
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+    .wf-block {
+      background: var(--wf-block);
+      border: 1px solid var(--wf-line);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'ui-monospace', 'SF Mono', Menlo, monospace;
+      font-size: 11px; color: rgba(28,61,46,0.55);
+      letter-spacing: 0.02em;
+    }
+    .wf-line {
+      background: var(--wf-line); height: 8px; border-radius: 4px;
+    }
+    .wf-card {
+      background: var(--wf-card-bg);
+      border: 1px solid var(--wf-line);
+      padding: 24px;
+    }
+    .wf-annotation {
+      position: absolute;
+      background: #FFFBE6;
+      border: 1px solid #E6D89A;
+      padding: 6px 10px;
+      font-family: 'ui-monospace', 'SF Mono', Menlo, monospace;
+      font-size: 10px;
+      color: var(--forest);
+      box-shadow: 2px 2px 0 rgba(28,61,46,0.08);
+      z-index: 5;
+      max-width: 260px;
+      line-height: 1.4;
+    }
+    .wf-annotation::before {
+      content: "→ ";
+      color: var(--gold);
+      font-weight: 700;
+    }
+  </style>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"><div id="boot">Loading wireframes…</div></div>
+
+  <script type="text/babel" src="design-canvas.jsx" data-presets="env,react"></script>
+  <script type="text/babel" src="wf-shared.jsx" data-presets="env,react"></script>
+  <script type="text/babel" src="wf-a-funnel.jsx" data-presets="env,react"></script>
+  <script type="text/babel" src="wf-b-rest.jsx" data-presets="env,react"></script>
+
+  <script type="text/babel" data-presets="env,react">
+    function App() {
+      return (
+        <DesignCanvas>
+          <DCSection id="funnel" title="Conversion funnel" subtitle="The path a new visitor walks: discover → diagnose → prescribe → purchase">
+            <DCArtboard id="home"     label="01 · Home (triage)"                                width={1440} height={3200}><WfHome /></DCArtboard>
+            <DCArtboard id="problems" label="02 · Problems hub (/problems)"                     width={1440} height={2100}><WfProblemsHub /></DCArtboard>
+            <DCArtboard id="problem"  label="03 · Problem page (/problems/money)"               width={1440} height={3000}><WfProblemPage /></DCArtboard>
+            <DCArtboard id="product"  label="04 · Product page (/products/foundation)"          width={1440} height={3600}><WfProductPage /></DCArtboard>
+          </DCSection>
+
+          <DCSection id="rest" title="Bundles · Diagnostic · Account · Journal" subtitle="The rest of the IA — repeat-buyer surfaces, content, and the lead-capture diagnostic">
+            <DCArtboard id="bundle"     label="05 · Bundle page (/bundles/get-your-money-together)" width={1440} height={2800}><WfBundlePage /></DCArtboard>
+            <DCArtboard id="diagnostic" label="06 · Diagnostic (/diagnose)"                         width={1440} height={1900}><WfDiagnostic /></DCArtboard>
+            <DCArtboard id="account"    label="07 · Account library (/account/library)"             width={1440} height={2500}><WfAccount /></DCArtboard>
+            <DCArtboard id="journal"    label="08a · Journal index (/journal)"                      width={1440} height={2300}><WfJournalIndex /></DCArtboard>
+            <DCArtboard id="post"       label="08b · Journal post (/journal/<slug>)"                width={1440} height={3000}><WfJournalPost /></DCArtboard>
+          </DCSection>
+        </DesignCanvas>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

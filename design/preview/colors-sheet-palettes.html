@@ -1,0 +1,39 @@
+<!doctype html>
+<!-- @dsCard group="Colors" name="Colors · 16 Sheet Palettes" subtitle="Swappable interior palettes including 10 team-inspired" viewport="700x330" --><html><head><meta charset="utf-8"><link rel="stylesheet" href="_card.css"></head><body><div class="card">
+  <div class="cc-section-label" style="margin-bottom:14px;">SHEET INTERIOR PALETTES · 24 SWAPPABLE THEMES</div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+    <!-- Each tile: 4 stripes (primary, mid, accent, bg) + name -->
+    <div data-pal="Light"           data-c="#1C3D2E,#2D5C45,#C5A95A,#FAF8F2"></div>
+    <div data-pal="Warm Greige"     data-c="#3D2B1F,#5C4033,#C8873A,#FAF6F1"></div>
+    <div data-pal="Cool Slate"      data-c="#1E3A5F,#2D5282,#64748B,#F8FAFC"></div>
+    <div data-pal="Sage"            data-c="#2D4A3E,#3D6455,#8FAF7E,#F4F9F1"></div>
+    <div data-pal="Espresso"        data-c="#2C1810,#4A2C1A,#C8873A,#FAF5F0"></div>
+    <div data-pal="Maize & Navy"    data-c="#003366,#004080,#FFCB05,#F5F8FF"></div>
+    <div data-pal="Scarlet & Gray"  data-c="#BB0000,#CC0000,#808080,#F9F9F9"></div>
+    <div data-pal="Orange & Navy"   data-c="#002D6D,#003D94,#F47920,#F5F8FF"></div>
+    <div data-pal="Green & Gold"    data-c="#154734,#1A5C43,#CBA135,#F3FAF5"></div>
+    <div data-pal="Purple & Gold"   data-c="#4A1C7C,#5E2499,#FFC72C,#FAF5FF"></div>
+    <div data-pal="Crimson & White" data-c="#9B1B30,#B52238,#FFFFFF,#FFF8F9"></div>
+    <div data-pal="Garnet & Gold"   data-c="#782F40,#9B3B52,#CBA135,#FFF8F5"></div>
+    <div data-pal="Forest & White"  data-c="#154733,#1E6048,#FFFFFF,#F4FBF6"></div>
+    <div data-pal="Royal & Gold"    data-c="#002D72,#003D9C,#B5A642,#F0F5FF"></div>
+    <div data-pal="Silver & Black"  data-c="#1A1A1A,#2D2D2D,#A8A9AD,#F5F5F5"></div>
+    <div data-pal="Midnight"        data-c="#0B1F3A,#142E55,#14B8A6,#F0F4F8"></div>
+    <div data-pal="Burgundy"        data-c="#5C0A1A,#7A0E22,#E8D5B5,#FAF5F0"></div>
+    <div data-pal="Mocha"           data-c="#5C3A21,#7A4F2D,#D4A574,#FAF3EA"></div>
+    <div data-pal="Indigo & Blush"  data-c="#2E1F6B,#3D2A8C,#EAB0B8,#F7F4FA"></div>
+    <div data-pal="Pine & Brass"    data-c="#1F3A2E,#2E5544,#B8964A,#F2F8F4"></div>
+    <div data-pal="Ocean & Coral"   data-c="#0F4858,#166075,#F47B6A,#F0F8FA"></div>
+    <div data-pal="Charcoal & Mint" data-c="#2C2C2E,#44444A,#A8D5BA,#F5F5F5"></div>
+    <div data-pal="Olive & Cream"   data-c="#3D4A1F,#56672E,#C8B27A,#F7F4E8"></div>
+    <div data-pal="Custom"          data-c="#1B2A4A,#2C3E6B,#C8873A,#F3F4F6"></div>
+  </div>
+  <script>
+    document.querySelectorAll('[data-pal]').forEach(el => {
+      const [p,m,a,bg] = el.dataset.c.split(',');
+      el.style.cssText = 'border:1px solid rgba(28,61,46,0.08);border-radius:4px;overflow:hidden;background:'+bg+';';
+      el.innerHTML = '<div style="display:flex;height:36px;"><div style="flex:1;background:'+p+';"></div><div style="flex:1;background:'+m+';"></div><div style="flex:1;background:'+a+';"></div></div>'
+        + '<div style="padding:7px 9px;font:500 10px/1.1 \'Jost\',sans-serif;letter-spacing:0.06em;color:#1C3D2E;">'+el.dataset.pal+'</div>';
+    });
+  </script>
+</div></body></html>
