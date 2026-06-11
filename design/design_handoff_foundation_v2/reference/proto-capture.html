@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Foundation — tab capture harness</title>
+<link rel="stylesheet" href="../../colors_and_type.css">
+<style>
+  html,body{ margin:0; padding:0; background:#FAF8F2; }
+  /* fixed-width capture frame; height grows with content so a full-page
+     screenshot grabs the whole tab */
+  #cap{ width:1180px; background:var(--pal-bg,#FAF8F2); }
+  /* hide any element that assumes 100% viewport height */
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="cap" data-cc-palette="light"></div>
+<script src="data.js"></script>
+<script type="text/babel" src="components.jsx" data-presets="env,react"></script>
+<script type="text/babel" src="chrome.jsx" data-presets="env,react"></script>
+<script type="text/babel" src="tabs-overview.jsx" data-presets="env,react"></script>
+<script type="text/babel" src="tabs-analysis.jsx" data-presets="env,react"></script>
+<script type="text/babel" src="tabs-actions.jsx" data-presets="env,react"></script>
+<script type="text/babel" data-presets="env,react">
+  const params = new URLSearchParams(location.search);
+  const tab = params.get('tab') || 'dashboard';
+  const STUBS = {
+    tx:       ['Transactions',  'The ledger. Every transaction lives here — imported from your bank or typed by hand. Dropdowns extended to row 5,000 (4–5 years of runway).'],
+    accounts: ['Accounts',      'Register every bank account, credit card, savings account, and loan. Current balances feed Net Worth automatically. The import flow validates against this registry.'],
+    cats:     ['Categories',    '20 spending categories with keyword rules. WHOLE FOODS hits Food & Dining. NETFLIX hits Subscriptions. Edit the rules and future imports adjust automatically.'],
+    engine:   ['_Engine',       'System tab — visible but locked. Six months of aggregates (extensible to 24) feed every chart and table. You should never need to edit anything here.'],
+  };
+  function pick(){
+    switch(tab){
+      case 'start':     return <StartHereTab/>;
+      case 'dashboard': return <DashboardTab/>;
+      case 'trends':    return <TrendsTab/>;
+      case 'goals':     return <GoalsTab/>;
+      case 'health':    return <HealthScoreTab/>;
+      case 'networth':  return <NetWorthTab/>;
+      case 'import':    return <BankImportTab/>;
+      case 'budget':    return <MonthlyBudgetTab/>;
+      default:
+        if (STUBS[tab]) return <StubTab tab={STUBS[tab][0]} copy={STUBS[tab][1]} />;
+        return <DashboardTab/>;
+    }
+  }
+  ReactDOM.createRoot(document.getElementById('cap')).render(pick());
+  // signal ready + report height for capture sizing
+  setTimeout(()=>{ document.title = 'READY ' + document.getElementById('cap').offsetHeight; }, 400);
+</script>
+</body>
+</html>

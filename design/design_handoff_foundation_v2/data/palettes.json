@@ -1,0 +1,32 @@
+{
+  "$schema": "Column & Co. Foundation v2.1 — 24 in-sheet palettes",
+  "version": "2.1.0",
+  "note": "Buyer-selectable interior palettes. Retint the SHEET CONTENT AREA only — the 3-row brand chrome (Forest header / Canopy sub-band / Harvest Gold rule) stays locked. Seed these into the _Config hidden sheet at first open; applyTheme(id) reads from there.",
+  "default": "light",
+  "palettes": [
+    { "id": "light",         "name": "Light",           "primary": "#1C3D2E", "mid": "#2D5C45", "accent": "#C5A95A", "bg": "#FAF8F2", "zebra": "#EEF2EC", "dark": "#111827", "accentLight": "#F0EBD8" },
+    { "id": "warm-greige",   "name": "Warm Greige",     "primary": "#3D2B1F", "mid": "#5C4033", "accent": "#C8873A", "bg": "#FAF6F1", "zebra": "#F0E8DC", "dark": "#1C1009", "accentLight": "#F5E6D3" },
+    { "id": "cool-slate",    "name": "Cool Slate",      "primary": "#1E3A5F", "mid": "#2D5282", "accent": "#64748B", "bg": "#F8FAFC", "zebra": "#EFF6FF", "dark": "#0F2440", "accentLight": "#E2E8F0" },
+    { "id": "sage",          "name": "Sage",            "primary": "#2D4A3E", "mid": "#3D6455", "accent": "#8FAF7E", "bg": "#F4F9F1", "zebra": "#EAF4E3", "dark": "#1A2E25", "accentLight": "#E8F5E0" },
+    { "id": "espresso",      "name": "Espresso",        "primary": "#2C1810", "mid": "#4A2C1A", "accent": "#C8873A", "bg": "#FAF5F0", "zebra": "#F0E5D8", "dark": "#120A04", "accentLight": "#F5E6D3" },
+    { "id": "maize-navy",    "name": "Maize & Navy",    "primary": "#003366", "mid": "#004080", "accent": "#FFCB05", "bg": "#F5F8FF", "zebra": "#E8F0FF", "dark": "#001A33", "accentLight": "#FFF5B0" },
+    { "id": "scarlet-gray",  "name": "Scarlet & Gray",  "primary": "#BB0000", "mid": "#CC0000", "accent": "#808080", "bg": "#F9F9F9", "zebra": "#EFEFEF", "dark": "#2C0000", "accentLight": "#E8E8E8" },
+    { "id": "orange-navy",   "name": "Orange & Navy",   "primary": "#002D6D", "mid": "#003D94", "accent": "#F47920", "bg": "#F5F8FF", "zebra": "#E8F0FF", "dark": "#001540", "accentLight": "#FFE4C4" },
+    { "id": "green-gold",    "name": "Green & Gold",    "primary": "#154734", "mid": "#1A5C43", "accent": "#CBA135", "bg": "#F3FAF5", "zebra": "#E5F5EA", "dark": "#0A2419", "accentLight": "#FFF3C0" },
+    { "id": "purple-gold",   "name": "Purple & Gold",   "primary": "#4A1C7C", "mid": "#5E2499", "accent": "#FFC72C", "bg": "#FAF5FF", "zebra": "#F3E8FF", "dark": "#280D45", "accentLight": "#FFF5B5" },
+    { "id": "crimson-white", "name": "Crimson & White", "primary": "#9B1B30", "mid": "#B52238", "accent": "#FFFFFF", "bg": "#FFF8F9", "zebra": "#FFE8EC", "dark": "#4A0010", "accentLight": "#F5F5F5" },
+    { "id": "garnet-gold",   "name": "Garnet & Gold",   "primary": "#782F40", "mid": "#9B3B52", "accent": "#CBA135", "bg": "#FFF8F5", "zebra": "#FFE8DC", "dark": "#3D0A1A", "accentLight": "#FFF3C0" },
+    { "id": "forest-white",  "name": "Forest & White",  "primary": "#154733", "mid": "#1E6048", "accent": "#FFFFFF", "bg": "#F4FBF6", "zebra": "#E8F5EC", "dark": "#0A2819", "accentLight": "#F0FFF4" },
+    { "id": "royal-gold",    "name": "Royal & Gold",    "primary": "#002D72", "mid": "#003D9C", "accent": "#B5A642", "bg": "#F0F5FF", "zebra": "#E0ECFF", "dark": "#001040", "accentLight": "#F5F0C0" },
+    { "id": "silver-black",  "name": "Silver & Black",  "primary": "#1A1A1A", "mid": "#2D2D2D", "accent": "#A8A9AD", "bg": "#F5F5F5", "zebra": "#EBEBEB", "dark": "#000000", "accentLight": "#E8E8E8" },
+    { "id": "midnight",      "name": "Midnight",          "primary": "#0B1F3A", "mid": "#142E55", "accent": "#14B8A6", "bg": "#F0F4F8", "zebra": "#E2E8F0", "dark": "#050E1C", "accentLight": "#99F6E4" },
+    { "id": "burgundy",      "name": "Burgundy",          "primary": "#5C0A1A", "mid": "#7A0E22", "accent": "#E8D5B5", "bg": "#FAF5F0", "zebra": "#F0E6DA", "dark": "#2E0510", "accentLight": "#F5E8D5" },
+    { "id": "mocha",         "name": "Mocha",             "primary": "#5C3A21", "mid": "#7A4F2D", "accent": "#D4A574", "bg": "#FAF3EA", "zebra": "#F0E2CE", "dark": "#2E1D10", "accentLight": "#F0DCC2" },
+    { "id": "indigo-blush",  "name": "Indigo & Blush",    "primary": "#2E1F6B", "mid": "#3D2A8C", "accent": "#EAB0B8", "bg": "#F7F4FA", "zebra": "#ECE5F5", "dark": "#170F36", "accentLight": "#F8DEE3" },
+    { "id": "pine-brass",    "name": "Pine & Brass",      "primary": "#1F3A2E", "mid": "#2E5544", "accent": "#B8964A", "bg": "#F2F8F4", "zebra": "#E1F0E7", "dark": "#0E1D17", "accentLight": "#E8D9A8" },
+    { "id": "ocean-coral",   "name": "Ocean & Coral",     "primary": "#0F4858", "mid": "#166075", "accent": "#F47B6A", "bg": "#F0F8FA", "zebra": "#DCEFF2", "dark": "#062430", "accentLight": "#FBC8BD" },
+    { "id": "charcoal-mint", "name": "Charcoal & Mint",   "primary": "#2C2C2E", "mid": "#44444A", "accent": "#A8D5BA", "bg": "#F5F5F5", "zebra": "#E8E8E8", "dark": "#161617", "accentLight": "#D0EAD9" },
+    { "id": "olive-cream",   "name": "Olive & Cream",     "primary": "#3D4A1F", "mid": "#56672E", "accent": "#C8B27A", "bg": "#F7F4E8", "zebra": "#ECE5D0", "dark": "#1E2410", "accentLight": "#E8D9A8" },
+    { "id": "custom",        "name": "Custom",          "primary": "#1B2A4A", "mid": "#2C3E6B", "accent": "#C8873A", "bg": "#F3F4F6", "zebra": "#EEF0F5", "dark": "#111827", "accentLight": "#F5D9B0" }
+  ]
+}

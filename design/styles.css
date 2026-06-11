@@ -1,0 +1,9 @@
+/* =====================================================================
+   Column & Co. — Design System entry point
+   ---------------------------------------------------------------------
+   Consumers should link THIS one file. It pulls in all design tokens
+   (brand colors, 16 sheet palettes, type scale, spacing, radii,
+   shadows, motion) and the semantic type classes.
+   ===================================================================== */
+
+@import url("colors_and_type.css");
