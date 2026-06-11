@@ -1,0 +1,245 @@
+<!doctype html>
+<!-- @dsCard group="Brand" name="Manual screenshot reference" subtitle="What the 2 hand-captured screenshots should look like" -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manual Screenshot Reference — The Foundation v2.1</title>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --forest:#1C3D2E; --canopy:#2D5C45; --gold:#C5A95A; --cream:#F0EBD8;
+  --parch:#FAF8F2; --garnet:#832F30; --body:rgba(28,61,46,0.75); --cap:rgba(28,61,46,0.5);
+  --hair:rgba(28,61,46,0.12);
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--parch);font-family:'Jost',system-ui,sans-serif;color:var(--forest);-webkit-font-smoothing:antialiased;}
+.bar{height:3px;background:var(--gold);}
+header{background:var(--forest);color:var(--parch);padding:30px 0;}
+.wrap{max-width:1000px;margin:0 auto;padding:0 40px;}
+.eye{font-family:'Jost';font-weight:500;font-size:11px;letter-spacing:0.24em;text-transform:uppercase;color:var(--gold);}
+header h1{font-family:'Playfair Display',serif;font-weight:700;font-size:34px;margin:10px 0 0;letter-spacing:-0.01em;}
+header p{font-family:'Jost';font-weight:300;font-size:14px;line-height:1.55;color:rgba(250,248,242,0.8);margin:12px 0 0;max-width:64ch;}
+
+section{padding:48px 0;border-bottom:1px solid var(--hair);}
+.lab{display:flex;align-items:center;gap:12px;}
+.lab .rule{width:24px;height:1px;background:var(--gold);}
+.lab .t{font-family:'Jost';font-weight:500;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--canopy);}
+.shotnum{font-family:'Playfair Display',serif;font-weight:700;font-size:13px;color:var(--gold);}
+h2{font-family:'Playfair Display',serif;font-weight:700;font-size:26px;margin:14px 0 0;letter-spacing:-0.01em;}
+.sub{font-family:'Jost';font-weight:300;font-size:13.5px;line-height:1.55;color:var(--body);margin:8px 0 0;max-width:66ch;}
+
+.grid{display:grid;grid-template-columns:1.55fr 1fr;gap:32px;margin-top:28px;align-items:start;}
+.mockwrap{position:relative;}
+.mockcap{font-family:'Jost';font-size:11px;color:var(--cap);margin-top:10px;text-align:center;letter-spacing:0.03em;}
+
+/* reference mockup frame */
+.mock{border:1px solid var(--gold);background:#fff;overflow:hidden;box-shadow:0 8px 30px rgba(28,61,46,0.12);}
+.winbar{height:34px;background:#e9e6df;display:flex;align-items:center;gap:7px;padding:0 12px;border-bottom:1px solid #d8d4c8;}
+.dot{width:11px;height:11px;border-radius:50%;}
+.url{flex:1;height:18px;background:#fff;border:1px solid #d8d4c8;border-radius:9px;margin-left:10px;font-family:'Jost';font-size:9px;color:#9a978d;display:flex;align-items:center;padding:0 10px;}
+
+/* sheets menu bar */
+.menubar{display:flex;align-items:center;gap:0;background:#fff;padding:6px 14px;border-bottom:1px solid #e6e3da;font-family:'Jost';font-size:12.5px;color:#3c3c3c;}
+.menubar .mi{padding:4px 9px;border-radius:4px;}
+.menubar .mi.cc{color:var(--forest);font-weight:600;background:rgba(197,169,90,0.18);}
+.menubar .mi.cc.open{background:rgba(197,169,90,0.32);}
+
+/* dropdown */
+.ddwrap{position:relative;}
+.dropdown{position:absolute;right:0;top:2px;width:268px;background:#fff;border:1px solid #e0ddd3;border-radius:8px;box-shadow:0 12px 34px rgba(0,0,0,0.18);padding:7px 0;z-index:5;}
+.dd-item{display:flex;align-items:center;justify-content:space-between;padding:7px 16px;font-family:'Jost';font-size:12.5px;color:#2c2c2c;}
+.dd-item:hover{background:rgba(197,169,90,0.14);}
+.dd-item .arr{color:#9a978d;font-size:11px;}
+.dd-sep{height:1px;background:#eceae2;margin:6px 0;}
+.dd-item.hot{background:rgba(28,61,46,0.07);}
+
+/* sheet body behind menu */
+.sheetbody{height:368px;background:repeating-linear-gradient(0deg,#fff,#fff 23px,#f7f6f1 23px,#f7f6f1 24px);position:relative;}
+.sheetbody::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent,transparent 86px,#eceae2 86px,#eceae2 87px);}
+
+/* apps script editor */
+.ide{display:flex;height:300px;font-family:ui-monospace,'SF Mono',Menlo,monospace;}
+.ide .files{width:190px;background:#f4f2ec;border-right:1px solid #e0ddd3;padding:12px 0;}
+.ide .files .fh{font-family:'Jost';font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;color:#9a978d;padding:0 14px 8px;}
+.ide .files .f{display:flex;align-items:center;gap:8px;padding:6px 14px;font-family:'Jost';font-size:12px;color:#3c3c3c;}
+.ide .files .f.active{background:rgba(197,169,90,0.2);color:var(--forest);font-weight:600;}
+.ide .files .f .ic{width:14px;height:14px;border-radius:3px;flex-shrink:0;}
+.ide .code{flex:1;background:#fbfaf6;padding:14px 16px;font-size:11.5px;line-height:1.7;overflow:hidden;}
+.ide .code .ln{color:#b8b4a8;display:inline-block;width:22px;user-select:none;}
+.ide .kw{color:#1C3D2E;font-weight:600;}
+.ide .fn{color:#7a4f2d;}
+.ide .st{color:#2D5C45;}
+.ide .cm{color:#a8a496;font-style:italic;}
+.ide .toolbar{height:30px;background:#fff;border-bottom:1px solid #e6e3da;display:flex;align-items:center;gap:8px;padding:0 14px;}
+.tbtn{font-family:'Jost';font-size:11px;font-weight:500;color:var(--forest);background:rgba(197,169,90,0.16);padding:4px 12px;border-radius:5px;}
+.tbtn.ghost{background:transparent;color:#9a978d;}
+
+/* crop overlay */
+.crop{position:absolute;border:2px dashed var(--garnet);pointer-events:none;}
+.cropflag{position:absolute;background:var(--garnet);color:#fff;font-family:'Jost';font-weight:600;font-size:9.5px;letter-spacing:0.08em;text-transform:uppercase;padding:3px 8px;border-radius:4px;white-space:nowrap;}
+
+/* spec card */
+.spec{background:var(--cream);border:1px solid var(--hair);padding:20px 22px;}
+.spec h3{font-family:'Jost';font-weight:600;font-size:12px;letter-spacing:0.04em;color:var(--forest);margin:0 0 14px;}
+.spec .row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--hair);align-items:baseline;}
+.spec .row:last-child{border-bottom:none;}
+.spec .k{font-family:'Jost';font-weight:500;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--canopy);flex:0 0 86px;}
+.spec .v{font-family:'Jost';font-weight:300;font-size:12px;line-height:1.45;color:var(--body);}
+.spec .v b{font-weight:600;color:var(--forest);}
+.note{font-family:'Playfair Display',serif;font-style:italic;font-size:12.5px;color:var(--garnet);line-height:1.45;margin-top:16px;}
+
+.callout{background:var(--forest);color:var(--parch);padding:26px 30px;margin-top:14px;}
+.callout h3{font-family:'Playfair Display',serif;font-weight:700;font-size:18px;margin:0 0 10px;color:var(--parch);}
+.callout p{font-family:'Jost';font-weight:300;font-size:13px;line-height:1.6;color:rgba(250,248,242,0.85);margin:0;max-width:70ch;}
+.callout code{font-family:ui-monospace,monospace;font-size:12px;background:rgba(250,248,242,0.12);padding:1px 6px;border-radius:3px;}
+footer{padding:30px 0;text-align:center;font-family:'Jost';font-size:11px;color:var(--cap);letter-spacing:0.04em;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="eye">The Foundation v2.1 · Production Reference</div>
+    <h1>The two screenshots to capture by hand</h1>
+    <p>Everything inside the sheet exports automatically (see the Apps Script tool). These two are Google's own interface chrome, so they're the only manual grabs. Below is exactly what each should look like, where to crop, and the export settings. These are reference mockups — your real screen will match closely.</p>
+  </div>
+  <div class="bar" style="margin-top:30px;"></div>
+</header>
+
+<!-- ============ SHOT 1 — THE MENU ============ -->
+<section>
+  <div class="wrap">
+    <div class="lab"><span class="rule"></span><span class="t">Shot 01 · Used on Page 03 (Quickstart Step 1) &amp; Menu Reference</span></div>
+    <h2>The 💳 Column &amp; Co. menu, open</h2>
+    <p class="sub">Open the sheet, click the <b>💳 Column &amp; Co.</b> menu so the full dropdown shows, then capture. Include the menu title in the bar and the whole dropdown — crop out the rest of the browser.</p>
+
+    <div class="grid">
+      <div>
+        <div class="mockwrap">
+          <div class="mock">
+            <div class="winbar">
+              <span class="dot" style="background:#f0625a;"></span><span class="dot" style="background:#f6be4f;"></span><span class="dot" style="background:#57c84a;"></span>
+              <span class="url">docs.google.com / spreadsheets — The Foundation v2.1</span>
+            </div>
+            <div class="menubar">
+              <span class="mi">File</span><span class="mi">Edit</span><span class="mi">View</span><span class="mi">Insert</span><span class="mi">Format</span><span class="mi">Data</span><span class="mi">Tools</span><span class="mi">Extensions</span><span class="mi">Help</span>
+              <span class="ddwrap">
+                <span class="mi cc open">💳 Column &amp; Co.</span>
+                <div class="dropdown">
+                  <div class="dd-item">Add Account…</div>
+                  <div class="dd-item hot">Import Bank Transactions</div>
+                  <div class="dd-item">Clear Paste Zone</div>
+                  <div class="dd-item">Recategorize Ledger from Rules</div>
+                  <div class="dd-item">Sort Transactions by Date</div>
+                  <div class="dd-sep"></div>
+                  <div class="dd-item">Apply Theme <span class="arr">▸</span></div>
+                  <div class="dd-item">Apply Budget Profile <span class="arr">▸</span></div>
+                  <div class="dd-item">Renumber Ledger</div>
+                  <div class="dd-sep"></div>
+                  <div class="dd-item">Help…</div>
+                  <div class="dd-item">Setup <span class="arr">▸</span></div>
+                </div>
+              </span>
+            </div>
+            <div class="sheetbody"></div>
+          </div>
+          <!-- crop guide -->
+          <div class="crop" style="left:-6px;top:40px;right:-6px;bottom:-6px;"></div>
+          <div class="cropflag" style="left:0;top:30px;">Crop: menu bar + full dropdown</div>
+        </div>
+        <div class="mockcap">Reference mockup. Capture the menu bar plus the whole dropdown — all 10 items, from Add Account… through Setup ▸.</div>
+      </div>
+
+      <div>
+        <div class="spec">
+          <h3>Capture settings</h3>
+          <div class="row"><span class="k">What</span><span class="v">The <b>💳 Column &amp; Co.</b> dropdown, fully open, with the menu title visible in the bar.</span></div>
+          <div class="row"><span class="k">Crop</span><span class="v">Tight — menu bar + dropdown only. No toolbar, no full window.</span></div>
+          <div class="row"><span class="k">Scale</span><span class="v"><b>2× retina.</b> On Mac, <code>⇧⌘4</code> already captures at 2×.</span></div>
+          <div class="row"><span class="k">Border</span><span class="v">None — the guide adds the 1px Harvest Gold hairline for you.</span></div>
+          <div class="row"><span class="k">Save as</span><span class="v"><b>menu-dropdown.png</b></span></div>
+        </div>
+        <div class="note">Make sure all 10 items show — if your window is short, Sheets may scroll the menu. Maximize first.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SHOT 2 — APPS SCRIPT ============ -->
+<section>
+  <div class="wrap">
+    <div class="lab"><span class="rule"></span><span class="t">Shot 02 · Used on Page 03 (Quickstart Step 1)</span></div>
+    <h2>The Apps Script editor, files pasted in</h2>
+    <p class="sub">After <b>Extensions → Apps Script</b>, capture the editor showing your <code>.gs</code> file(s) and the <code>Help</code> HTML file in the left list, with code visible in the pane. This proves the install worked.</p>
+
+    <div class="grid">
+      <div>
+        <div class="mockwrap">
+          <div class="mock">
+            <div class="winbar">
+              <span class="dot" style="background:#f0625a;"></span><span class="dot" style="background:#f6be4f;"></span><span class="dot" style="background:#57c84a;"></span>
+              <span class="url">script.google.com — The Foundation v2.1</span>
+            </div>
+            <div class="toolbar">
+              <span class="tbtn">▷ Run</span><span class="tbtn ghost">Debug</span>
+              <span class="tbtn ghost">onOpen ▾</span>
+              <span class="tbtn ghost" style="margin-left:auto;">Save ⌘S</span>
+            </div>
+            <div class="ide">
+              <div class="files">
+                <div class="fh">Files +</div>
+                <div class="f active"><span class="ic" style="background:#C5A95A;"></span>ColumnCo_Foundation_v2.gs</div>
+                <div class="f"><span class="ic" style="background:#2D5C45;"></span>Help.html</div>
+              </div>
+              <div class="code">
+                <div><span class="ln">1</span><span class="cm">/** The Foundation v2.1 — Column &amp; Co. */</span></div>
+                <div><span class="ln">2</span><span class="kw">function</span> <span class="fn">onOpen</span>() {</div>
+                <div><span class="ln">3</span>&nbsp;&nbsp;<span class="fn">buildMenu_</span>();</div>
+                <div><span class="ln">4</span>}</div>
+                <div><span class="ln">5</span>&nbsp;</div>
+                <div><span class="ln">6</span><span class="kw">function</span> <span class="fn">buildMenu_</span>() {</div>
+                <div><span class="ln">7</span>&nbsp;&nbsp;<span class="kw">const</span> ui = SpreadsheetApp.<span class="fn">getUi</span>();</div>
+                <div><span class="ln">8</span>&nbsp;&nbsp;ui.<span class="fn">createMenu</span>(<span class="st">'💳 Column &amp; Co.'</span>)</div>
+                <div><span class="ln">9</span>&nbsp;&nbsp;&nbsp;&nbsp;.<span class="fn">addItem</span>(<span class="st">'Add Account…'</span>, <span class="st">'addAccount_'</span>)</div>
+                <div><span class="ln">10</span>&nbsp;&nbsp;&nbsp;&nbsp;.<span class="fn">addItem</span>(<span class="st">'Import Bank Transactions'</span>, <span class="st">'importBank_'</span>)</div>
+                <div><span class="ln">11</span>&nbsp;&nbsp;&nbsp;&nbsp;.<span class="fn">addToUi</span>();</div>
+                <div><span class="ln">12</span>}</div>
+              </div>
+            </div>
+          </div>
+          <div class="crop" style="left:-6px;top:40px;right:-6px;bottom:-6px;"></div>
+          <div class="cropflag" style="left:0;top:30px;">Crop: toolbar + file list + code</div>
+        </div>
+        <div class="mockcap">Reference mockup. The file names and code will match what you pasted from the download.</div>
+      </div>
+
+      <div>
+        <div class="spec">
+          <h3>Capture settings</h3>
+          <div class="row"><span class="k">What</span><span class="v">The editor with the <b>file list</b> (your <code>.gs</code> + <code>Help</code>) and code visible.</span></div>
+          <div class="row"><span class="k">Crop</span><span class="v">From the Run toolbar down. Include the left file list — it's the proof.</span></div>
+          <div class="row"><span class="k">Scale</span><span class="v"><b>2× retina.</b></span></div>
+          <div class="row"><span class="k">Border</span><span class="v">None — guide adds the hairline.</span></div>
+          <div class="row"><span class="k">Save as</span><span class="v"><b>apps-script-editor.png</b></span></div>
+        </div>
+        <div class="note">Click your <code>.gs</code> file first so real code shows in the pane — an empty editor reads as "not installed."</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WHERE THEY GO ============ -->
+<section style="border-bottom:none;">
+  <div class="wrap">
+    <div class="callout">
+      <h3>Drop them in the same folder as the rest</h3>
+      <p>Save both as <code>menu-dropdown.png</code> and <code>apps-script-editor.png</code> into the <code>images/</code> folder alongside the tab exports. Once they're there, the guide's illustration slots pick them up — no per-page editing. The automated Apps Script exporter handles all 12 tab images; these two are the only manual grabs in the whole guide.</p>
+    </div>
+  </div>
+</section>
+
+<footer>The Foundation v2.1 · columnandco.com · Production reference — not part of the shipped guide</footer>
+
+</body>
+</html>

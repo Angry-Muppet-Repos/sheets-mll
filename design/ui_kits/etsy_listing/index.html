@@ -1,0 +1,356 @@
+<!doctype html>
+<!-- @dsCard group="UI Kit — Etsy Listing" name="UI Kit · Etsy Listing Pack" subtitle="Banner 3360×840, shop icon, 3 thumbnail directions, watermark spec, copy" viewport="1320x1100" -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Etsy Listing Kit — Column &amp; Co.</title>
+  <link rel="icon" href="../../assets/logo-icon.svg">
+  <link rel="stylesheet" href="../../colors_and_type.css">
+  <style>
+    html, body { margin: 0; padding: 0; background: #2D5C45; font-family: 'Jost',sans-serif; }
+    .stage {
+      padding: 56px 56px 80px;
+      max-width: 1320px;
+      margin: 0 auto;
+      color: #FAF8F2;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: 40px;
+      line-height: 1.1;
+      color: #FAF8F2;
+      margin: 0;
+    }
+    .meta {
+      font-family: 'Jost', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #C5A95A;
+      margin: 0 0 14px 0;
+    }
+    .intro {
+      font-family: 'Jost', sans-serif;
+      font-weight: 300;
+      font-size: 14px;
+      line-height: 1.55;
+      color: rgba(250,248,242,0.78);
+      max-width: 680px;
+      margin: 14px 0 36px;
+    }
+    .specimen {
+      margin-bottom: 36px;
+    }
+    .specimen .label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 10px;
+    }
+    .specimen .name {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 18px;
+      color: #FAF8F2;
+    }
+    .specimen .dims {
+      font-family: 'Jost', sans-serif;
+      font-size: 10.5px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(250,248,242,0.55);
+    }
+    .specimen .note {
+      font-family: 'Jost', sans-serif;
+      font-weight: 300;
+      font-size: 11.5px;
+      color: rgba(250,248,242,0.55);
+      margin-top: 8px;
+      max-width: 760px;
+      line-height: 1.55;
+    }
+    .frame {
+      background: rgba(250,248,242,0.04);
+      border: 1px solid rgba(250,248,242,0.10);
+      border-radius: 4px;
+      padding: 14px;
+      overflow: hidden;
+    }
+    .frame svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    }
+    .row {
+      display: grid;
+      gap: 14px;
+      margin-bottom: 36px;
+    }
+    .row-3 { grid-template-columns: repeat(3, 1fr); }
+    .row-2 { grid-template-columns: repeat(2, 1fr); }
+    .accent-rule {
+      height: 3px; background: #C5A95A; margin: 0 0 32px 0;
+    }
+  </style>
+</head>
+<body data-screen-label="Etsy Listing Kit">
+  <div class="stage">
+    <div class="meta">ETSY LISTING KIT · COLUMN &amp; CO.</div>
+    <h1>Life, Organized.</h1>
+    <div class="accent-rule" style="margin-top:18px;width:64px;"></div>
+    <div class="intro">A working set of listing assets built to brand spec. Every dimension matches the QA-checklist requirements in the brand guidelines (banner 3360×840, shop icon 500×500, listing thumbnail 2000×1500). The hero thumbnail comes in three directions — pick one to launch.</div>
+
+    <!-- ========== Shop Banner ========== -->
+    <div class="specimen">
+      <div class="label"><div class="name">Etsy Shop Banner</div><div class="dims">3360 × 840 · Parchment</div></div>
+      <div class="frame">
+        <svg viewBox="0 0 3360 840" xmlns="http://www.w3.org/2000/svg">
+          <!-- Parchment bg -->
+          <rect width="3360" height="840" fill="#FAF8F2"/>
+          <!-- Subtle radial gold glow top-right (per brand guideline) -->
+          <defs>
+            <radialGradient id="goldGlow" cx="1" cy="0" r="0.45">
+              <stop offset="0%" stop-color="#C5A95A" stop-opacity="0.35"/>
+              <stop offset="100%" stop-color="#C5A95A" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <rect width="3360" height="840" fill="url(#goldGlow)"/>
+
+          <!-- Icon (gold spine + tonal columns) -->
+          <g transform="translate(280, 200)">
+            <!-- Col 1: gold spine 2-1-2 -->
+            <rect x="0"   y="0"   width="120" height="176" fill="#C5A95A"/>
+            <rect x="0"   y="184" width="120" height="84"  fill="#C5A95A"/>
+            <rect x="0"   y="276" width="120" height="176" fill="#C5A95A"/>
+            <!-- Col 2: full, mid, full, dim, mid -->
+            <rect x="128" y="0"   width="120" height="84" fill="#1C3D2E" fill-opacity="0.85"/>
+            <rect x="128" y="92"  width="120" height="84" fill="#1C3D2E" fill-opacity="0.45"/>
+            <rect x="128" y="184" width="120" height="84" fill="#1C3D2E" fill-opacity="0.85"/>
+            <rect x="128" y="276" width="120" height="84" fill="#1C3D2E" fill-opacity="0.18"/>
+            <rect x="128" y="368" width="120" height="84" fill="#1C3D2E" fill-opacity="0.45"/>
+            <!-- Col 3: dim, dim, mid, full, dim -->
+            <rect x="256" y="0"   width="120" height="84" fill="#1C3D2E" fill-opacity="0.18"/>
+            <rect x="256" y="92"  width="120" height="84" fill="#1C3D2E" fill-opacity="0.18"/>
+            <rect x="256" y="184" width="120" height="84" fill="#1C3D2E" fill-opacity="0.45"/>
+            <rect x="256" y="276" width="120" height="84" fill="#1C3D2E" fill-opacity="0.85"/>
+            <rect x="256" y="368" width="120" height="84" fill="#1C3D2E" fill-opacity="0.18"/>
+          </g>
+
+          <!-- Wordmark -->
+          <text x="820" y="380" font-family="'Playfair Display', serif" font-weight="700" font-size="180" fill="#1C3D2E" letter-spacing="-2">Column &amp; Co.</text>
+          <text x="836" y="450" font-family="'Jost', sans-serif" font-weight="500" font-size="42" letter-spacing="18" fill="#C5A95A">LIFE, ORGANIZED.</text>
+
+          <!-- Accent rule -->
+          <rect x="820" y="490" width="200" height="5" fill="#C5A95A"/>
+
+          <!-- Subline -->
+          <text x="820" y="580" font-family="'Jost', sans-serif" font-weight="300" font-size="34" fill="#1C3D2E" opacity="0.78">Google Sheets templates for the parts of life that feel chaotic.</text>
+          <text x="820" y="630" font-family="'Jost', sans-serif" font-weight="300" font-size="30" fill="#1C3D2E" opacity="0.55">Instant download · One-time price · No subscriptions</text>
+        </svg>
+      </div>
+      <div class="note">Parchment background per brand spec. The subtle radial Harvest-Gold glow top-right corner is the only sanctioned gradient effect — used sparingly.</div>
+    </div>
+
+    <!-- ========== Shop Icon + Three Thumbnails ========== -->
+    <div class="specimen">
+      <div class="label"><div class="name">Shop Icon · 500×500</div><div class="dims">USED ON ETSY + PINTEREST</div></div>
+      <div class="frame" style="display:flex;justify-content:center;padding:24px;">
+        <img src="../../assets/shop-icon-500.svg" style="width:280px;height:280px;box-shadow:0 4px 20px rgba(0,0,0,0.25);border-radius:0;"/>
+      </div>
+    </div>
+
+    <!-- ========== Listing Thumbnails — three directions ========== -->
+    <div class="specimen">
+      <div class="label"><div class="name">Listing Thumbnail · Three Directions</div><div class="dims">2000 × 1500 · 4:3</div></div>
+      <div class="row row-3">
+        <!-- Dark direction -->
+        <div class="frame">
+          <svg viewBox="0 0 2000 1500" xmlns="http://www.w3.org/2000/svg">
+            <rect width="2000" height="1500" fill="#1C3D2E"/>
+            <!-- Icon (gold spine on Forest bg) -->
+            <g transform="translate(140, 140)">
+              <!-- Col 1 -->
+              <rect x="0"   y="0"   width="100" height="148" fill="#C5A95A"/>
+              <rect x="0"   y="156" width="100" height="70"  fill="#C5A95A"/>
+              <rect x="0"   y="234" width="100" height="148" fill="#C5A95A"/>
+              <!-- Col 2 -->
+              <rect x="108" y="0"   width="100" height="70" fill="#FAF8F2" fill-opacity="0.85"/>
+              <rect x="108" y="78"  width="100" height="70" fill="#FAF8F2" fill-opacity="0.45"/>
+              <rect x="108" y="156" width="100" height="70" fill="#FAF8F2" fill-opacity="0.85"/>
+              <rect x="108" y="234" width="100" height="70" fill="#FAF8F2" fill-opacity="0.18"/>
+              <rect x="108" y="312" width="100" height="70" fill="#FAF8F2" fill-opacity="0.45"/>
+              <!-- Col 3 -->
+              <rect x="216" y="0"   width="100" height="70" fill="#FAF8F2" fill-opacity="0.18"/>
+              <rect x="216" y="78"  width="100" height="70" fill="#FAF8F2" fill-opacity="0.18"/>
+              <rect x="216" y="156" width="100" height="70" fill="#FAF8F2" fill-opacity="0.45"/>
+              <rect x="216" y="234" width="100" height="70" fill="#FAF8F2" fill-opacity="0.85"/>
+              <rect x="216" y="312" width="100" height="70" fill="#FAF8F2" fill-opacity="0.18"/>
+            </g>
+            <!-- Tagline -->
+            <text x="140" y="680" font-family="'Jost',sans-serif" font-weight="500" font-size="42" letter-spacing="16" fill="#C5A95A">LIFE, ORGANIZED.</text>
+            <!-- Title -->
+            <text x="140" y="880" font-family="'Playfair Display',serif" font-weight="700" font-size="200" fill="#FAF8F2">The Foundation</text>
+            <text x="140" y="1040" font-family="'Playfair Display',serif" font-weight="400" font-style="italic" font-size="86" fill="#C5A95A">v2 · A Google Sheets budget system</text>
+            <!-- Description -->
+            <text x="140" y="1180" font-family="'Jost',sans-serif" font-weight="300" font-size="38" fill="#FAF8F2" opacity="0.65">14 tabs · 24 palettes · LLM-ready · bank-CSV import</text>
+            <!-- Price badge -->
+            <g transform="translate(1580, 1280)">
+              <rect x="0" y="0" width="300" height="130" fill="#C5A95A" rx="2"/>
+              <text x="150" y="60" text-anchor="middle" font-family="'Jost',sans-serif" font-weight="500" font-size="22" letter-spacing="6" fill="#1C3D2E">ONE-TIME</text>
+              <text x="150" y="108" text-anchor="middle" font-family="'Playfair Display',serif" font-weight="700" font-size="54" fill="#1C3D2E">$45</text>
+            </g>
+          </svg>
+        </div>
+        <!-- Light direction with sheet preview -->
+        <div class="frame">
+          <svg viewBox="0 0 2000 1500" xmlns="http://www.w3.org/2000/svg">
+            <rect width="2000" height="1500" fill="#FAF8F2"/>
+            <!-- "Screenshot" mock: a stylized dashboard slice -->
+            <g transform="translate(100, 100)">
+              <rect x="0" y="0" width="1800" height="900" fill="#FFFFFF" stroke="#1C3D2E" stroke-width="3"/>
+              <!-- Forest header bar -->
+              <rect x="0" y="0" width="1800" height="120" fill="#1C3D2E"/>
+              <rect x="0" y="120" width="1800" height="40" fill="#2D5C45"/>
+              <rect x="0" y="160" width="1800" height="10" fill="#C5A95A"/>
+              <text x="50" y="78" font-family="'Playfair Display',serif" font-weight="700" font-size="56" fill="#FAF8F2">Column &amp; Co.</text>
+              <text x="1300" y="78" font-family="'Jost',sans-serif" font-weight="300" font-size="32" fill="#FAF8F2" opacity="0.75">Dashboard</text>
+              <!-- KPI cards -->
+              <g transform="translate(50, 220)">
+                <rect x="0"   y="0"  width="380" height="80" fill="#1C3D2E"/>
+                <rect x="0"   y="80" width="380" height="180" fill="#FAF8F2" stroke="#1C3D2E" stroke-width="1"/>
+                <text x="20"  y="50" font-family="'Jost',sans-serif" font-weight="600" font-size="22" letter-spacing="3" fill="#FAF8F2">TOTAL INCOME</text>
+                <text x="20"  y="180" font-family="'Playfair Display',serif" font-weight="700" font-size="84" fill="#1C3D2E">$10,230</text>
+                <rect x="430" y="0"  width="380" height="80" fill="#832f30"/>
+                <rect x="430" y="80" width="380" height="180" fill="#FAF8F2" stroke="#1C3D2E" stroke-width="1"/>
+                <text x="450" y="50" font-family="'Jost',sans-serif" font-weight="600" font-size="22" letter-spacing="3" fill="#FAF8F2">TOTAL EXPENSES</text>
+                <text x="450" y="180" font-family="'Playfair Display',serif" font-weight="700" font-size="84" fill="#1C3D2E">$6,980</text>
+                <rect x="860" y="0"  width="380" height="80" fill="#1C3D2E"/>
+                <rect x="860" y="80" width="380" height="180" fill="#FAF8F2" stroke="#1C3D2E" stroke-width="1"/>
+                <text x="880" y="50" font-family="'Jost',sans-serif" font-weight="600" font-size="22" letter-spacing="3" fill="#FAF8F2">NET CASH FLOW</text>
+                <text x="880" y="180" font-family="'Playfair Display',serif" font-weight="700" font-size="84" fill="#16a34a">+$3,250</text>
+                <rect x="1290" y="0"  width="420" height="80" fill="#C5A95A"/>
+                <rect x="1290" y="80" width="420" height="180" fill="#FAF8F2" stroke="#1C3D2E" stroke-width="1"/>
+                <text x="1310" y="50" font-family="'Jost',sans-serif" font-weight="600" font-size="22" letter-spacing="3" fill="#1C3D2E">SAVINGS RATE</text>
+                <text x="1310" y="180" font-family="'Playfair Display',serif" font-weight="700" font-size="84" fill="#1C3D2E">31.8%</text>
+              </g>
+              <!-- Bars below -->
+              <g transform="translate(50, 540)">
+                <rect x="0"   y="0" width="1700" height="30" fill="#1C3D2E"/>
+                <text x="20"  y="22" font-family="'Jost',sans-serif" font-weight="600" font-size="18" letter-spacing="3" fill="#FAF8F2">TOP SPENDING · THIS MONTH</text>
+                <g font-family="'Jost',sans-serif" font-size="28" fill="#1C3D2E">
+                  <text x="20" y="80">Housing</text>            <rect x="700" y="70" width="800" height="10" fill="#1C3D2E"/><text x="1520" y="80">$2,400</text>
+                  <text x="20" y="130">Food &amp; Dining</text> <rect x="700" y="120" width="800" height="10" fill="#832f30"/><text x="1520" y="130">$922</text>
+                  <text x="20" y="180">Shopping</text>           <rect x="700" y="170" width="640" height="10" fill="#C8873A"/><text x="1520" y="180">$618</text>
+                  <text x="20" y="230">Transportation</text>     <rect x="700" y="220" width="500" height="10" fill="#1C3D2E"/><text x="1520" y="230">$540</text>
+                  <text x="20" y="280">Utilities</text>          <rect x="700" y="270" width="380" height="10" fill="#1C3D2E"/><text x="1520" y="280">$360</text>
+                </g>
+              </g>
+            </g>
+            <!-- Bottom title -->
+            <text x="100" y="1140" font-family="'Jost',sans-serif" font-weight="500" font-size="28" letter-spacing="10" fill="#C5A95A">LIFE, ORGANIZED.</text>
+            <text x="100" y="1240" font-family="'Playfair Display',serif" font-weight="700" font-size="120" fill="#1C3D2E">The Foundation</text>
+            <text x="100" y="1340" font-family="'Playfair Display',serif" font-weight="400" font-style="italic" font-size="56" fill="#1C3D2E">v2 · Google Sheets template · 14 tabs · 24 palettes</text>
+            <text x="100" y="1430" font-family="'Jost',sans-serif" font-weight="300" font-size="32" fill="#1C3D2E" opacity="0.65">$45 one time · instant download · no subscription</text>
+          </svg>
+        </div>
+        <!-- Editorial direction -->
+        <div class="frame">
+          <svg viewBox="0 0 2000 1500" xmlns="http://www.w3.org/2000/svg">
+            <rect width="2000" height="1500" fill="#FAF8F2"/>
+            <rect x="100" y="100" width="1800" height="1300" fill="#F0EBD8"/>
+            <!-- Icon (gold spine on Cream bg) -->
+            <g transform="translate(180, 200)">
+              <rect x="0"   y="0"   width="110" height="162" fill="#C5A95A"/>
+              <rect x="0"   y="170" width="110" height="77"  fill="#C5A95A"/>
+              <rect x="0"   y="255" width="110" height="162" fill="#C5A95A"/>
+              <rect x="118" y="0"   width="110" height="77" fill="#1C3D2E" fill-opacity="0.85"/>
+              <rect x="118" y="85"  width="110" height="77" fill="#1C3D2E" fill-opacity="0.45"/>
+              <rect x="118" y="170" width="110" height="77" fill="#1C3D2E" fill-opacity="0.85"/>
+              <rect x="118" y="255" width="110" height="77" fill="#1C3D2E" fill-opacity="0.18"/>
+              <rect x="118" y="340" width="110" height="77" fill="#1C3D2E" fill-opacity="0.45"/>
+              <rect x="236" y="0"   width="110" height="77" fill="#1C3D2E" fill-opacity="0.18"/>
+              <rect x="236" y="85"  width="110" height="77" fill="#1C3D2E" fill-opacity="0.18"/>
+              <rect x="236" y="170" width="110" height="77" fill="#1C3D2E" fill-opacity="0.45"/>
+              <rect x="236" y="255" width="110" height="77" fill="#1C3D2E" fill-opacity="0.85"/>
+              <rect x="236" y="340" width="110" height="77" fill="#1C3D2E" fill-opacity="0.18"/>
+            </g>
+            <text x="180" y="900" font-family="'Playfair Display',serif" font-weight="700" font-size="160" fill="#1C3D2E">A budget</text>
+            <text x="180" y="1080" font-family="'Playfair Display',serif" font-weight="400" font-style="italic" font-size="160" fill="#1C3D2E">that fits in a</text>
+            <text x="180" y="1260" font-family="'Playfair Display',serif" font-weight="700" font-size="160" fill="#C5A95A">spreadsheet.</text>
+            <text x="180" y="1360" font-family="'Jost',sans-serif" font-weight="500" font-size="30" letter-spacing="10" fill="#1C3D2E" opacity="0.65">COLUMN &amp; CO. · THE FOUNDATION v2</text>
+          </svg>
+        </div>
+      </div>
+      <div class="note">Three thumbnail directions: <strong style="color:#FAF8F2;">Dark</strong> (Forest-led, price-forward, product-name-first) · <strong style="color:#FAF8F2;">Light with screenshot</strong> (KPIs visible — proves the goods immediately) · <strong style="color:#FAF8F2;">Editorial</strong> (typographic, brand-led, no UI). All 2000×1500. Recommendation: A/B test Dark vs Light-with-screenshot.</div>
+    </div>
+
+    <!-- ========== Watermark spec ========== -->
+    <div class="specimen">
+      <div class="label"><div class="name">Watermark · for product screenshots</div><div class="dims">10% OPACITY · BOTTOM-RIGHT</div></div>
+      <div class="frame" style="display:grid;grid-template-columns:3fr 1fr;gap:14px;padding:24px;background:rgba(250,248,242,0.08);">
+        <div style="background:#FAF8F2;border-radius:3px;padding:24px;position:relative;min-height:240px;">
+          <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:34px;color:#1C3D2E;">$222,640</div>
+          <div style="font-family:'Jost',sans-serif;font-weight:500;font-size:10px;letter-spacing:0.2em;color:#C5A95A;margin-top:6px;">NET WORTH SNAPSHOT · MAY 2026</div>
+          <div style="font-family:'Jost',sans-serif;font-weight:300;font-size:13px;color:rgba(28,61,46,0.65);margin-top:14px;line-height:1.55;max-width:520px;">Every product screenshot in the listing gets the icon watermarked bottom-right at 10% opacity, so the asset is identifiable but not branded over. Pull this technique from the brand-guidelines watermark rule.</div>
+          <img src="../../assets/logo-icon.svg" style="position:absolute;bottom:14px;right:14px;width:48px;height:auto;opacity:0.10;"/>
+        </div>
+        <div style="background:#1C3D2E;border-radius:3px;padding:24px;position:relative;min-height:240px;color:#FAF8F2;">
+          <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:30px;line-height:1.1;">Sample dark surface</div>
+          <div style="font-family:'Jost',sans-serif;font-weight:300;font-size:11px;color:rgba(250,248,242,0.65);margin-top:10px;line-height:1.55;">Use the cream version of the icon for watermarking on Forest surfaces.</div>
+          <img src="../../assets/logo-icon-cream.svg" style="position:absolute;bottom:14px;right:14px;width:36px;height:auto;opacity:0.10;"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== Listing copy starter ========== -->
+    <div class="specimen">
+      <div class="label"><div class="name">Listing copy · in brand voice</div><div class="dims">DROP INTO ETSY · 140-CHAR TITLE + DESC</div></div>
+      <div class="frame" style="background:rgba(250,248,242,0.96);color:#1C3D2E;padding:32px;border-radius:3px;">
+        <div style="font-family:'Jost',sans-serif;font-weight:500;font-size:10px;letter-spacing:0.2em;color:#C5A95A;margin-bottom:6px;">TITLE · 140 CHAR</div>
+        <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:24px;line-height:1.25;max-width:920px;">The Foundation v2 — A Google Sheets budget system. 14 tabs, 24 palettes, bank CSV import, real Health Score. Built to last.</div>
+
+        <div style="height:18px;"></div>
+        <div style="font-family:'Jost',sans-serif;font-weight:500;font-size:10px;letter-spacing:0.2em;color:#C5A95A;margin-bottom:6px;">FIRST PARAGRAPH</div>
+        <div style="font-family:'Jost',sans-serif;font-weight:300;font-size:14px;line-height:1.7;max-width:920px;color:rgba(28,61,46,0.85);">You already know something's off. Maybe it's dining, maybe it's subscriptions, maybe you just don't know where the money's going. The Foundation is a Google Sheets system that puts every dollar somewhere visible. Open it, add your accounts, paste your bank CSV. The script handles the rest.</div>
+
+        <div style="height:18px;"></div>
+        <div style="font-family:'Jost',sans-serif;font-weight:500;font-size:10px;letter-spacing:0.2em;color:#C5A95A;margin-bottom:6px;">WHAT YOU GET · BULLET LIST</div>
+        <ul style="font-family:'Jost',sans-serif;font-weight:300;font-size:14px;line-height:1.75;color:rgba(28,61,46,0.85);max-width:920px;margin:0;padding-left:20px;">
+          <li><strong style="color:#1C3D2E;font-weight:600;">14-tab system</strong> — Dashboard, Trends, Goals, Health Score, Net Worth, and 9 more. No formulas to write.</li>
+          <li><strong style="color:#1C3D2E;font-weight:600;">Bank CSV import</strong> — Chase, BoA, Wells Fargo, Cap One, Ally, Citi, USAA, Discover, Amex. Auto-categorizes. Skips duplicates.</li>
+          <li><strong style="color:#1C3D2E;font-weight:600;">24 swappable color palettes</strong> — pick the one that fits your room. Change with one click.</li>
+          <li><strong style="color:#1C3D2E;font-weight:600;">LLM-ready</strong> — pre-structured for Claude or ChatGPT to read. Ask AI to find your leaks.</li>
+          <li><strong style="color:#1C3D2E;font-weight:600;">Composite Health Score</strong> — 0–100 across 5 indicators. Find your biggest opportunity.</li>
+          <li><strong style="color:#1C3D2E;font-weight:600;">You own it.</strong> One-time price. Instant download. No subscription. No app to learn.</li>
+        </ul>
+
+        <div style="height:18px;"></div>
+        <div style="font-family:'Jost',sans-serif;font-weight:500;font-size:10px;letter-spacing:0.2em;color:#C5A95A;margin-bottom:6px;">CLOSER</div>
+        <div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:400;font-size:20px;color:#1C3D2E;max-width:920px;">Open it. Add your information. Get clear.</div>
+      </div>
+      <div class="note">All copy is in brand voice — no exclamation points, second person, short sentences, specifics over "easy" or "simple". Drop straight into Etsy.</div>
+    </div>
+
+    <!-- ========== QA checklist ========== -->
+    <div class="specimen">
+      <div class="label"><div class="name">Asset checklist · before launch</div><div class="dims">PER BRAND-GUIDELINES §9</div></div>
+      <div class="frame" style="background:rgba(250,248,242,0.06);padding:24px;border-radius:3px;font-family:'Jost',sans-serif;font-weight:300;font-size:13px;color:rgba(250,248,242,0.85);line-height:1.85;max-width:760px;">
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:8px 14px;">
+          <span style="color:#86efac;font-weight:500;">✓</span><span>Shop banner — 3360×840px, Parchment background</span>
+          <span style="color:#86efac;font-weight:500;">✓</span><span>Shop icon — 500×500px, Forest background, icon only</span>
+          <span style="color:#86efac;font-weight:500;">✓</span><span>Listing thumbnails — 2000×1500px, three directions to A/B</span>
+          <span style="color:#C5A95A;font-weight:500;">○</span><span>6 product screenshots — needs export from real Google Sheets at multiple palettes (Light · Sage · Warm Greige · Espresso)</span>
+          <span style="color:#C5A95A;font-weight:500;">○</span><span>Before/after image — blank vs mock-data Dashboard side by side</span>
+          <span style="color:#86efac;font-weight:500;">✓</span><span>Watermark — 10% opacity icon, bottom-right, applied per screenshot</span>
+          <span style="color:#86efac;font-weight:500;">✓</span><span>Listing copy — title + first paragraph + bullets + closer in brand voice</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

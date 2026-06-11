@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Etsy Listing — The Foundation v2.1 · Column & Co.</title>
+  <link rel="stylesheet" href="../colors_and_type.css">
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #2a2a2a; font-family: 'Jost', sans-serif; }
+    /* Brand tokens for listing photos (locked) */
+    :root {
+      --forest: #1C3D2E;
+      --canopy: #2D5C45;
+      --gold:   #C5A95A;
+      --cream:  #F0EBD8;
+      --parch:  #FAF8F2;
+      --garnet: #832F30;
+    }
+    /* Each listing photo is a fixed 2000×1500 frame */
+    .ep {
+      width: 2000px; height: 1500px;
+      position: relative;
+      overflow: hidden;
+      font-family: 'Jost', sans-serif;
+      color: var(--forest);
+    }
+    .ep.dark { background: var(--forest); color: var(--parch); }
+    /* Reusable brand pieces */
+    .pf { font-family: 'Playfair Display', serif; }
+    .jt { font-family: 'Jost', sans-serif; }
+    .mono { font-family: 'ui-monospace', 'SF Mono', Menlo, monospace; }
+    /* The 3×5 grid logo, drawn with CSS grid */
+    .grid-mark {
+      display: inline-grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(5, 1fr);
+      gap: var(--gm-gap, 2px);
+      width: var(--gm-size, 60px); height: calc(var(--gm-size, 60px) * 5 / 3);
+    }
+    .grid-mark > i { display: block; }
+    /* Big watermark variant — 3x5 grid as decorative pattern at low opacity */
+    .gm-watermark {
+      position: absolute;
+      opacity: 0.05;
+      pointer-events: none;
+    }
+    /* Helper: pill */
+    .pill {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 10px 20px;
+      border: 1px solid currentColor;
+      border-radius: 999px;
+      font-size: 18px; font-weight: 500;
+      letter-spacing: 0.16em; text-transform: uppercase;
+    }
+    .pill.solid { background: var(--gold); color: var(--forest); border-color: var(--gold); }
+    /* Loading shim */
+    #boot { color: #888; text-align: center; padding: 60px; font-family: 'Jost', sans-serif; }
+  </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"><div id="boot">Loading listing canvas…</div></div>
+
+  <script type="text/babel" src="design-canvas.jsx" data-presets="env,react"></script>
+  <script type="text/babel" src="photos.jsx" data-presets="env,react"></script>
+
+  <script type="text/babel" data-presets="env,react">
+    const { useState } = React;
+
+    function App() {
+      return (
+        <DesignCanvas>
+          <DCSection id="listing" title="Etsy Listing · The Foundation v2.1" subtitle="8 photos · 2000×1500 · ready to export as PNG and upload">
+            <DCArtboard id="01-cover"        label="01 · Cover (Dark / price-forward)"      width={2000} height={1500}><Photo01_Cover /></DCArtboard>
+            <DCArtboard id="02-llm-ready"    label="02 · LLM-Ready (the wedge)"             width={2000} height={1500}><Photo02_LlmReady /></DCArtboard>
+            <DCArtboard id="03-palettes"     label="03 · 24 Palettes"                       width={2000} height={1500}><Photo03_Palettes /></DCArtboard>
+            <DCArtboard id="04-profiles"     label="04 · 10 Budget Methodologies"           width={2000} height={1500}><Photo04_Profiles /></DCArtboard>
+            <DCArtboard id="05-dashboard"    label="05 · Dashboard Screenshot"              width={2000} height={1500}><Photo02_Placeholder n="05" t="Dashboard screenshot · proof" /></DCArtboard>
+            <DCArtboard id="06-anti-saas"    label="06 · Anti-SaaS Positioning"             width={2000} height={1500}><Photo02_Placeholder n="06" t="$35 · owned · no subscription" /></DCArtboard>
+            <DCArtboard id="07-whats-included" label="07 · What's Included"                 width={2000} height={1500}><Photo02_Placeholder n="07" t="14 tabs + mock data + Apps Script" /></DCArtboard>
+            <DCArtboard id="08-close"        label="08 · Close · Instant Download"          width={2000} height={1500}><Photo02_Placeholder n="08" t="brand close · instant download" /></DCArtboard>
+          </DCSection>
+        </DesignCanvas>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

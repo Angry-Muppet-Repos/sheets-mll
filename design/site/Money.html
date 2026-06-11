@@ -1,0 +1,361 @@
+<!doctype html>
+<!-- @dsCard group="Brand" name="Money problem page" subtitle="Hi-fi /problems/money — pain → prescription" -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Money — Column &amp; Co.</title>
+<link rel="icon" href="assets/logo-icon.svg">
+<link rel="stylesheet" href="assets/colors_and_type.css">
+<style>
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--cc-parchment); color: var(--cc-forest); font-family: var(--cc-font-body); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 0 48px; }
+
+  /* ---------- NAV (shared) ---------- */
+  .nav { position: sticky; top: 0; z-index: 50; background: var(--cc-forest); border-bottom: 3px solid var(--cc-harvest-gold); }
+  .nav-inner { max-width: 1320px; margin: 0 auto; padding: 0 48px; height: 76px; display: flex; align-items: center; gap: 44px; }
+  .nav-logo { display: flex; align-items: center; gap: 13px; flex-shrink: 0; }
+  .nav-logo .word { font-family: var(--cc-font-display); font-weight: 700; font-size: 21px; color: var(--cc-parchment); letter-spacing: -0.01em; white-space: nowrap; }
+  .nav-links { display: flex; gap: 34px; flex: 1; }
+  .nav-links a { font-size: 13px; font-weight: 500; letter-spacing: 0.10em; text-transform: uppercase; color: rgba(250,248,242,0.82); padding: 4px 0; position: relative; transition: color var(--cc-dur) var(--cc-ease); }
+  .nav-links a::after { content: ""; position: absolute; left: 0; right: 100%; bottom: -2px; height: 2px; background: var(--cc-harvest-gold); transition: right var(--cc-dur) var(--cc-ease); }
+  .nav-links a:hover { color: var(--cc-parchment); }
+  .nav-links a:hover::after { right: 0; }
+  .nav-links a.active { color: var(--cc-parchment); }
+  .nav-links a.active::after { right: 0; }
+  .nav-right { display: flex; align-items: center; gap: 22px; }
+  .nav-right .ghost { font-size: 13px; color: rgba(250,248,242,0.6); letter-spacing: 0.04em; cursor: pointer; transition: color var(--cc-dur); }
+  .nav-right .ghost:hover { color: var(--cc-parchment); }
+  .gm { display: inline-grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(5,1fr); gap: 2px; aspect-ratio: 3/5; }
+  .gm > i { display: block; }
+  .btn-gold { background: var(--cc-harvest-gold); color: var(--cc-forest); border: none; border-radius: var(--cc-radius-md); padding: 11px 18px; font-family: var(--cc-font-body); font-size: 12.5px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; cursor: pointer; transition: background var(--cc-dur) var(--cc-ease), transform var(--cc-dur-fast); }
+  .btn-gold:hover { background: #b9994a; }
+  .btn-gold:active { transform: translateY(1px); }
+  .btn-gold.lg { padding: 16px 28px; font-size: 14px; }
+  .btn-outline { background: transparent; color: var(--cc-forest); border: 1px solid var(--cc-forest); border-radius: var(--cc-radius-md); padding: 16px 28px; font-family: var(--cc-font-body); font-size: 14px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; cursor: pointer; transition: background var(--cc-dur); }
+  .btn-outline:hover { background: rgba(28,61,46,0.05); }
+  .btn-outline-light { background: transparent; color: var(--cc-parchment); border: 1px solid rgba(250,248,242,0.45); border-radius: var(--cc-radius-md); padding: 16px 28px; font-family: var(--cc-font-body); font-size: 14px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; cursor: pointer; white-space: nowrap; transition: background var(--cc-dur), border-color var(--cc-dur); }
+  .btn-outline-light:hover { background: rgba(250,248,242,0.08); border-color: var(--cc-parchment); }
+
+  /* ---------- HERO (forest, worldview) ---------- */
+  .phero { background: var(--cc-forest); color: var(--cc-parchment); position: relative; overflow: hidden; }
+  .phero-mark { position: absolute; right: -120px; top: -90px; width: 600px; opacity: 0.05; pointer-events: none; }
+  .crumb { padding: 30px 0 0; font-size: 12px; color: rgba(250,248,242,0.55); letter-spacing: 0.05em; position: relative; z-index: 2; }
+  .crumb a { transition: color var(--cc-dur); }
+  .crumb a:hover { color: var(--cc-parchment); }
+  .crumb span { margin: 0 9px; opacity: 0.45; }
+  .crumb b { color: var(--cc-harvest-gold); font-weight: 500; }
+  .phero-inner { padding: 56px 0 104px; position: relative; z-index: 2; }
+  .eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 0.28em; text-transform: uppercase; color: var(--cc-harvest-gold); }
+  .phero h1 { font-family: var(--cc-font-display); font-weight: 700; font-size: clamp(46px, 6.4vw, 88px); line-height: 1.0; letter-spacing: -0.025em; margin: 24px 0 0; max-width: 15ch; color: var(--cc-parchment); }
+  .phero h1 .dim { color: rgba(250,248,242,0.42); }
+  .phero .lede { font-size: 20px; font-weight: 300; line-height: 1.55; color: rgba(250,248,242,0.78); margin-top: 28px; max-width: 52ch; }
+  .phero-stats { margin-top: 44px; display: flex; gap: 48px; flex-wrap: wrap; }
+  .phero-stats .ps { display: flex; flex-direction: column; gap: 4px; }
+  .phero-stats .ps .v { font-family: var(--cc-font-display); font-weight: 700; font-size: 34px; color: var(--cc-harvest-gold); line-height: 1; }
+  .phero-stats .ps .k { font-size: 12.5px; color: rgba(250,248,242,0.65); letter-spacing: 0.04em; }
+
+  /* ---------- SECTION SCAFFOLD ---------- */
+  .band { padding: 100px 0; position: relative; }
+  .band-cream { background: var(--cc-cream); }
+  .band-forest { background: var(--cc-forest); color: var(--cc-parchment); }
+  .label-row { display: flex; align-items: center; gap: 14px; }
+  .label-rule { width: 32px; height: 1px; background: var(--cc-harvest-gold); }
+  .sec-label { font-size: 11px; font-weight: 500; letter-spacing: 0.24em; text-transform: uppercase; color: var(--cc-canopy); }
+  .band-forest .sec-label { color: var(--cc-harvest-gold); }
+  .sec-h { font-family: var(--cc-font-display); font-weight: 700; font-size: clamp(34px,4.2vw,56px); line-height: 1.05; letter-spacing: -0.02em; color: var(--cc-forest); margin: 20px 0 0; }
+  .sec-sub { font-size: 17px; font-weight: 300; line-height: 1.55; color: var(--cc-fg-body); margin-top: 18px; max-width: 56ch; }
+
+  /* ---------- SYMPTOMS (the workhorse) ---------- */
+  .symp-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 32px; }
+  .symp-note { font-size: 14px; font-weight: 300; line-height: 1.5; color: var(--cc-fg-body); max-width: 30ch; text-align: right; }
+  .symptoms { margin-top: 48px; border-top: 1px solid var(--cc-divider); }
+  .symptom {
+    display: flex; align-items: center; justify-content: space-between; gap: 32px;
+    padding: 30px 28px 30px 22px; border-bottom: 1px solid var(--cc-divider);
+    position: relative; cursor: pointer; transition: background var(--cc-dur) var(--cc-ease), padding var(--cc-dur) var(--cc-ease);
+  }
+  .symptom::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--cc-harvest-gold); transform: scaleY(0); transform-origin: center;
+    transition: transform var(--cc-dur) var(--cc-ease);
+  }
+  .symptom:hover { background: var(--cc-parchment); padding-left: 30px; }
+  .band-cream .symptom:hover { background: rgba(250,248,242,0.7); }
+  .symptom:hover::before { transform: scaleY(1); }
+  .symptom .q { font-family: var(--cc-font-display); font-weight: 400; font-style: italic; font-size: clamp(22px,2.5vw,30px); line-height: 1.3; color: var(--cc-forest); }
+  .symptom .rx { display: flex; align-items: center; gap: 18px; flex-shrink: 0; }
+  .symptom .rx .tag { font-size: 11px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--cc-fg-muted); transition: color var(--cc-dur); }
+  .symptom .rx .fix { font-size: 15px; font-weight: 500; letter-spacing: 0.02em; color: var(--cc-harvest-gold); white-space: nowrap; transition: transform var(--cc-dur) var(--cc-ease); }
+  .symptom:hover .rx .tag { color: var(--cc-canopy); }
+  .symptom:hover .rx .fix { transform: translateX(5px); }
+  @media (max-width: 860px) {
+    .symptom { flex-direction: column; align-items: flex-start; gap: 14px; }
+    .symptom .rx { align-self: flex-start; }
+    .symp-head { flex-direction: column; align-items: flex-start; }
+    .symp-note { text-align: left; }
+  }
+
+  /* ---------- PRESCRIPTIONS ---------- */
+  .rx-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; margin-top: 48px; }
+  .rx-card { background: var(--cc-parchment); border: 1px solid var(--cc-divider); padding: 24px; display: flex; flex-direction: column; transition: transform var(--cc-dur) var(--cc-ease), box-shadow var(--cc-dur), border-color var(--cc-dur); cursor: pointer; position: relative; overflow: hidden; }
+  .rx-card::before { content: ""; position: absolute; left: 0; top: 0; right: 0; height: 3px; background: var(--cc-harvest-gold); transform: scaleX(0); transform-origin: left; transition: transform var(--cc-dur) var(--cc-ease); }
+  .rx-card:hover { transform: translateY(-4px); box-shadow: var(--cc-shadow-raised); border-color: transparent; }
+  .rx-card:hover::before { transform: scaleX(1); }
+  .rx-card .badge { position: absolute; top: 16px; right: 16px; font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cc-forest); background: var(--cc-harvest-gold); padding: 4px 9px; border-radius: var(--cc-radius-sm); }
+  .rx-card .shot { height: 230px; }
+  .rx-card .nm { font-family: var(--cc-font-display); font-weight: 700; font-size: 27px; color: var(--cc-forest); margin-top: 22px; letter-spacing: -0.01em; }
+  .rx-card .ds { font-size: 14px; font-weight: 300; line-height: 1.5; color: var(--cc-fg-body); margin-top: 7px; }
+  .rx-card .foot { margin-top: auto; padding-top: 22px; display: flex; justify-content: space-between; align-items: center; }
+  .rx-card .amt { font-family: var(--cc-font-display); font-weight: 700; font-size: 26px; color: var(--cc-harvest-gold); }
+  .rx-card .go { font-size: 13px; font-weight: 500; color: var(--cc-forest); letter-spacing: 0.04em; transition: transform var(--cc-dur); }
+  .rx-card:hover .go { transform: translateX(4px); }
+  .ph { background: repeating-linear-gradient(45deg, #e8e4d8, #e8e4d8 14px, #e3dece 14px, #e3dece 28px); border: 1px solid var(--cc-divider); display: flex; align-items: center; justify-content: center; color: rgba(28,61,46,0.4); font-size: 12px; letter-spacing: 0.05em; text-align: center; padding: 16px; }
+
+  /* ---------- JOURNAL FEATURE ---------- */
+  .feat { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; margin-top: 44px; }
+  .feat .ph { height: 400px; }
+  .chip { display: inline-block; font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; padding: 5px 11px; border: 1px solid var(--cc-divider); border-radius: var(--cc-radius-sm); color: var(--cc-forest); background: rgba(28,61,46,0.04); }
+  .feat h3 { font-family: var(--cc-font-display); font-weight: 700; font-size: clamp(30px,3.4vw,44px); line-height: 1.1; letter-spacing: -0.02em; color: var(--cc-forest); margin: 18px 0 0; }
+  .feat p { font-size: 16px; font-weight: 300; line-height: 1.6; color: var(--cc-fg-body); margin: 18px 0 0; max-width: 46ch; }
+  .feat .meta { font-size: 12px; color: var(--cc-fg-muted); margin-top: 18px; letter-spacing: 0.02em; }
+  .feat .read { display: inline-block; margin-top: 26px; font-size: 14px; font-weight: 500; color: var(--cc-harvest-gold); letter-spacing: 0.06em; transition: transform var(--cc-dur); }
+  .feat .read:hover { transform: translateX(4px); }
+
+  /* ---------- RELATED ---------- */
+  .rel-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; margin-top: 40px; }
+  .rel-card { background: var(--cc-parchment); border: 1px solid var(--cc-divider); padding: 28px 28px 24px; cursor: pointer; position: relative; transition: transform var(--cc-dur) var(--cc-ease), box-shadow var(--cc-dur), border-color var(--cc-dur); display: flex; flex-direction: column; justify-content: space-between; min-height: 168px; }
+  .rel-card:hover { transform: translateY(-3px); box-shadow: var(--cc-shadow-raised); border-color: transparent; }
+  .rel-card .rn { font-family: var(--cc-font-display); font-weight: 700; font-size: 30px; color: var(--cc-forest); letter-spacing: -0.01em; }
+  .rel-card .rs { font-size: 14px; font-weight: 300; line-height: 1.5; color: var(--cc-fg-body); margin-top: 8px; }
+  .rel-card .rc { font-size: 13px; font-weight: 500; color: var(--cc-harvest-gold); letter-spacing: 0.06em; margin-top: 20px; transition: transform var(--cc-dur); }
+  .rel-card:hover .rc { transform: translateX(4px); }
+
+  /* ---------- DIAGNOSTIC CTA (forest) ---------- */
+  .diag-band { display: flex; justify-content: space-between; align-items: center; gap: 40px; padding: 52px 56px; }
+  .diag-band h3 { font-family: var(--cc-font-display); font-weight: 700; font-size: clamp(28px,3.2vw,40px); line-height: 1.08; color: var(--cc-parchment); margin: 12px 0 0; }
+  .diag-band p { font-size: 15px; font-weight: 300; color: rgba(250,248,242,0.72); margin-top: 12px; max-width: 48ch; }
+
+  /* ---------- FOOTER ---------- */
+  footer { background: var(--cc-forest); color: var(--cc-parchment); padding: 72px 0 40px; border-top: 3px solid var(--cc-harvest-gold); }
+  .foot-grid { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr; gap: 44px; }
+  .foot-tag { font-size: 11px; font-weight: 500; letter-spacing: 0.30em; color: var(--cc-harvest-gold); margin: 16px 0 16px; }
+  .foot-blurb { font-size: 13px; opacity: 0.7; line-height: 1.55; max-width: 30ch; }
+  .foot-col h5 { font-size: 11px; font-weight: 500; letter-spacing: 0.24em; text-transform: uppercase; color: var(--cc-harvest-gold); margin: 0 0 16px; }
+  .foot-col a { display: block; font-size: 13px; opacity: 0.75; margin-bottom: 9px; transition: opacity var(--cc-dur), transform var(--cc-dur); }
+  .foot-col a:hover { opacity: 1; transform: translateX(3px); }
+  .foot-base { margin-top: 52px; padding-top: 24px; border-top: 1px solid rgba(250,248,242,0.1); display: flex; justify-content: space-between; font-size: 11px; opacity: 0.5; letter-spacing: 0.08em; }
+
+  .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.6s var(--cc-ease-out), transform 0.6s var(--cc-ease-out); }
+  .reveal.in { opacity: 1; transform: none; }
+
+  @media (max-width: 1080px) {
+    .rx-grid, .rel-grid { grid-template-columns: repeat(2,1fr); }
+    .feat { grid-template-columns: 1fr; }
+    .foot-grid { grid-template-columns: 1fr 1fr 1fr; }
+    .diag-band { flex-direction: column; align-items: flex-start; }
+  }
+  @media (max-width: 720px) {
+    .wrap { padding: 0 24px; }
+    .nav-links { display: none; }
+    .rx-grid, .rel-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ NAV ============ -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="nav-logo" href="Home.html">
+      <span class="gm" id="navmark" style="width:24px;"></span>
+      <span class="word">Column &amp; Co.</span>
+    </a>
+    <div class="nav-links">
+      <a href="Home.html#problems" class="active">Problems</a>
+      <a href="Home.html#bundles">Bundles</a>
+      <a href="Home.html#journal">Journal</a>
+    </div>
+    <div class="nav-right">
+      <button class="btn-gold">Diagnose →</button>
+      <span class="ghost">⌕ Search</span>
+      <span class="ghost">Account</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header class="phero" data-screen-label="Money · hero">
+  <span class="gm phero-mark" id="heromark"></span>
+  <div class="wrap">
+    <div class="crumb"><a href="Home.html">Home</a> <span>·</span> <a href="Home.html#problems">Problems</a> <span>·</span> <b>Money</b></div>
+    <div class="phero-inner">
+      <div class="eyebrow">Problem · Money</div>
+      <h1>Your money isn't out of control.<br><span class="dim">Your picture of it is.</span></h1>
+      <p class="lede">Most people don't have a spending problem. They have a visibility problem. When you can finally see your money clearly — all of it, in one place — the hard decisions get quiet and obvious.</p>
+      <div class="phero-stats">
+        <div class="ps"><span class="v">3</span><span class="k">Tools for this problem</span></div>
+        <div class="ps"><span class="v">5</span><span class="k">Journal entries</span></div>
+        <div class="ps"><span class="v">1</span><span class="k">Bundle</span></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ SYMPTOMS (workhorse) ============ -->
+<section class="band" data-screen-label="Money · symptoms">
+  <div class="wrap">
+    <div class="symp-head reveal">
+      <div>
+        <div class="label-row"><span class="label-rule"></span><span class="sec-label">Symptoms</span></div>
+        <h2 class="sec-h">Which one is you?</h2>
+      </div>
+      <p class="symp-note">Find your exact frustration in plain language. The prescription is one click away.</p>
+    </div>
+    <div class="symptoms reveal">
+      <!-- symptoms injected by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRESCRIPTIONS ============ -->
+<section class="band band-cream" data-screen-label="Money · prescriptions">
+  <div class="wrap">
+    <div class="label-row reveal"><span class="label-rule"></span><span class="sec-label">Recommended prescriptions</span></div>
+    <h2 class="sec-h reveal">Start here.</h2>
+    <p class="sec-sub reveal">Three tools, in the order most people install them. Buy one, or take all three as a bundle and save.</p>
+    <div class="rx-grid">
+      <a class="rx-card reveal" href="Product.html">
+        <span class="badge">Start here</span>
+        <div class="ph shot">Product shot · The Foundation</div>
+        <div class="nm">The Foundation</div>
+        <div class="ds">A 14-tab budget system. The whole picture, finally in one sheet.</div>
+        <div class="foot"><span class="amt">$35</span><span class="go">See how it works →</span></div>
+      </a>
+      <a class="rx-card reveal" href="#">
+        <div class="ph shot">Product shot · Subscription Audit</div>
+        <div class="nm">Subscription Audit</div>
+        <div class="ds">Find the eight recurring charges you forgot you were paying.</div>
+        <div class="foot"><span class="amt">$15</span><span class="go">See how it works →</span></div>
+      </a>
+      <a class="rx-card reveal" href="#">
+        <div class="ph shot">Product shot · Goals Add-on</div>
+        <div class="nm">Goals Add-on</div>
+        <div class="ds">Real linkage to your budget. Live forecasts for what you're saving toward.</div>
+        <div class="foot"><span class="amt">$19</span><span class="go">See how it works →</span></div>
+      </a>
+    </div>
+    <div class="reveal" style="margin-top:36px; display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
+      <button class="btn-gold lg">Get all three — the Money bundle, $59 →</button>
+      <span style="font-size:13px; color:var(--cc-fg-body);">Save $10 versus buying separately.</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ JOURNAL FEATURE ============ -->
+<section class="band" data-screen-label="Money · journal">
+  <div class="wrap">
+    <div class="label-row reveal"><span class="label-rule"></span><span class="sec-label">From the journal · on money</span></div>
+    <div class="feat reveal">
+      <div class="ph">Lead image · 600 × 400<br>(methodology illustration)</div>
+      <div>
+        <span class="chip">Methodology</span>
+        <h3>Anti-Budget vs. Zero-Based: why Paula Pant is mostly right</h3>
+        <p>Both methods work. Both have a buyer. Here's how to know which one is actually yours — and what changes the moment you're budgeting with a partner.</p>
+        <div class="meta">Dan · May 14, 2026 · 8 min read</div>
+        <a class="read" href="#">Read the entry →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RELATED STRUGGLES ============ -->
+<section class="band band-cream" data-screen-label="Money · related">
+  <div class="wrap">
+    <div class="label-row reveal"><span class="label-rule"></span><span class="sec-label">Related struggles</span></div>
+    <h2 class="sec-h reveal">People who came here also struggled with…</h2>
+    <div class="rel-grid">
+      <a class="rel-card reveal" href="#"><div><div class="rn">Work</div><div class="rs">Career sprawl. Project chaos. Goals you never quite set.</div></div><div class="rc">Open →</div></a>
+      <a class="rel-card reveal" href="#"><div><div class="rn">Family</div><div class="rs">Shared calendars, money fights, kid logistics.</div></div><div class="rc">Open →</div></a>
+      <a class="rel-card reveal" href="#"><div><div class="rn">Time</div><div class="rs">No room. No focus. Calendar Tetris every single week.</div></div><div class="rc">Open →</div></a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DIAGNOSTIC CTA ============ -->
+<section style="padding:0 0 100px;">
+  <div class="wrap">
+    <div class="band-forest reveal diag-band">
+      <div>
+        <div class="label-row"><span class="label-rule"></span><span class="sec-label">Not quite it?</span></div>
+        <h3>Don't see your money problem in plain language?</h3>
+        <p>Take the 90-second diagnostic. Eight questions about how today actually went — we'll surface the right place to start, and email you a copy.</p>
+      </div>
+      <button class="btn-gold lg" style="white-space:nowrap;">Start the diagnostic →</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <div class="nav-logo"><span class="gm" id="footmark" style="width:26px;"></span><span class="word" style="font-size:23px;">Column &amp; Co.</span></div>
+        <div class="foot-tag">LIFE,&nbsp;&nbsp;ORGANIZED.</div>
+        <div class="foot-blurb">Tools that make life clearer. One purchase. No subscriptions, ever.</div>
+      </div>
+      <div class="foot-col"><h5>Problems</h5><a href="Money.html">Money</a><a href="#">Time</a><a href="#">Home</a><a href="#">Work</a><a href="#">Health</a><a href="#">Family</a></div>
+      <div class="foot-col"><h5>Products</h5><a href="Product.html">The Foundation</a><a href="#">Bundles</a><a href="#">Palette Packs</a><a href="#">Regional</a></div>
+      <div class="foot-col"><h5>Company</h5><a href="#">About</a><a href="#">Journal</a><a href="#">Changelog</a><a href="#">Support</a></div>
+      <div class="foot-col"><h5>Account</h5><a href="#">Library</a><a href="#">Upgrades</a><a href="#">Sign in</a><a href="#">Affiliates</a></div>
+    </div>
+    <div class="foot-base"><span>© 2026 Column &amp; Co. · columnandco.com</span><span>Privacy · Terms · Affiliate disclosures</span></div>
+  </div>
+</footer>
+
+<script>
+  // ---- Grid-mark renderer (3×5, gold spine + fading tone study) ----
+  function buildMark(el, light) {
+    const base = light ? '#FAF8F2' : '#1C3D2E';
+    const c2 = [0.85,0.45,0.85,0.18,0.45], c3 = [0.18,0.18,0.45,0.85,0.18];
+    let html = '';
+    for (let r=0;r<5;r++) for (let c=0;c<3;c++){
+      if (c===0) html += `<i style="background:#C5A95A"></i>`;
+      else { const o=(c===1?c2:c3)[r]; html += `<i style="background:${base};opacity:${o}"></i>`; }
+    }
+    el.innerHTML = html;
+  }
+  buildMark(document.getElementById('navmark'), true);
+  buildMark(document.getElementById('heromark'), true);
+  buildMark(document.getElementById('footmark'), true);
+
+  // ---- Symptoms (pain -> prescription). Each links to its product page. ----
+  const SYMPTOMS = [
+    ['"I can\u2019t tell where my money goes."',               'The Foundation',                       'Product.html'],
+    ['"I have 12 subscriptions I don\u2019t use."',            'Foundation + Subscription Audit',      'Product.html'],
+    ['"I save, but I never seem to have any savings."',         'Foundation + Goals Add-on',            'Product.html'],
+    ['"My partner and I keep fighting about money."',           'Joint Money Method',                   '#'],
+    ['"I\u2019m self-employed and my taxes are a mess."',      'Foundation · Self-Employed profile',   'Product.html'],
+    ['"I want to retire early but don\u2019t know if I can."', 'Foundation · FIRE profile + Net Worth', 'Product.html'],
+  ];
+  const sympEl = document.querySelector('.symptoms');
+  SYMPTOMS.forEach(([q,fix,href])=>{
+    const a = document.createElement('a');
+    a.className = 'symptom'; a.href = href;
+    a.innerHTML = `<span class="q">${q}</span>
+      <span class="rx"><span class="tag">Prescribe</span><span class="fix">${fix} →</span></span>`;
+    sympEl.appendChild(a);
+  });
+
+  // ---- Scroll reveal ----
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach((e)=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach((el,i)=>{ el.style.transitionDelay = (i%3*60)+'ms'; io.observe(el); });
+</script>
+</body>
+</html>
