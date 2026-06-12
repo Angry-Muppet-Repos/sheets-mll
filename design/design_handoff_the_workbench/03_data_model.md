@@ -42,13 +42,13 @@ both work; Units carries the count either way).
 | LISTING (5) | Listing created · Files attached · Preview checked · Published · URL logged here |
 | POST (5) | First-sale check · Review request sent · Week-1 stats logged · Retro note written · Next-version ideas filed |
 
-Custom slots: 5 extra checkbox columns, header cells yellow/renameable.
-Progress % counts ticked ÷ 35 for every product identically (untouched
-custom columns simply read unticked; the QA checklist verifies a fully
-ticked row reads 100%).
+Custom slots: 5 extra checkbox columns, header cells yellow/renameable —
+extra credit OUTSIDE the progress math. **Progress % and Next-step run on
+the 30 fixed steps only** (a fully ticked fixed set reads 100% / "Done"),
+so renamed custom columns never distort the pipeline.
 
 Computed columns (locked, right of the checklist):
-- **Progress** `=COUNTIF(checkrange)/35` formatted 0%
+- **Progress** `=COUNTIF(fixed 30 checkrange, TRUE)/30` formatted 0%
 - **Next step** `=IFERROR(INDEX(stepHeaderRow, MATCH(FALSE, checkrange, 0)), "Done")`
 - **Days to target** `=IF(target="","—", target−TODAY())` + chip CF
   (On Track ≥ 7 · Fair 0–6 · Over < 0)

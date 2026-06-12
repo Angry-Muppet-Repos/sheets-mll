@@ -14,24 +14,24 @@ planner inserts. Mock window: trailing **9 months** ending at build month
 | Recipe Card Set | Listed | $9 | slow decay — views up, conversion down (price test candidate) |
 | Teacher Bundle | Listed | $14 | listed 6 weeks ago, ramping |
 | Minimal Budget Sheets | Listed | $7 | the dud — ad spend > net (the KILL demo) |
-| Holiday Gift Tags | Assets | — | pipeline ~70%, next step "Screenshots (hero order)", target in 9 days |
-| Wedding Suite No. 5 | Building | — | pipeline ~30%, next step "UI kit mocked", target in 30 days |
+| Holiday Gift Tags | Assets | — | pipeline 47% (BUILD + QA ticked), next step "Screenshots (hero order)", target in 9 days |
+| Wedding Suite No. 5 | Building | — | pipeline 17% (first 5 BUILD steps ticked), next step "Visual approval", target in 30 days |
 | Kids Chore Charts | Idea | — | 0%, no target — the backlog row |
 
 ## The numbers (locked targets for the generator)
 
-- ~620 Sales Log rows over 9 months across Etsy (~70% of net), Shopify
+- ~600 Sales Log rows over 9 months across Etsy (~70% of net), Shopify
   (~20%), Gumroad (~10%). Channel fees via defaults (Fees column blank on
   most rows — demos the computed Net).
-- Portfolio net ramps ~$900/mo → ~$2,400/mo. Wedding Suite No. 4 ≈ 55%
+- Portfolio net ramps ~$940/mo → ~$2,100/mo. Wedding Suite No. 4 ≈ 60%
   of lifetime net; the dud totals < $60 net lifetime against $140 ad spend.
 - Marketing Log: ~25 rows — Etsy Ads daily-ish spend on the hero (ROAS ≈ 4)
   and the dud (ROAS ≈ 0.4), one site-wide sale event, two price tests.
 - Stats: 9 months × the 5 listed products — the Recipe Card Set shows
   views +40% while conversion halves (the WATCH insight).
-- Checklists: listed products fully ticked through LISTING (POST partially
-  — week-1 stats unticked on the newest); pipeline rows ticked to their
-  stage; percentages must land ≈ 70% / 30% / 0% for the three unlisted.
+- Checklists: four listed products fully ticked (100% · "Done"); Teacher
+  Bundle at 28 of 30 (next: "Week-1 stats logged"); the three unlisted land
+  exactly 47% / 17% / 0% with next steps per the table above.
 
 ## Mock AI Insights (Dashboard, mock build only)
 
@@ -55,9 +55,10 @@ View (hero selected), Sales Log, Products checklist block.
 - [ ] Dashboard: KPI deltas live; Top Products ranks Wedding Suite No. 4
   first; Needs Attention lists Holiday Gift Tags with its next step
 - [ ] Pipeline: stage counts = 5 Listed · 1 Assets · 1 Building · 1 Idea;
-  days-left chips paint correctly
+  In Flight shows 47% / 17% / 0%; days-left chips paint correctly
 - [ ] Products: ticking any unticked box moves Progress % and Next step
-  instantly; fully ticked row reads 100% / "Done"
+  instantly; a fully ticked row (30 fixed) reads 100% / "Done"; custom
+  columns change nothing
 - [ ] Product View: selector dropdown lists all 8; hero shows ROAS chip
   "On Track"; the dud shows "Over"; funnel renders for logged months
 - [ ] Sales Log: a new row with Fees blank computes Net from the channel
