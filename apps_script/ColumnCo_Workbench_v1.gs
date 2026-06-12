@@ -1899,7 +1899,8 @@ function buildPipeline_(sheet, mode) {
   r += 1;
   var listedL = columnToLetter_(PROD.COL_LISTED_HELPER);
   var listedRange = "'" + TABS.PRODUCTS + "'!$" + listedL + '$' + PROD.FIRST_ROW + ':$' + listedL + '$' + PROD_LAST_ROW;
-  var launchedRange = "'" + TABS.PRODUCTS + "'!$G$" + PROD.FIRST_ROW + ':$G$' + PROD_LAST_ROW;
+  var launchedL = columnToLetter_(PROD.COL_LAUNCHED);
+  var launchedRange = "'" + TABS.PRODUCTS + "'!$" + launchedL + '$' + PROD.FIRST_ROW + ':$' + launchedL + '$' + PROD_LAST_ROW;
   var rlStart = r;
   for (var rl = 0; rl < 5; rl++) {
     var rr2 = rlStart + rl;

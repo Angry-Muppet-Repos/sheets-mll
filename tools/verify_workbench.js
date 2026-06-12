@@ -377,6 +377,10 @@ audits.push(['Stale formula MAXIFS over Sales Log', (formulas['Products!M10'] ||
 audits.push(['Mock hero runs Digital, mock Recipe runs Physical', writes['Products!D10'] === 'Digital Product' && writes['Products!D12'] === 'Physical / Handmade', writes['Products!D12']]);
 // sales (unchanged contracts)
 audits.push(['Sales Net R1C1 uses cc_channel_fees', (r1c1['Sales Log!G10:G2009'] || '').includes('VLOOKUP(RC3,cc_channel_fees'), '']);
+// pipeline
+audits.push(['Recently Listed date + week-one window read the Launched column (H, not Target G)',
+  Object.entries(formulas).some(([k, v]) => k.startsWith('Pipeline!') && v.includes('mmm d, yyyy') && v.includes("Products'!$H$10") && !v.includes("Products'!$G$10")) &&
+  Object.entries(formulas).some(([k, v]) => k.startsWith('Pipeline!') && v.includes('SUMIFS') && v.includes("Products'!$H$10")), '']);
 // product view
 audits.push(['PV checklist position pulls Next step off Products (col offset 10)', Object.entries(formulas).some(([k, v]) => k.startsWith('Product View!') && v.includes('VLOOKUP') && v.includes(',10,FALSE')), '']);
 audits.push(['PV trend helper at row 100', (formulas['Product View!B100'] || '').includes('cc_selected_product'), '']);
