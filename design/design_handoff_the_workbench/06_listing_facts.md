@@ -74,6 +74,23 @@ mid-pipeline at 39% and 17% with computed next steps, one idea row at 0%
 · the catalog runs TWO processes (Digital Product + the printed line on
 Physical / Handmade) — the multi-process screenshot.
 
+## Product Guide requirements (Dan, June 2026)
+
+v1 ships with manual logs — no CSV import (v1.1 candidate: order-CSV
+paste mapper on the Foundation's Bank-import skeleton). The Workbench
+Product Guide must therefore document the workflow robustly:
+
+- Sales Log: one row when money lands; per-payout-day batching (Units
+  carries the count); leave Fees blank → Net computes from Channels.
+- Bulk entry that works today: arrange any export to the column order
+  (Date · Product · Channel · Units · Gross · Fees) in a scratch sheet
+  and paste the block into columns A–F; `💳 → Renumber Sales Log`
+  restores Net formulas if a paste tramples column G.
+- Marketing Log: one row per campaign/spend; "— Portfolio —" rows count
+  toward portfolio spend with no product.
+- Stats: optional; one row per product per month from the shop stats
+  screen; skipping it only blanks the funnel.
+
 ## Listing hook (draft — Dan approves at listing time)
 
 > "Twelve products live. One actually pays you. Which one?"

@@ -804,6 +804,7 @@ function buildChannels_(sheet) {
   var hdr = ['Channel', 'Fee %', 'Flat fee/order', 'Active', 'Notes'];
   sheet.getRange(r, 1, 1, hdr.length).setValues([hdr]).setFontWeight('bold')
     .setBackground(BRAND.FOREST).setFontColor(BRAND.PARCHMENT).setFontFamily(FONT.BODY).setFontSize(10);
+  sheet.getRange(r, 2, 1, 2).setHorizontalAlignment('right');
   themable_(sheet.getName(), 'primary', sheet.getRange(r, 1, 1, hdr.length).getA1Notation());
 
   var firstRow = r + 1;   // row 10
@@ -877,7 +878,10 @@ function buildProducts_(sheet, mode) {
   // clear() does not remove a basic filter and a second createFilter throws
   var existingFilter = sheet.getFilter();
   if (existingFilter) existingFilter.remove();
-  var lastColLetter = columnToLetter_(PROD.COL_LISTED_HELPER);   // O
+  // Chrome ends at the last VISIBLE column — cols N/O are hidden rank
+  // helpers, and a right-aligned breadcrumb merged into hidden columns
+  // renders cut off.
+  var lastColLetter = columnToLetter_(PROD.COL_STALE);           // M
   chrome_(sheet, TABS.PRODUCTS, lastColLetter);
   titleRow_(sheet, lastColLetter, 'Products',
     'The master table. Add products with 💳 → Add Product… and tick their steps on the Checklist tab. ' + PRODUCT_CAPACITY + ' slots.');
@@ -889,6 +893,11 @@ function buildProducts_(sheet, mode) {
     'Days to target', 'Days since sale']])
     .setFontWeight('bold').setFontColor(BRAND.PARCHMENT).setBackground(BRAND.FOREST)
     .setFontFamily(FONT.BODY).setFontSize(10);
+  // headers over numeric/date columns right-align to match their data
+  [PROD.COL_PRICE, PROD.COL_TARGET, PROD.COL_LAUNCHED, PROD.COL_PROGRESS,
+   PROD.COL_DAYS, PROD.COL_STALE].forEach(function (hc) {
+    sheet.getRange(hdrRow, hc).setHorizontalAlignment('right');
+  });
   themable_(sheet.getName(), 'primary', sheet.getRange(hdrRow, 1, 1, 13).getA1Notation());
 
   var first = PROD.FIRST_ROW, n = PRODUCT_CAPACITY;
@@ -997,17 +1006,25 @@ function buildProducts_(sheet, mode) {
 function buildChecklist_(sheet, mode) {
   // 55 columns > the 26-column default grid — grow it BEFORE any write.
   ensureGrid_(sheet, CHK_LAST_ROW + 6, CHK.COL_META);
-  var lastColLetter = columnToLetter_(CHK_LAST_COL);
-  chrome_(sheet, TABS.CHECKLIST, lastColLetter);
-  titleRow_(sheet, lastColLetter, 'Checklist',
-    'Products as rows, steps as columns — tick across the row as each product moves. One section per process.');
-  setCell_(sheet, 'A8', {
-    value: 'Hover any step header for its full name  ·  headers edit in place — rename a step and the whole section follows; type into a blank gold slot to add one  ·  new processes: 💳 → Add Process…',
-    merge: 'Z8', font: FONT.BODY, size: 10, italic: true, color: BRAND.CAPTION });
 
   var sections = (mode === 'mock')
     ? generateMockChecklist_()
     : [{ template: DEFAULT_TEMPLATE, steps: templateSteps_(DEFAULT_TEMPLATE), products: [] }];
+
+  // Chrome ends at the build-time VISIBLE width (left block + widest
+  // section's steps + 2 ghost slots) — a right-aligned breadcrumb merged
+  // into the hidden step columns renders cut off. The section bands keep
+  // their full span; their hidden tail is left-anchored and harmless.
+  var maxNamed = 0;
+  sections.forEach(function (sec) { if (sec.steps.length > maxNamed) maxNamed = sec.steps.length; });
+  var visibleSteps = Math.min(CHK.STEP_COLS, Math.max(maxNamed, 8) + 2);
+  var chromeLetter = columnToLetter_(CHK.COL_NEXT + visibleSteps);
+  chrome_(sheet, TABS.CHECKLIST, chromeLetter);
+  titleRow_(sheet, chromeLetter, 'Checklist',
+    'Products as rows, steps as columns — tick across the row as each product moves. One section per process.');
+  setCell_(sheet, 'A8', {
+    value: 'Hover any step header for its full name  ·  headers edit in place — rename a step and the whole section follows; type into a blank gold slot to add one  ·  new processes: 💳 → Add Process…',
+    merge: 'Z8', font: FONT.BODY, size: 10, italic: true, color: BRAND.CAPTION });
 
   var row = CHK.FIRST_ROW;
   var firstHeaderRow = 0;
@@ -1035,7 +1052,7 @@ function buildChecklist_(sheet, mode) {
   try { sheet.setFrozenRows(firstHeaderRow); } catch (e) {}
   try { sheet.setFrozenColumns(CHK.COL_NEXT); } catch (e) {}
 
-  footer_(sheet, row + 1, lastColLetter);
+  footer_(sheet, row + 1, chromeLetter);
 }
 
 // Write one section's chrome (band + group bands + header row) at
@@ -1252,6 +1269,9 @@ function buildSalesLog_(sheet, mode) {
   var headerRow = SALES.HEADER_ROW;   // 9
   sheet.getRange(headerRow, 1, 1, 9).setValues([hdr]).setFontWeight('bold')
     .setBackground(BRAND.FOREST).setFontColor(BRAND.PARCHMENT).setFontFamily(FONT.BODY).setFontSize(10);
+  // numeric/date columns right-align — headers match their data
+  sheet.getRange(headerRow, 1).setHorizontalAlignment('right');
+  sheet.getRange(headerRow, 4, 1, 4).setHorizontalAlignment('right');
   themable_(sheet.getName(), 'primary', sheet.getRange(headerRow, 1, 1, 9).getA1Notation());
   SpreadsheetApp.flush();
   try { sheet.setFrozenRows(headerRow); } catch (e) {}
@@ -1305,6 +1325,8 @@ function buildMarketingLog_(sheet, mode) {
 
   var hdr = ['Date', 'Product', 'Channel', 'Activity', 'Spend', 'Result note', 'Month'];
   var headerRow = MKT.HEADER_ROW;
+  sheet.getRange(headerRow, 1).setHorizontalAlignment('right');
+  sheet.getRange(headerRow, 5).setHorizontalAlignment('right');
   sheet.getRange(headerRow, 1, 1, 7).setValues([hdr]).setFontWeight('bold')
     .setBackground(BRAND.FOREST).setFontColor(BRAND.PARCHMENT).setFontFamily(FONT.BODY).setFontSize(10);
   themable_(sheet.getName(), 'primary', sheet.getRange(headerRow, 1, 1, 7).getA1Notation());
@@ -1353,6 +1375,7 @@ function buildStats_(sheet, mode) {
 
   var hdr = ['Month', 'Product', 'Views', 'Favorites', 'Orders', 'Notes'];
   var headerRow = STATSL.HEADER_ROW;
+  sheet.getRange(headerRow, 3, 1, 3).setHorizontalAlignment('right');
   sheet.getRange(headerRow, 1, 1, 6).setValues([hdr]).setFontWeight('bold')
     .setBackground(BRAND.FOREST).setFontColor(BRAND.PARCHMENT).setFontFamily(FONT.BODY).setFontSize(10);
   themable_(sheet.getName(), 'primary', sheet.getRange(headerRow, 1, 1, 6).getA1Notation());
@@ -1702,6 +1725,7 @@ function buildDashboard_(sheet, mode) {
     '="TOP PRODUCTS · "&UPPER(TEXT(IFERROR(DATEVALUE(INDEX(cc_engine_months,1,N4+1)&"-01"),INDEX(cc_engine_months,1,N4+1)),"mmm yyyy"))');
   sectionLabel_(sheet, 'I' + r, 'L' + r, 'PORTFOLIO SNAPSHOT');
   r += 1;
+  sheet.getRange(r, 2, 1, 2).setHorizontalAlignment('right');
   sheet.getRange(r, 1, 1, 5).setValues([['Product', 'Net', 'Units', 'Share', 'Status']])
     .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
   var tsStart = r + 1;
@@ -1820,6 +1844,8 @@ function buildPipeline_(sheet, mode) {
   r += 1;
   sheet.getRange(r, 1, 1, 6).setValues([['Product', '', 'Status', 'Progress', 'Next step', 'Target']])
     .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
+  sheet.getRange(r, 4).setHorizontalAlignment('right');
+  sheet.getRange(r, 6).setHorizontalAlignment('right');
   r += 1;
   var rankL = columnToLetter_(PROD.COL_RANK_HELPER);
   var rankRange = "'" + TABS.PRODUCTS + "'!$" + rankL + '$' + PROD.FIRST_ROW + ':$' + rankL + '$' + PROD_LAST_ROW;
@@ -1853,6 +1879,7 @@ function buildPipeline_(sheet, mode) {
   r += 1;
   sheet.getRange(r, 1, 1, 4).setValues([['Product', '', 'Listed on', 'Week-one net']])
     .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
+  sheet.getRange(r, 4).setHorizontalAlignment('right');
   r += 1;
   var listedL = columnToLetter_(PROD.COL_LISTED_HELPER);
   var listedRange = "'" + TABS.PRODUCTS + "'!$" + listedL + '$' + PROD.FIRST_ROW + ':$' + listedL + '$' + PROD_LAST_ROW;
@@ -1929,9 +1956,12 @@ function buildProductView_(sheet, mode) {
   }
   sheet.getRange(PV.TREND_HELPER_ROW, 1).setValue('trend helper (hidden)').setFontColor(BRAND.CAPTION).setFontSize(8);
   var trendRange = 'B' + PV.TREND_HELPER_ROW + ':M' + PV.TREND_HELPER_ROW;
-  sheet.getRange(r, 1, 1, 4).merge();
+  // The chart merge spans the full height of the channel-split table on
+  // the right (header + 12 slots) so the panel reads as one block.
+  sheet.getRange(r, 1, CHANNEL_SLOTS + 1, 4).merge();
   sheet.getRange(r, 1).setFormula(
-    '=IF(SUM(' + trendRange + ')=0,"",SPARKLINE(' + trendRange + ',{"charttype","column";"color","' + BRAND.FOREST + '"}))');
+    '=IF(SUM(' + trendRange + ')=0,"",SPARKLINE(' + trendRange + ',{"charttype","column";"color","' + BRAND.FOREST + '"}))')
+    .setVerticalAlignment('middle');
   sheet.getRange(r, 5).setFormula('=INDEX(' + trendRange + ',1,12)')
     .setNumberFormat('$#,##0').setFontFamily(FONT.DISPLAY).setFontSize(16).setFontWeight('bold').setFontColor(BRAND.FOREST);
   sheet.getRange(r, 6).setValue('this month').setFontColor(BRAND.CAPTION).setFontSize(10).setFontFamily(FONT.BODY);
@@ -1941,6 +1971,7 @@ function buildProductView_(sheet, mode) {
   var csStart = r;
   sheet.getRange(csStart, 7, 1, 6).setValues([['Channel', '', 'Units', 'Gross', 'Fees', 'Net']])
     .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
+  sheet.getRange(csStart, 9, 1, 4).setHorizontalAlignment('right');
   for (var ch = 0; ch < CHANNEL_SLOTS; ch++) {
     var cr = csStart + 1 + ch;
     var chCell = "'" + TABS.CHANNELS + "'!$A$" + (CHAN.FIRST_ROW + ch);
@@ -1990,6 +2021,9 @@ function buildProductView_(sheet, mode) {
   r += 1;
   sheet.getRange(r, 1, 1, 6).setValues([['Month', 'Views', 'Favorites', 'Orders', 'Conv', 'Net / 100 views']])
     .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
+  sheet.getRange(r, 2, 1, 5).setHorizontalAlignment('right');
+  // data rows too: em-dash empty states sit with the numbers
+  sheet.getRange(r + 1, 2, 3, 5).setHorizontalAlignment('right');
   r += 1;
   for (var fm = 0; fm < 3; fm++) {
     var engIdx = 22 + fm;
@@ -2056,6 +2090,7 @@ function buildTrends_(sheet, mode) {
   r += 1;
   sheet.getRange(r, 1, 1, 5).setValues([['Product', '', 'Sparkline (6 mo)', 'Last Month', 'Δ vs first']])
     .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
+  sheet.getRange(r, 4, 1, 2).setHorizontalAlignment('right');
   var start = r + 1;
   var matrixCol = 'INDEX(cc_engine_products,,cc_dashboard_month+1)';
   var prodNames = ENG + '!$A$' + ENGINE_ROWS.PRODUCT_FIRST + ':$A$' + ENGINE_PRODUCT_LAST;
