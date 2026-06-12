@@ -1,0 +1,61 @@
+THE LEDGER v1 — BUILD KICKOFF (paste this whole block as the first message in Claude Code)
+==========================================================================================
+
+REPO: github.com/danbettcher/sheets-mll · BRANCH: claude/adoring-knuth-rupzx (never main)
+
+I've attached the_ledger_handoff.zip. It contains design_handoff_the_ledger/
+(product brief, tab architecture, data model, mock story, QA checklist).
+
+PHASE 0 — ORIENT (do first, no building)
+1. Check out the feature branch. Read CLAUDE.md.
+2. Read design/design_handoff_foundation_v2/ (brief, data model, apps_script catalog)
+   and skim apps_script/ColumnCo_Foundation_v2.gs — The Ledger reuses its skeleton:
+   chrome, helpers, theme engine, build orchestrator, CSV import, onEdit triggers.
+3. Unzip my attachment into design/design_handoff_the_ledger/ and read all of it.
+4. Commit the handoff folder as its own commit before any build work.
+5. Reply with a build plan + anything in the handoff that conflicts with the
+   Foundation codebase. WAIT for my go-ahead.
+
+PHASE 1 — VISUAL MOCKUPS (after my go-ahead)
+6. Build design/ui_kits/the_ledger/ as a hi-fi React kit, reusing components and
+   chrome from design/ui_kits/foundation/. Mock the 5 hero tabs with the Maya Chen
+   data: Tax Center, Dashboard, P&L, Invoices, Mileage. 24-palette picker wired.
+7. Commit + push. Tell me to open index.html locally. WAIT for my visual approval
+   (I may request changes — iterate here, it's cheap; the .gs is not).
+
+PHASE 2 — THE SCRIPT (after visual approval)
+8. Write apps_script/ColumnCo_Ledger_v1.gs — ONE file, Foundation section numbering,
+   buildMockWorkbook/buildBlankWorkbook orchestration, no buyer-facing setup items.
+   Follow 02_tab_architecture.md and 03_data_model.md exactly; where they're silent,
+   copy the Foundation pattern. Verify current IRS figures (mileage rate, SE constants,
+   due dates) by web search before hardcoding defaults; mileage rate must be a yellow
+   editable cell.
+9. STATIC VERIFICATION (required before commit — show me the results):
+   a. Node parse of the full .gs (new Function check).
+   b. Paren/quote balance check on every constructed sheet-formula string.
+   c. Cross-reference audit: every row/col/cell contract in 02/03 vs the code
+      (engine rows 2–40, named ranges, registry rows 10–21, etc.).
+   d. Mode audit: grep every MOCK.* usage — each one must be mock-gated. No mock
+      data, names, or figures reachable in blank mode (the Foundation cleanup
+      standard). No string written to a cell may begin with "=" unless it is a formula.
+   e. Mock-data integrity: totals in the generator must reproduce the story figures
+      (Q1 net ≈ $13.8K, escrow gap ≈ $2,750, margin 71%→58%).
+10. Write the Ledger _Schema content and the v1 listing-facts block
+    (design_handoff_the_ledger/06_listing_facts.md: tab count, palette count,
+    feature list — so listing copy never drifts from the build).
+11. Commit + push + open a PR titled "The Ledger v1 — script + mockups".
+
+PHASE 3 — HANDBACK
+12. Final message to me: paste-and-build instructions + the QA checklist from
+    04_mock_data_and_qa.md, plus a "known limitations" list of anything you
+    could not verify statically (chart rendering, CF behavior, import UX).
+
+HARD RULES
+- You cannot execute Apps Script or render Sheets. Never claim something is
+  "tested" beyond the static verification above. I do live QA.
+- Reuse Foundation code by copying patterns into the new file — do NOT modify
+  ColumnCo_Foundation_v2.gs at all in this work.
+- Brand rules are non-negotiable (no exclamation points, middle-dot separators,
+  no pure black/white, Forest/Canopy/Gold chrome).
+- The Tax Center disclaimer in 03_data_model.md ships verbatim in both modes.
+- Never push to main. Never force-push.
