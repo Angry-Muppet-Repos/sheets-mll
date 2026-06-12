@@ -40,6 +40,27 @@ function ProductViewTab() {
                 </div>
               ))}
             </div>
+            {/* scale anchors — a sparkline has no axis; these say what the bars are worth */}
+            {(() => {
+              const monthLabels = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+              const active = v.trend12.filter(n => n > 0);
+              const peak = Math.max(...v.trend12);
+              const anchors = [
+                [fmt(v.trend12[v.trend12.length - 1]), 'this month'],
+                [fmt(peak), 'peak · ' + monthLabels[v.trend12.indexOf(peak)]],
+                [fmt(Math.round(active.reduce((a, b) => a + b, 0) / active.length)), 'avg active month'],
+              ];
+              return (
+                <div style={{ display: 'flex', gap: 24, padding: '2px 18px 8px', alignItems: 'baseline' }}>
+                  {anchors.map(([val, cap]) => (
+                    <div key={cap}>
+                      <span style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 15, color: 'var(--pal-primary, #1C3D2E)', fontVariantNumeric: 'tabular-nums' }}>{val}</span>
+                      <span style={{ fontFamily: 'Jost,sans-serif', fontWeight: 300, fontSize: 10, color: 'rgba(28,61,46,0.55)', marginLeft: 6 }}>{cap}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 18px 14px', fontFamily: 'Jost,sans-serif', fontSize: 9.5, color: 'rgba(28,61,46,0.5)' }}>
               <span>Jul ’25</span><span>listed in Jun ’25 · ad spend began Feb ’26</span><span>Jun ’26</span>
             </div>

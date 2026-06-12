@@ -1981,6 +1981,18 @@ function buildProductView_(sheet, mode) {
   sheet.getRange(r, 5).setFormula('=INDEX(' + trendRange + ',1,12)')
     .setNumberFormat('$#,##0').setFontFamily(FONT.DISPLAY).setFontSize(16).setFontWeight('bold').setFontColor(BRAND.FOREST);
   sheet.getRange(r, 6).setValue('this month').setFontColor(BRAND.CAPTION).setFontSize(10).setFontFamily(FONT.BODY);
+  // Scale anchors for the sparkline (it cannot draw an axis): the peak
+  // month and the average of months with sales tell you what the
+  // tallest bar is worth.
+  var peakMonth = 'INDEX(cc_engine_months,1,12+MATCH(MAX(' + trendRange + '),' + trendRange + ',0))';
+  sheet.getRange(r + 3, 5).setFormula('=IF(SUM(' + trendRange + ')=0,"—",MAX(' + trendRange + '))')
+    .setNumberFormat('$#,##0').setFontFamily(FONT.DISPLAY).setFontSize(14).setFontWeight('bold').setFontColor(BRAND.FOREST);
+  sheet.getRange(r + 3, 6).setFormula(
+    '=IF(SUM(' + trendRange + ')=0,"peak",IFERROR("peak · "&TEXT(DATE(LEFT(' + peakMonth + ',4),RIGHT(' + peakMonth + ',2),1),"mmm"),"peak"))')
+    .setFontColor(BRAND.CAPTION).setFontSize(10).setFontFamily(FONT.BODY);
+  sheet.getRange(r + 6, 5).setFormula('=IFERROR(ROUND(AVERAGEIF(' + trendRange + ',">0"),0),"—")')
+    .setNumberFormat('$#,##0').setFontFamily(FONT.DISPLAY).setFontSize(14).setFontWeight('bold').setFontColor(BRAND.FOREST);
+  sheet.getRange(r + 6, 6).setValue('avg active month').setFontColor(BRAND.CAPTION).setFontSize(10).setFontFamily(FONT.BODY);
   sheet.setRowHeight(r, 44);
 
   // Channel split — 12 registry slots, on-demand SUMIFS.

@@ -62,9 +62,12 @@ Everything here derives from the Products table. No inputs.
   `cc_selected_product`.
 - KPI row for the selection: Net (active month) · Net lifetime · Units
   lifetime · Days since last sale.
-- **Trend**: 12-month net SPARKLINE + monthly figures row, computed
-  on demand via SUMIFS over Sales Log for the selected product only (the
-  scale trick: no per-product detail matrices in the engine).
+- **Trend**: 12-month net SPARKLINE filling the panel height + scale
+  anchors beside it (this month · peak with its month · avg active
+  month — a sparkline can't draw an axis, so the anchors say what the
+  bars are worth), computed on demand via SUMIFS over Sales Log for the
+  selected product only (the scale trick: no per-product detail
+  matrices in the engine).
 - **Channel split** table: per channel — units, gross, fees, net (SUMIFS
   on demand).
 - **Marketing vs. net** strip: spend lifetime + last-90-days vs. net same

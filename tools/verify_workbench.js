@@ -380,6 +380,9 @@ audits.push(['Sales Net R1C1 uses cc_channel_fees', (r1c1['Sales Log!G10:G2009']
 // product view
 audits.push(['PV checklist position pulls Next step off Products (col offset 10)', Object.entries(formulas).some(([k, v]) => k.startsWith('Product View!') && v.includes('VLOOKUP') && v.includes(',10,FALSE')), '']);
 audits.push(['PV trend helper at row 100', (formulas['Product View!B100'] || '').includes('cc_selected_product'), '']);
+audits.push(['PV trend scale anchors: peak month + active-month average',
+  Object.entries(formulas).some(([k, v]) => k.startsWith('Product View!') && v.includes('MATCH(MAX(')) &&
+  Object.entries(formulas).some(([k, v]) => k.startsWith('Product View!') && v.includes('AVERAGEIF')), '']);
 
 let cFail = 0;
 for (const [name, ok, got] of audits) {
