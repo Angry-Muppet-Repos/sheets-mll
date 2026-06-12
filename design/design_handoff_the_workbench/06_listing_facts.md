@@ -12,18 +12,20 @@ changes, update this file in the same commit so listing copy never drifts.
 | Version | v1.0 |
 | Platform | Google Sheets + bound Apps Script (one `.gs` file) |
 | Variants | MOCK_DATA (Juniper Paper Co. demo) · BLANK |
-| Tabs | **13** — Start Here · Dashboard · Pipeline · Product View · Trends · Sales Log · Marketing Log · Stats · Products · Channels · _Engine · _Config (hidden) · _Schema (hidden) |
+| Tabs | **15** — Start Here · Dashboard · Pipeline · Product View · Trends · Sales Log · Marketing Log · Stats · Products · Checklist · Templates · Channels · _Engine · _Config (hidden) · _Schema (hidden) |
 | Product capacity | **250 slots** out of the box — a single constant raises it |
 | Sales capacity | **10,000 rows**, Net auto-computed from channel fee defaults |
-| Launch checklist | **30 steps** (Build 8 · QA 6 · Assets 6 · Listing 5 · Post 5) + 5 custom columns |
+| Process templates | **4 starters** (Digital Product 30 · Physical/Handmade 28 · Service 20 · Quick List 10), 8 library slots × 50 steps, fully editable + save-your-own |
 | Palettes | **24** swappable in-sheet palettes (brand chrome stays locked) |
 | Price band | $50–70 (final number is Dan's call at listing time) |
 
 ## Feature list (each one is true of the build)
 
-1. **Launch pipeline with a real checklist** — 30 steps per product as
-   checkboxes; stage, progress %, and your literal next action compute
-   themselves. The Pipeline board ranks everything in flight.
+1. **Your process, your steps** — pick a starter template (digital,
+   handmade, services, quick) or build your own: the intake form spins up
+   each product's checklist, every step is editable per product, and Save
+   Steps as Template adds your process to the library for the next one.
+   Progress, stage, and your literal next action compute themselves.
 2. **Sales by channel with honest margins** — log Gross, leave Fees blank,
    and Net computes from editable channel defaults (Etsy, Shopify,
    Gumroad, Direct seeded). Type the real fee and it wins.

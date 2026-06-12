@@ -52,40 +52,87 @@ var MARKETING_CAPACITY = 2000;   // Marketing Log rows
 var STATS_CAPACITY    = 3000;    // Stats rows
 var CHANNEL_SLOTS     = 12;      // Channels registry rows 10-21
 
-// ── The 30-step launch template (+5 custom columns) ───────────────────
-var STEP_GROUPS = [
-  ['BUILD',   ['Handoff folder written', 'Brief approved', 'Tab specs locked', 'Data model locked', 'UI kit mocked', 'Visual approval', 'Script written', 'Static verification green']],
-  ['QA',      ['Mock build clean', 'Blank build clean', 'Flow test', 'Theme pass (3 palettes)', 'xlsx exports', 'Brand-voice read-through']],
-  ['ASSETS',  ['Screenshots (hero order)', 'Watermarks applied', 'Thumbnail', 'Listing copy drafted', 'Tags + SEO list', 'Price set']],
-  ['LISTING', ['Listing created', 'Files attached', 'Preview checked', 'Published', 'URL logged here']],
-  ['POST',    ['First-sale check', 'Review request sent', 'Week-1 stats logged', 'Retro note written', 'Next-version ideas filed']]
+// ── The process-template library (the customization system) ──────────
+// Templates live on the visible Templates tab (8 columns × 50 step slots).
+// Step cells use the convention 'GROUP · Step name' (split on the first
+// middle dot; no dot means group GENERAL). 'Add Product…' copies a
+// template's steps into the Checklist; 'Save Steps as Template…' writes a
+// product's checklist back into the next free library column.
+var TEMPLATE_SLOTS = 8;
+var STEPS_PER_TEMPLATE = 50;
+var CHECKLIST_CAPACITY = 7500;   // checklist rows (~250 products × 30 steps)
+
+var TEMPLATES = [
+  ['Digital Product', [
+    'BUILD · Concept locked', 'BUILD · Scope written', 'BUILD · Draft built',
+    'BUILD · Self-review pass', 'BUILD · Revisions done', 'BUILD · Final files exported',
+    'BUILD · Files named cleanly', 'BUILD · Folder organized',
+    'QA · Fresh-eyes test', 'QA · Print + device preview', 'QA · Links + text proofread',
+    'QA · Test download as a buyer', 'QA · Fix pass', 'QA · Final check',
+    'ASSETS · Screenshots (hero order)', 'ASSETS · Watermarks applied', 'ASSETS · Thumbnail',
+    'ASSETS · Listing copy drafted', 'ASSETS · Tags + SEO list', 'ASSETS · Price set',
+    'LISTING · Listing created', 'LISTING · Files attached', 'LISTING · Preview checked',
+    'LISTING · Published', 'LISTING · URL logged here',
+    'POST · First-sale check', 'POST · Review request sent', 'POST · Week-1 stats logged',
+    'POST · Retro note written', 'POST · Next-version ideas filed'
+  ]],
+  ['Physical / Handmade', [
+    'SOURCE · Concept locked', 'SOURCE · Materials sourced', 'SOURCE · Cost per unit computed',
+    'SOURCE · Prototype made', 'SOURCE · Prototype tested',
+    'MAKE · Production steps written', 'MAKE · First batch made', 'MAKE · Quality pass',
+    'MAKE · Packaging chosen', 'MAKE · Packaging test-shipped', 'MAKE · Restock plan noted',
+    'ASSETS · Photos shot (hero order)', 'ASSETS · Photos edited', 'ASSETS · Thumbnail',
+    'ASSETS · Listing copy drafted', 'ASSETS · Tags + SEO list', 'ASSETS · Price set',
+    'LISTING · Listing created', 'LISTING · Variations + inventory set',
+    'LISTING · Shipping profile set', 'LISTING · Preview checked', 'LISTING · Published',
+    'LISTING · URL logged here',
+    'POST · First-sale check', 'POST · Review request sent', 'POST · Week-1 stats logged',
+    'POST · Retro note written', 'POST · Restock trigger set'
+  ]],
+  ['Service / Custom Order', [
+    'OFFER · Offer defined', 'OFFER · Scope + boundaries written', 'OFFER · Price + tiers set',
+    'OFFER · Intake questions written', 'OFFER · Contract template ready',
+    'SETUP · Booking flow tested', 'SETUP · Listing copy drafted',
+    'SETUP · Portfolio examples chosen', 'SETUP · Turnaround time set',
+    'SETUP · Revision policy written',
+    'LISTING · Listing created', 'LISTING · Preview checked', 'LISTING · Published',
+    'LISTING · URL logged here',
+    'POST · First-order walkthrough', 'POST · Delivery flow tested',
+    'POST · Review request sent', 'POST · Week-1 stats logged',
+    'POST · Retro note written', 'POST · Template replies saved'
+  ]],
+  ['Quick List', [
+    'MAKE · Concept locked', 'MAKE · Built', 'MAKE · Final check',
+    'LIST · Assets ready', 'LIST · Listing created', 'LIST · Published',
+    'LIST · URL logged here',
+    'POST · First-sale check', 'POST · Week-1 stats logged', 'POST · Retro note'
+  ]]
 ];
-var STEPS = (function () {
-  var s = []; STEP_GROUPS.forEach(function (g) { g[1].forEach(function (st) { s.push(st); }); }); return s;
-})();
-var STEP_COUNT = STEPS.length;        // 30 — progress runs on these only
-var CUSTOM_STEP_SLOTS = 5;            // extra credit, outside the %
+var DEFAULT_TEMPLATE = 'Digital Product';
+
+// Split 'GROUP · Step name' into its parts (no dot -> GENERAL).
+function parseStep_(s) {
+  var ix = String(s).indexOf(' · ');
+  if (ix === -1) return { group: 'GENERAL', step: String(s) };
+  return { group: String(s).slice(0, ix), step: String(s).slice(ix + 3) };
+}
 
 var PRODUCT_STATUSES = ['Idea', 'Building', 'QA', 'Assets', 'Listing', 'Listed', 'Retired'];
 var MARKETING_ACTIVITIES = ['Ads', 'Social', 'Email', 'Sale event', 'Price test', 'Other'];
 
-// ── Products tab column contract (cols are 1-based) ───────────────────
-// A # · B Name · C Status · D Price · E Listing URL · F Target date ·
-// G Launched · H Notes · I.. 30 steps · then 5 custom · then computed.
+// ── Products tab column contract (slim — the checklist lives on the
+// Checklist tab in long format; this table is identity + computed) ────
+// A # · B Name · C Status · D Template · E Price · F Listing URL ·
+// G Target date · H Launched · I Notes · J Progress · K Next step ·
+// L Days to target · M Days since sale · N/O hidden rank helpers.
 var PROD = {
-  HEADER_BAND_ROW: 9, HEADER_ROW: 10, FIRST_ROW: 11,
-  COL_NUM: 1, COL_NAME: 2, COL_STATUS: 3, COL_PRICE: 4, COL_URL: 5,
-  COL_TARGET: 6, COL_LAUNCHED: 7, COL_NOTES: 8,
-  COL_STEP_FIRST: 9,                                  // I
-  COL_CUSTOM_FIRST: 9 + 30,                           // 39 (AM)
-  COL_PROGRESS: 9 + 30 + 5,                           // 44 (AR)
-  COL_NEXT: 45,                                       // AS
-  COL_DAYS: 46,                                       // AT
-  COL_STALE: 47,                                      // AU — days since last sale
-  COL_RANK_HELPER: 48,                                // AV — pipeline ranking (hidden)
-  COL_LISTED_HELPER: 49                               // AW — recently-listed ranking (hidden)
+  HEADER_ROW: 9, FIRST_ROW: 10,
+  COL_NUM: 1, COL_NAME: 2, COL_STATUS: 3, COL_TEMPLATE: 4, COL_PRICE: 5,
+  COL_URL: 6, COL_TARGET: 7, COL_LAUNCHED: 8, COL_NOTES: 9,
+  COL_PROGRESS: 10, COL_NEXT: 11, COL_DAYS: 12, COL_STALE: 13,
+  COL_RANK_HELPER: 14, COL_LISTED_HELPER: 15
 };
-var PROD_LAST_ROW = PROD.FIRST_ROW + PRODUCT_CAPACITY - 1;   // 260
+var PROD_LAST_ROW = PROD.FIRST_ROW + PRODUCT_CAPACITY - 1;   // 259
 
 // ── Channel fee defaults (settings, BOTH modes — editable, captioned) ──
 // Knowledge-based defaults (fee schedules drift): Etsy 6.5% transaction
@@ -134,12 +181,13 @@ var TABS = {
   START: 'Start Here', DASHBOARD: 'Dashboard', PIPELINE: 'Pipeline',
   PRODUCT_VIEW: 'Product View', TRENDS: 'Trends', SALES: 'Sales Log',
   MARKETING: 'Marketing Log', STATS: 'Stats', PRODUCTS: 'Products',
-  CHANNELS: 'Channels', ENGINE: '_Engine', CONFIG: '_Config', SCHEMA: '_Schema'
+  CHECKLIST: 'Checklist', TEMPLATES: 'Templates', CHANNELS: 'Channels',
+  ENGINE: '_Engine', CONFIG: '_Config', SCHEMA: '_Schema'
 };
 var TAB_ORDER = [
   TABS.START, TABS.DASHBOARD, TABS.PIPELINE, TABS.PRODUCT_VIEW, TABS.TRENDS,
-  TABS.SALES, TABS.MARKETING, TABS.STATS, TABS.PRODUCTS, TABS.CHANNELS,
-  TABS.ENGINE, TABS.CONFIG, TABS.SCHEMA
+  TABS.SALES, TABS.MARKETING, TABS.STATS, TABS.PRODUCTS, TABS.CHECKLIST,
+  TABS.TEMPLATES, TABS.CHANNELS, TABS.ENGINE, TABS.CONFIG, TABS.SCHEMA
 ];
 var SYSTEM_TABS = [TABS.ENGINE, TABS.CONFIG, TABS.SCHEMA];
 
@@ -153,6 +201,12 @@ var ENGINE_ROWS = {
   PRODUCT_FIRST: 30                        // rows 30..(29+PRODUCT_CAPACITY)
 };
 var ENGINE_PRODUCT_LAST = ENGINE_ROWS.PRODUCT_FIRST + PRODUCT_CAPACITY - 1;  // 279
+
+// Templates + Checklist layout contracts
+var TPL = { NAME_ROW: 9, COUNT_ROW: 10, FIRST_STEP_ROW: 11, FIRST_COL: 2 };
+var TPL_LAST_STEP_ROW = TPL.FIRST_STEP_ROW + STEPS_PER_TEMPLATE - 1;   // 60
+var CHK = { HEADER_ROW: 9, FIRST_ROW: 10 };
+var CHK_LAST_ROW = CHK.FIRST_ROW + CHECKLIST_CAPACITY - 1;             // 7509
 
 // Registry/log layout contracts
 var CHAN = { FIRST_ROW: 10, ROWS: CHANNEL_SLOTS };                 // Channels 10-21
@@ -170,7 +224,8 @@ var MOCK = {
   owner: { shop: 'Juniper Paper Co.', name: 'Jules Hartley' },
 
   // [name, status, price, listedMonthsAgo|null, targetDaysFromToday|null,
-  //  ticks (array of 0-based ticked step indices, or 'all'), unitsByMonth]
+  //  ticks ('all' · 'tb' · first-N number · 0), unitsByMonth] — every mock
+  //  product runs the Digital Product template (30 steps)
   products: [
     ['Wedding Suite No. 4',   'Listed',   24, 12,  null, 'all', [23, 25, 27, 31, 34, 39, 45, 54, 66]],
     ['Everyday Planner Kit',  'Listed',   16, 10,  null, 'all', [17, 18, 20, 20, 21, 21, 22, 22, 23]],
@@ -217,6 +272,27 @@ var MOCK = {
 var MOCK_TB_TICKS = (function () {
   var t = []; for (var i = 0; i < 27; i++) t.push(i); t.push(28); return t;
 })();
+
+// Pure: the Juniper checklist — every mock product gets the Digital
+// Product steps with done flags per its tick plan. Returns rows of
+// [Product, Group, Step, Done, Order] for the Checklist tab.
+function generateMockChecklist_() {
+  var steps = TEMPLATES[0][1];
+  var rows = [];
+  MOCK.products.forEach(function (p) {
+    var name = p[0], ticks = p[5];
+    var flags = [];
+    for (var i = 0; i < steps.length; i++) flags.push(false);
+    if (ticks === 'all') { for (var a = 0; a < steps.length; a++) flags[a] = true; }
+    else if (ticks === 'tb') { MOCK_TB_TICKS.forEach(function (ix) { flags[ix] = true; }); }
+    else if (typeof ticks === 'number') { for (var f = 0; f < ticks; f++) flags[f] = true; }
+    for (var st = 0; st < steps.length; st++) {
+      var parsed = parseStep_(steps[st]);
+      rows.push([name, parsed.group, parsed.step, flags[st], st + 1]);
+    }
+  });
+  return rows;
+}
 /**
  * Column & Co. — The Workbench v1.0
  * 01 · Helpers — styling utilities + the theme registry.
@@ -515,7 +591,9 @@ function buildWorkbook(mode) {
     [TABS.CONFIG,       function () { buildConfig_(sheets[TABS.CONFIG]); }],
     [TABS.SCHEMA,       function () { buildSchema_(sheets[TABS.SCHEMA], mode); }],
     [TABS.CHANNELS,     function () { buildChannels_(sheets[TABS.CHANNELS]); }],
+    [TABS.TEMPLATES,    function () { buildTemplates_(sheets[TABS.TEMPLATES]); }],
     [TABS.PRODUCTS,     function () { buildProducts_(sheets[TABS.PRODUCTS], mode); }],
+    [TABS.CHECKLIST,    function () { buildChecklist_(sheets[TABS.CHECKLIST], mode); }],
     [TABS.SALES,        function () { buildSalesLog_(sheets[TABS.SALES], mode); }],
     [TABS.MARKETING,    function () { buildMarketingLog_(sheets[TABS.MARKETING], mode); }],
     [TABS.STATS,        function () { buildStats_(sheets[TABS.STATS], mode); }],
@@ -584,7 +662,9 @@ function setNamedRanges_(ss) {
     'cc_palettes':         TABS.CONFIG + '!A3:I26',
     'cc_products_list':    TABS.PRODUCTS + '!B' + PROD.FIRST_ROW + ':B' + PROD_LAST_ROW,
     'cc_products_status':  TABS.PRODUCTS + '!C' + PROD.FIRST_ROW + ':C' + PROD_LAST_ROW,
-    'cc_products_table':   TABS.PRODUCTS + '!A' + PROD.FIRST_ROW + ':AW' + PROD_LAST_ROW,
+    'cc_products_table':   TABS.PRODUCTS + '!A' + PROD.FIRST_ROW + ':O' + PROD_LAST_ROW,
+    'cc_templates_list':   TABS.TEMPLATES + '!B' + TPL.NAME_ROW + ':I' + TPL.NAME_ROW,
+    'cc_checklist':        TABS.CHECKLIST + '!A' + CHK.FIRST_ROW + ':F' + CHK_LAST_ROW,
     'cc_channels_list':    TABS.CHANNELS + '!A10:A21',
     'cc_channel_fees':     TABS.CHANNELS + '!A10:C21',
     'cc_sales_log':        TABS.SALES + '!A' + SALES.FIRST_ROW + ':I' + (SALES.FIRST_ROW + SALES_CAPACITY - 1),
@@ -616,13 +696,6 @@ function buildConfig_(sheet) {
   sheet.getRange(3, 1, palRows.length, palHdr.length).setValues(palRows);
 
   sheet.getRange('A40').setValue('active_palette'); sheet.getRange('B40').setValue(DEFAULT_PALETTE);
-
-  // Launch-step template (rows 45+) — reference copy for _Schema/Help.
-  sheet.getRange('A45').setValue('launch_steps');
-  sheet.getRange(46, 1, 1, 2).setValues([['group', 'step']]).setFontWeight('bold');
-  var rows = [];
-  STEP_GROUPS.forEach(function (g) { g[1].forEach(function (st) { rows.push([g[0], st]); }); });
-  sheet.getRange(47, 1, rows.length, 2).setValues(rows);
 }
 
 // ── _Schema — LLM-readable plain-English description (the wedge) ───────
@@ -638,10 +711,14 @@ function buildSchema_(sheet, mode) {
     '',
     'Tabs:',
     '  • Products — the master table. One row per product (' + PRODUCT_CAPACITY + ' slots):',
-    '    name, status, price, listing URL, dates, then 30 launch-step',
-    '    checkboxes (BUILD/QA/ASSETS/LISTING/POST) plus 5 custom step',
-    '    columns, then computed Progress, Next step, Days to target, and',
-    '    Days since last sale. Progress counts the 30 fixed steps only.',
+    '    name, status, template, price, listing URL, dates, then computed',
+    '    Progress, Next step, Days to target, and Days since last sale.',
+    '  • Checklist — every product\'s launch steps in long format: one row',
+    '    per step (Product, Group, Step, Done checkbox, order). Each product',
+    '    runs its own process — add, reword, or delete rows freely.',
+    '  • Templates — the process library (' + TEMPLATE_SLOTS + ' slots × up to ' + STEPS_PER_TEMPLATE + ' steps).',
+    '    Add Product copies a template\'s steps to the Checklist; Save Steps',
+    '    as Template writes a product\'s checklist back into the library.',
     '  • Sales Log — one row when money lands. Columns: Date, Product,',
     '    Channel, Units, Gross, Fees, Net, Notes, Month. When Fees is blank,',
     '    Net computes from the Channels fee defaults.',
@@ -649,6 +726,7 @@ function buildSchema_(sheet, mode) {
     '  • Stats — optional: per product per month, Views / Favorites / Orders',
     '    typed from shop stats. Powers the conversion funnel.',
     '  • Channels — fee defaults per sales channel (editable).',
+    '  • Progress = done steps ÷ that product\'s own step count.',
     '  • Pipeline — computed board: stage counts, in-flight ranking, next',
     '    actions. Nothing is typed here.',
     '  • Product View — one product picked by dropdown: trend, channel',
@@ -707,62 +785,75 @@ function buildChannels_(sheet) {
   setColWidths_(sheet, [140, 80, 110, 70, 320, 40, 40, 40]);
 }
 
-// ── Products — the master table (the only wide tab) ───────────────────
+// ── Templates — the process library (8 columns × 50 step slots) ──────
+function buildTemplates_(sheet) {
+  chrome_(sheet, TABS.TEMPLATES, 'I');
+  var r = titleRow_(sheet, 'I', 'Templates',
+    'Your process library. Add Product copies a column into the Checklist; Save Steps as Template adds new columns here.');
+
+  // Name row (9) + live step-count row (10) + step slots (11-60).
+  setCell_(sheet, 'A' + TPL.NAME_ROW, { value: 'Process', font: FONT.BODY, size: 10, bold: true, color: BRAND.BODY, v: 'middle' });
+  for (var t = 0; t < TEMPLATE_SLOTS; t++) {
+    var col = TPL.FIRST_COL + t;
+    var colL = columnToLetter_(col);
+    sheet.getRange(TPL.COUNT_ROW, col).setFormula(
+      '=IF(' + colL + '$' + TPL.NAME_ROW + '="","",COUNTA(' + colL + '$' + TPL.FIRST_STEP_ROW + ':' + colL + '$' + TPL_LAST_STEP_ROW + ')&" steps")')
+      .setFontColor(BRAND.CAPTION).setFontSize(9).setFontFamily(FONT.BODY).setHorizontalAlignment('center');
+  }
+  // slot numbers down col A
+  var nums = [];
+  for (var n = 1; n <= STEPS_PER_TEMPLATE; n++) nums.push([n]);
+  sheet.getRange(TPL.FIRST_STEP_ROW, 1, STEPS_PER_TEMPLATE, 1).setValues(nums)
+    .setFontColor(BRAND.CAPTION).setFontSize(8).setHorizontalAlignment('center');
+
+  // Seed the four starters (BOTH modes — a settings library, like Channels).
+  for (var i = 0; i < TEMPLATES.length; i++) {
+    var col2 = TPL.FIRST_COL + i;
+    sheet.getRange(TPL.NAME_ROW, col2).setValue(TEMPLATES[i][0]);
+    var steps = TEMPLATES[i][1].map(function (st) { return [st]; });
+    sheet.getRange(TPL.FIRST_STEP_ROW, col2, steps.length, 1).setValues(steps);
+  }
+  // Yellow editable region: names + every step slot.
+  sheet.getRange(TPL.NAME_ROW, TPL.FIRST_COL, 1, TEMPLATE_SLOTS).setBackground(BRAND.YELLOW)
+    .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(11)
+    .setBorder(true, true, true, true, true, true, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
+  sheet.getRange(TPL.FIRST_STEP_ROW, TPL.FIRST_COL, STEPS_PER_TEMPLATE, TEMPLATE_SLOTS)
+    .setBackground(BRAND.YELLOW).setFontFamily(FONT.BODY).setFontSize(10)
+    .setBorder(true, true, true, true, true, true, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
+
+  var capRow = TPL_LAST_STEP_ROW + 2;
+  setCell_(sheet, 'A' + capRow, {
+    value: 'Step cells read GROUP · Step name (the middle dot keeps the grouping). Edit anything — templates only matter at the moment Add Product copies one.',
+    merge: 'I' + capRow, font: FONT.BODY, size: 10, italic: true, color: BRAND.CAPTION, wrap: true });
+
+  footer_(sheet, capRow + 2, 'I');
+  SpreadsheetApp.flush();
+  try { sheet.setFrozenRows(TPL.COUNT_ROW); } catch (e) {}
+  setColWidths_(sheet, [50, 200, 200, 200, 200, 200, 200, 200, 200]);
+}
+
+// ── Products — identity + computed columns (slim; the steps live on
+// the Checklist tab in long format) ────────────────────────────────────
 function buildProducts_(sheet, mode) {
   // clear() does not remove a basic filter and a second createFilter throws
   var existingFilter = sheet.getFilter();
   if (existingFilter) existingFilter.remove();
-  var LAST_COL = PROD.COL_LISTED_HELPER;            // 49 (AW)
-  // 49 columns > the 26-column default grid — grow it BEFORE any write.
-  ensureGrid_(sheet, PROD_LAST_ROW + 5, LAST_COL);
-  var lastColLetter = columnToLetter_(LAST_COL);
+  var lastColLetter = columnToLetter_(PROD.COL_LISTED_HELPER);   // O
   chrome_(sheet, TABS.PRODUCTS, lastColLetter);
   titleRow_(sheet, lastColLetter, 'Products',
-    'The master table. One row per product — name it, price it, tick the steps as you go. ' + PRODUCT_CAPACITY + ' slots.');
+    'The master table. Add products with 💳 → Add Product… and tick their steps on the Checklist tab. ' + PRODUCT_CAPACITY + ' slots.');
 
-  // Group band (row 9): identity spacer + five colored group bands +
-  // CUSTOM + COMPUTED.
-  var band = PROD.HEADER_BAND_ROW;
-  sheet.getRange(band, 1, 1, 8).merge().setBackground(BRAND.CREAM);
-  themable_(sheet.getName(), 'section', sheet.getRange(band, 1, 1, 8).getA1Notation());
-  var col = PROD.COL_STEP_FIRST;
-  for (var g = 0; g < STEP_GROUPS.length; g++) {
-    var width = STEP_GROUPS[g][1].length;
-    setCell_(sheet, sheet.getRange(band, col).getA1Notation(), {
-      value: STEP_GROUPS[g][0], merge: sheet.getRange(band, col + width - 1).getA1Notation(),
-      font: FONT.BODY, size: 9, bold: true, color: BRAND.PARCHMENT, bg: BRAND.GROUP_FILLS[g],
-      h: 'center', v: 'middle' });
-    col += width;
-  }
-  setCell_(sheet, sheet.getRange(band, PROD.COL_CUSTOM_FIRST).getA1Notation(), {
-    value: 'CUSTOM', merge: sheet.getRange(band, PROD.COL_CUSTOM_FIRST + CUSTOM_STEP_SLOTS - 1).getA1Notation(),
-    font: FONT.BODY, size: 9, bold: true, color: BRAND.BODY, bg: BRAND.YELLOW, h: 'center', v: 'middle' });
-  setCell_(sheet, sheet.getRange(band, PROD.COL_PROGRESS).getA1Notation(), {
-    value: 'COMPUTED', merge: sheet.getRange(band, PROD.COL_STALE).getA1Notation(),
-    font: FONT.BODY, size: 9, bold: true, color: BRAND.GOLD, bg: BRAND.CREAM, h: 'center', v: 'middle' });
-
-  // Header row (10): identity + rotated step names + computed labels.
-  var hdrRow = PROD.HEADER_ROW;
-  sheet.getRange(hdrRow, 1, 1, 8).setValues([[
-    '#', 'Product', 'Status', 'Price', 'Listing URL', 'Target date', 'Launched', 'Notes']])
+  var hdrRow = PROD.HEADER_ROW;   // 9
+  sheet.getRange(hdrRow, 1, 1, 13).setValues([[
+    '#', 'Product', 'Status', 'Template', 'Price', 'Listing URL',
+    'Target date', 'Launched', 'Notes', 'Progress', 'Next step',
+    'Days to target', 'Days since sale']])
     .setFontWeight('bold').setFontColor(BRAND.PARCHMENT).setBackground(BRAND.FOREST)
     .setFontFamily(FONT.BODY).setFontSize(10);
-  themable_(sheet.getName(), 'primary', sheet.getRange(hdrRow, 1, 1, 8).getA1Notation());
-  sheet.getRange(hdrRow, PROD.COL_STEP_FIRST, 1, STEP_COUNT).setValues([STEPS])
-    .setFontFamily(FONT.BODY).setFontSize(8).setFontColor(BRAND.BODY)
-    .setTextRotation(90).setVerticalAlignment('bottom').setHorizontalAlignment('center');
-  var customHdrs = [];
-  for (var cs = 1; cs <= CUSTOM_STEP_SLOTS; cs++) customHdrs.push('Custom ' + cs);
-  sheet.getRange(hdrRow, PROD.COL_CUSTOM_FIRST, 1, CUSTOM_STEP_SLOTS).setValues([customHdrs])
-    .setFontFamily(FONT.BODY).setFontSize(8).setFontColor(BRAND.BODY)
-    .setBackground(BRAND.YELLOW).setTextRotation(90).setVerticalAlignment('bottom').setHorizontalAlignment('center');
-  sheet.getRange(hdrRow, PROD.COL_PROGRESS, 1, 4).setValues([['Progress', 'Next step', 'Days to target', 'Days since sale']])
-    .setFontWeight('bold').setFontColor(BRAND.BODY).setFontFamily(FONT.BODY).setFontSize(9);
-  sheet.setRowHeight(hdrRow, 110);
+  themable_(sheet.getName(), 'primary', sheet.getRange(hdrRow, 1, 1, 13).getA1Notation());
 
   var first = PROD.FIRST_ROW, n = PRODUCT_CAPACITY;
 
-  // Identity columns: # auto, yellow name, status dropdown, price/url/dates.
   sheet.getRange(first, PROD.COL_NUM, n, 1)
     .setFormulaR1C1('=IF(RC2="","",ROW()-' + (first - 1) + ')')
     .setFontColor(BRAND.CAPTION).setFontSize(9);
@@ -771,32 +862,35 @@ function buildProducts_(sheet, mode) {
   var statusRule = SpreadsheetApp.newDataValidation()
     .requireValueInList(PRODUCT_STATUSES, true).build();
   sheet.getRange(first, PROD.COL_STATUS, n, 1).setDataValidation(statusRule);
+  var ss = SpreadsheetApp.getActive();
+  var tplRule = SpreadsheetApp.newDataValidation()
+    .requireValueInRange(ss.getRangeByName('cc_templates_list') ||
+      ss.getRange("'" + TABS.TEMPLATES + "'!B" + TPL.NAME_ROW + ':I' + TPL.NAME_ROW), true)
+    .setAllowInvalid(true).build();
+  sheet.getRange(first, PROD.COL_TEMPLATE, n, 1).setDataValidation(tplRule)
+    .setFontColor(BRAND.CAPTION).setFontSize(10);
   sheet.getRange(first, PROD.COL_PRICE, n, 1).setNumberFormat('$#,##0.00').setBackground(BRAND.YELLOW);
   sheet.getRange(first, PROD.COL_URL, n, 1).setBackground(BRAND.YELLOW);
   sheet.getRange(first, PROD.COL_TARGET, n, 2).setNumberFormat('mmm d, yyyy').setBackground(BRAND.YELLOW);
   sheet.getRange(first, PROD.COL_NOTES, n, 1).setBackground(BRAND.YELLOW);
 
-  // Checklist: real checkboxes across fixed + custom step columns —
-  // slabbed (8,750 cells in one mutation chokes the Sheets backend).
-  forEachSlab_(first, n, 50, function (slabStart, slabRows) {
-    sheet.getRange(slabStart, PROD.COL_STEP_FIRST, slabRows, STEP_COUNT + CUSTOM_STEP_SLOTS).insertCheckboxes();
-  });
-
-  // Computed columns — Progress + Next-step run on the 30 fixed steps only.
-  // Built as per-column formula arrays and written in ONE setFormulas call
-  // each (250 rows x 6 computed columns would be 1,500 slow per-cell calls).
-  var stepFirstL = columnToLetter_(PROD.COL_STEP_FIRST);                       // I
-  var stepLastL = columnToLetter_(PROD.COL_STEP_FIRST + STEP_COUNT - 1);       // AL
+  // Computed columns over the Checklist (each product's OWN step count).
+  var chk = "'" + TABS.CHECKLIST + "'";
+  var chkProd = chk + '!$A$' + CHK.FIRST_ROW + ':$A$' + CHK_LAST_ROW;
+  var chkStep = chk + '!$C$' + CHK.FIRST_ROW + ':$C$' + CHK_LAST_ROW;
+  var chkDone = chk + '!$D$' + CHK.FIRST_ROW + ':$D$' + CHK_LAST_ROW;
+  var chkOrder = chk + '!$E$' + CHK.FIRST_ROW + ':$E$' + CHK_LAST_ROW;
+  var chkKey = chk + '!$F$' + CHK.FIRST_ROW + ':$F$' + CHK_LAST_ROW;
   var progL = columnToLetter_(PROD.COL_PROGRESS);
   var fProgress = [], fNext = [], fDays = [], fStale = [], fRank = [], fListed = [];
   for (var pr = 0; pr < n; pr++) {
     var rr = first + pr;
-    fProgress.push(['=IF($B' + rr + '="","",COUNTIF($' + stepFirstL + rr + ':$' + stepLastL + rr + ',TRUE)/' + STEP_COUNT + ')']);
-    fNext.push(['=IF($B' + rr + '="","",IFERROR(INDEX($' + stepFirstL + '$' + hdrRow + ':$' + stepLastL + '$' + hdrRow + ',1,MATCH(FALSE,$' + stepFirstL + rr + ':$' + stepLastL + rr + ',FALSE)),"Done"))']);
-    fDays.push(['=IF(OR($B' + rr + '="",$F' + rr + '=""),"",$F' + rr + '-TODAY())']);
+    fProgress.push(['=IF($B' + rr + '="","",IF(COUNTIF(' + chkProd + ',$B' + rr + ')=0,"",COUNTIFS(' + chkProd + ',$B' + rr + ',' + chkDone + ',TRUE)/COUNTIF(' + chkProd + ',$B' + rr + ')))']);
+    fNext.push(['=IF($B' + rr + '="","",IF(COUNTIF(' + chkProd + ',$B' + rr + ')=0,"add steps — 💳 → Add Product",IF(COUNTIFS(' + chkProd + ',$B' + rr + ',' + chkDone + ',FALSE)=0,"Done",IFERROR(INDEX(' + chkStep + ',MATCH($B' + rr + '&"|"&MINIFS(' + chkOrder + ',' + chkProd + ',$B' + rr + ',' + chkDone + ',FALSE),' + chkKey + ',0)),"—"))))']);
+    fDays.push(['=IF(OR($B' + rr + '="",$G' + rr + '=""),"",$G' + rr + '-TODAY())']);
     fStale.push(['=IF(OR($B' + rr + '="",$C' + rr + '<>"Listed"),"",IFERROR(TODAY()-MAXIFS(\'' + TABS.SALES + '\'!$A:$A,\'' + TABS.SALES + '\'!$B:$B,$B' + rr + '),""))']);
-    fRank.push(['=IF(OR($B' + rr + '="",$C' + rr + '="Listed",$C' + rr + '="Retired"),"",' + progL + rr + '+ROW()/1000000)']);
-    fListed.push(['=IF(AND($B' + rr + '<>"",$C' + rr + '="Listed",$G' + rr + '<>""),$G' + rr + '+ROW()/1000000,"")']);
+    fRank.push(['=IF(OR($B' + rr + '="",$C' + rr + '="Listed",$C' + rr + '="Retired"),"",N(' + progL + rr + ')+ROW()/1000000)']);
+    fListed.push(['=IF(AND($B' + rr + '<>"",$C' + rr + '="Listed",$H' + rr + '<>""),$H' + rr + '+ROW()/1000000,"")']);
   }
   forEachSlab_(first, n, 50, function (slabStart, slabRows) {
     var off = slabStart - first;
@@ -826,7 +920,7 @@ function buildProducts_(sheet, mode) {
     .setBackground(BRAND.CHIP_ON_BG).setFontColor(BRAND.CANOPY).setBold(true).setRanges([daysRange]).build());
   sheet.setConditionalFormatRules(rules);
 
-  // Mock catalog — names, statuses, dates, prices, ticks.
+  // Mock catalog — identity rows; steps land on the Checklist tab.
   if (mode === 'mock') {
     var today = new Date();
     for (var i = 0; i < MOCK.products.length; i++) {
@@ -834,6 +928,7 @@ function buildProducts_(sheet, mode) {
       var row = first + i;
       sheet.getRange(row, PROD.COL_NAME).setValue(p[0]);
       sheet.getRange(row, PROD.COL_STATUS).setValue(p[1]);
+      sheet.getRange(row, PROD.COL_TEMPLATE).setValue(DEFAULT_TEMPLATE);
       if (p[2] != null) sheet.getRange(row, PROD.COL_PRICE).setValue(p[2]);
       if (p[1] === 'Listed') {
         sheet.getRange(row, PROD.COL_URL).setValue('etsy.com/listing/junipr-' + (i + 1));
@@ -845,39 +940,70 @@ function buildProducts_(sheet, mode) {
         sheet.getRange(row, PROD.COL_TARGET).setValue(
           new Date(today.getFullYear(), today.getMonth(), today.getDate() + p[4]));
       }
-      // ticks: 'all' = all 30 · 'tb' = the Teacher Bundle plan · number =
-      // first N steps · array = explicit indices
-      var ticks = p[5];
-      var flags = [];
-      for (var s = 0; s < STEP_COUNT; s++) flags.push(false);
-      if (ticks === 'all') { for (var a = 0; a < STEP_COUNT; a++) flags[a] = true; }
-      else if (ticks === 'tb') { MOCK_TB_TICKS.forEach(function (ix) { flags[ix] = true; }); }
-      else if (typeof ticks === 'number') { for (var f = 0; f < ticks; f++) flags[f] = true; }
-      sheet.getRange(row, PROD.COL_STEP_FIRST, 1, STEP_COUNT).setValues([flags]);
     }
   }
 
-  // Layout: freeze identity, narrow step columns, hide ranking helpers.
   SpreadsheetApp.flush();
   try { sheet.setFrozenRows(hdrRow); } catch (e) {}
   try { sheet.setFrozenColumns(PROD.COL_STATUS); } catch (e) {}
-  sheet.setColumnWidth(PROD.COL_NUM, 36);
-  sheet.setColumnWidth(PROD.COL_NAME, 185);
-  sheet.setColumnWidth(PROD.COL_STATUS, 86);
-  sheet.setColumnWidth(PROD.COL_PRICE, 70);
-  sheet.setColumnWidth(PROD.COL_URL, 150);
-  sheet.setColumnWidth(PROD.COL_TARGET, 100);
-  sheet.setColumnWidth(PROD.COL_LAUNCHED, 100);
-  sheet.setColumnWidth(PROD.COL_NOTES, 140);
-  sheet.setColumnWidths(PROD.COL_STEP_FIRST, STEP_COUNT + CUSTOM_STEP_SLOTS, 26);
-  sheet.setColumnWidth(PROD.COL_PROGRESS, 70);
-  sheet.setColumnWidth(PROD.COL_NEXT, 170);
-  sheet.setColumnWidth(PROD.COL_DAYS, 86);
-  sheet.setColumnWidth(PROD.COL_STALE, 86);
+  setColWidths_(sheet, [36, 185, 86, 130, 70, 150, 100, 100, 140, 70, 190, 86, 86]);
   sheet.hideColumns(PROD.COL_RANK_HELPER, 2);
   sheet.getRange(PROD.HEADER_ROW, 1, 1 + PRODUCT_CAPACITY, PROD.COL_STALE).createFilter();
 
   footer_(sheet, PROD_LAST_ROW + 2, lastColLetter);
+}
+
+// ── Checklist — every product\'s steps, one row each (the ticking
+// surface; long format scales to any process shape) ───────────────────
+function buildChecklist_(sheet, mode) {
+  var existingFilter = sheet.getFilter();
+  if (existingFilter) existingFilter.remove();
+  ensureGrid_(sheet, CHK.FIRST_ROW + CHECKLIST_CAPACITY + 5, 26);
+
+  chrome_(sheet, TABS.CHECKLIST, 'F');
+  titleRow_(sheet, 'F', 'Checklist',
+    "Every product's steps, one row each. Filter to a product and tick down the list.");
+
+  var headerRow = CHK.HEADER_ROW;   // 9
+  sheet.getRange(headerRow, 1, 1, 6).setValues([['Product', 'Group', 'Step', 'Done', '#', 'Key']])
+    .setFontWeight('bold').setBackground(BRAND.FOREST).setFontColor(BRAND.PARCHMENT)
+    .setFontFamily(FONT.BODY).setFontSize(10);
+  themable_(sheet.getName(), 'primary', sheet.getRange(headerRow, 1, 1, 6).getA1Notation());
+  SpreadsheetApp.flush();
+  try { sheet.setFrozenRows(headerRow); } catch (e) {}
+
+  var firstData = CHK.FIRST_ROW;
+  var rows = (mode === 'mock') ? generateMockChecklist_() : [];
+  if (rows.length) {
+    // cols A-E; the Key col F keeps its prewired formula
+    sheet.getRange(firstData, 1, rows.length, 5).setValues(rows);
+  }
+
+  var ss = SpreadsheetApp.getActive();
+  var prodRule = SpreadsheetApp.newDataValidation()
+    .requireValueInRange(ss.getRangeByName('cc_products_list') ||
+      ss.getRange("'" + TABS.PRODUCTS + "'!B" + PROD.FIRST_ROW + ':B' + PROD_LAST_ROW), true).build();
+  // Checkboxes, validations, order format + Key formula — slabbed.
+  forEachSlab_(firstData, CHECKLIST_CAPACITY, 1000, function (slabStart, slabRows) {
+    sheet.getRange(slabStart, 4, slabRows, 1).insertCheckboxes();
+    sheet.getRange(slabStart, 1, slabRows, 1).setDataValidation(prodRule);
+    sheet.getRange(slabStart, 6, slabRows, 1).setFormulaR1C1('=IF(RC1="","",RC1&"|"&RC5)');
+  });
+  sheet.getRange(firstData, 5, CHECKLIST_CAPACITY, 1).setNumberFormat('#,##0');
+
+  // Re-assert the mock done flags AFTER insertCheckboxes (it resets cells
+  // in some Sheets versions): write the Done column again from the rows.
+  if (rows.length) {
+    var doneCol = rows.map(function (r) { return [r[3]]; });
+    sheet.getRange(firstData, 4, doneCol.length, 1).setValues(doneCol);
+  }
+
+  setColWidths_(sheet, [200, 95, 330, 60, 50, 90]);
+  sheet.hideColumns(6);   // Key is a helper column
+  sheet.getRange(headerRow, 1, 1 + CHECKLIST_CAPACITY, 6).createFilter();
+
+  var capRow = 7;   // caption sits in the title block spacer row 8? keep below header instead
+  setCell_(sheet, 'E8', { value: 'rows are added by 💳 → Add Product…', font: FONT.BODY, size: 9, italic: true, color: BRAND.CAPTION });
 }
 
 // ── Sales Log — the append-only money record (10,000 rows) ────────────
@@ -1239,8 +1365,8 @@ function buildStartHere_(sheet) {
   var steps = [
     ['1', 'Install the Script', 'Extensions → Apps Script → paste the ColumnCo file. A 💳 Column & Co. menu appears.'],
     ['2', 'Check Your Channels', 'Etsy, Shopify, Gumroad fee defaults are seeded. Verify them against your plan.'],
-    ['3', 'Add Your First Product', 'One row on Products. Name it, set a status, tick the steps you have already done.'],
-    ['4', 'Tick Steps As You Build', 'Pipeline computes your stage, progress, and next action from the boxes.'],
+    ['3', 'Add Your First Product', '💳 → Add Product… — name it, pick a process template, and its steps appear on the Checklist.'],
+    ['4', 'Tick Steps As You Build', 'Work down the Checklist. Pipeline computes your stage, progress, and next action from the ticks.'],
     ['5', 'Log Sales As They Land', 'One row each on the Sales Log. Leave Fees blank — Net computes itself.'],
     ['6', 'Read the Dashboard', 'Top products, what needs attention, and what the catalog earned after spend.']
   ];
@@ -1518,7 +1644,7 @@ function buildPipeline_(sheet, mode) {
 }
 
 // ── Product View — one product, every angle, computed on demand ───────
-var PV = { SELECTOR_CELL: 'C10', TREND_HELPER_ROW: 60 };
+var PV = { SELECTOR_CELL: 'C10', TREND_HELPER_ROW: 100 };
 
 function buildProductView_(sheet, mode) {
   chrome_(sheet, TABS.PRODUCT_VIEW, 'L');
@@ -1565,7 +1691,7 @@ function buildProductView_(sheet, mode) {
   sectionLabel_(sheet, 'G' + r, 'L' + r, 'CHANNEL SPLIT · LIFETIME');
   r += 1;
   for (var j = 0; j < 12; j++) {
-    var engCol = 13 + j;   // engine cols 13..24 = trailing 12 months
+    var engCol = 13 + j;
     sheet.getRange(PV.TREND_HELPER_ROW, 2 + j).setFormula(
       '=IF(' + SEL + '="",0,SUMIFS(' + sales + '!$G:$G,' + sales + '!$B:$B,' + SEL + ',' + sales + '!$I:$I,INDEX(cc_engine_months,1,' + engCol + ')))');
   }
@@ -1595,7 +1721,7 @@ function buildProductView_(sheet, mode) {
   }
   r = csStart + CHANNEL_SLOTS + 2;
 
-  // Marketing vs net (Forest strip) + checklist readout
+  // Marketing vs net (Forest strip) + checklist summary
   sheet.getRange(r, 1, 3, 6).setBackground(BRAND.FOREST);
   themable_(sheet.getName(), 'primary', sheet.getRange(r, 1, 3, 6).getA1Notation());
   setCell_(sheet, 'A' + r, { value: 'MARKETING vs NET', merge: 'F' + r, font: FONT.BODY, size: 9.5, bold: true, color: BRAND.GOLD, bg: BRAND.FOREST });
@@ -1611,17 +1737,16 @@ function buildProductView_(sheet, mode) {
     '=IF(OR(' + SEL + '="",' + spendLife + '=0),"—",IF(' + kLife.substring(1) + '>=3*' + spendLife + ',"On Track",IF(' + kLife.substring(1) + '>=' + spendLife + ',"Fair","Over")))');
   statusChipCF_(sheet, verdict.getA1Notation());
 
-  // Checklist readout
+  // Checklist summary (progress + stage) — full list follows below.
   sectionLabel_(sheet, 'H' + r, 'L' + r, 'CHECKLIST POSITION');
   var vlookTable = "'" + TABS.PRODUCTS + "'!$B$" + PROD.FIRST_ROW + ':$' + columnToLetter_(PROD.COL_NEXT) + '$' + PROD_LAST_ROW;
-  var progOffset = PROD.COL_PROGRESS - PROD.COL_NAME + 1;   // VLOOKUP index for Progress
-  var nextOffset = PROD.COL_NEXT - PROD.COL_NAME + 1;
-  setCell_(sheet, 'H' + (r + 1), { formula: '=IF(' + SEL + '="","—",IFERROR(VLOOKUP(' + SEL + ',' + vlookTable + ',2,FALSE),"—"))',
+  var statusOffset = PROD.COL_STATUS - PROD.COL_NAME + 1;
+  var progOffset = PROD.COL_PROGRESS - PROD.COL_NAME + 1;
+  setCell_(sheet, 'H' + (r + 1), { formula: '=IF(' + SEL + '="","—",IFERROR(VLOOKUP(' + SEL + ',' + vlookTable + ',' + statusOffset + ',FALSE),"—"))',
     merge: 'I' + (r + 1), font: FONT.BODY, size: 12, bold: true, color: BRAND.FOREST });
   setCell_(sheet, 'J' + (r + 1), { formula: '=IF(' + SEL + '="","",IFERROR(VLOOKUP(' + SEL + ',' + vlookTable + ',' + progOffset + ',FALSE),""))',
     font: FONT.DISPLAY, size: 16, bold: true, color: BRAND.FOREST, format: '0%' });
-  setCell_(sheet, 'K' + (r + 1), { formula: '=IF(' + SEL + '="","",IFERROR("next: "&VLOOKUP(' + SEL + ',' + vlookTable + ',' + nextOffset + ',FALSE),""))',
-    merge: 'L' + (r + 1), font: FONT.BODY, size: 10.5, color: BRAND.BODY, wrap: true });
+  setCell_(sheet, 'K' + (r + 1), { value: 'full list below ↓', merge: 'L' + (r + 1), font: FONT.BODY, size: 10.5, color: BRAND.CAPTION });
   r += 4;
 
   // Funnel — trailing 3 engine months from the Stats log.
@@ -1631,7 +1756,7 @@ function buildProductView_(sheet, mode) {
     .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
   r += 1;
   for (var fm = 0; fm < 3; fm++) {
-    var engIdx = 22 + fm;   // engine months 22..24 (trailing 3)
+    var engIdx = 22 + fm;
     var mc = 'INDEX(cc_engine_months,1,' + engIdx + ')';
     var fr2 = r + fm;
     sheet.getRange(fr2, 1).setFormula('=' + mc).setNumberFormat('@');
@@ -1642,8 +1767,37 @@ function buildProductView_(sheet, mode) {
     sheet.getRange(fr2, 6).setFormula('=IF(OR($A' + fr2 + '="",N(B' + fr2 + ')=0),"—",ROUND(SUMIFS(' + sales + '!$G:$G,' + sales + '!$B:$B,' + SEL + ',' + sales + '!$I:$I,$A' + fr2 + ')/N(B' + fr2 + ')*100,2))').setNumberFormat('$#,##0.00');
   }
   r += 4;
+
+  // The selected product's FULL checklist — every step, plainly readable.
+  sectionLabel_(sheet, 'A' + r, 'L' + r, 'THE FULL CHECKLIST · SELECTED PRODUCT');
+  r += 1;
+  sheet.getRange(r, 1, 1, 4).setValues([['', 'Group', 'Step', '']])
+    .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
+  r += 1;
+  var chk = "'" + TABS.CHECKLIST + "'";
+  var chkGroup = chk + '!$B$' + CHK.FIRST_ROW + ':$B$' + CHK_LAST_ROW;
+  var chkStep = chk + '!$C$' + CHK.FIRST_ROW + ':$C$' + CHK_LAST_ROW;
+  var chkDone = chk + '!$D$' + CHK.FIRST_ROW + ':$D$' + CHK_LAST_ROW;
+  var chkKey = chk + '!$F$' + CHK.FIRST_ROW + ':$F$' + CHK_LAST_ROW;
+  var listStart = r;
+  for (var st = 1; st <= STEPS_PER_TEMPLATE; st++) {
+    var lr = listStart + st - 1;
+    var keyExpr = SEL + '&"|"&' + st;
+    var matchExpr = 'MATCH(' + keyExpr + ',' + chkKey + ',0)';
+    sheet.getRange(lr, 1).setFormula(
+      '=IF(' + SEL + '="","",IFERROR(IF(INDEX(' + chkDone + ',' + matchExpr + ')=TRUE,"✓","☐"),""))')
+      .setFontSize(12).setHorizontalAlignment('center').setFontColor(BRAND.FOREST);
+    sheet.getRange(lr, 2).setFormula(
+      '=IF(' + SEL + '="","",IFERROR(INDEX(' + chkGroup + ',' + matchExpr + '),""))')
+      .setFontFamily(FONT.BODY).setFontSize(9).setFontColor(BRAND.CAPTION);
+    sheet.getRange(lr, 3, 1, 4).merge();
+    sheet.getRange(lr, 3).setFormula(
+      '=IF(' + SEL + '="","",IFERROR(INDEX(' + chkStep + ',' + matchExpr + '),""))')
+      .setFontFamily(FONT.BODY).setFontSize(11).setFontColor(BRAND.FOREST);
+  }
+  r = listStart + STEPS_PER_TEMPLATE + 1;
   setCell_(sheet, 'A' + r, {
-    value: 'Cash basis from your Sales Log; stats are what you logged. Everything on this tab computes for the selected product only — nothing slows down as the catalog grows.',
+    value: 'Tick the boxes on the Checklist tab — this list mirrors them. Cash basis from your Sales Log; everything computes for the selected product only.',
     merge: 'L' + r, font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION, wrap: true });
 
   footer_(sheet, r + 2, 'L');
@@ -1760,6 +1914,7 @@ function buildMenu_() {
   var ui = SpreadsheetApp.getUi();
   var menu = ui.createMenu(CC.MENU_TITLE);
   menu.addItem('Add Product…', 'addProduct');
+  menu.addItem('Save Steps as Template…', 'saveStepsAsTemplate');
   menu.addItem('Add Channel…', 'addChannel');
   menu.addSeparator();
   menu.addItem('Sort Sales by Date', 'sortSales');
@@ -1903,38 +2058,187 @@ function _applyTheme_custom()        { applyTheme('custom'); }
  * 12 · Catalog utilities (menu items).
  */
 
+// ── Add Product — the intake form (sidebar). Name a product, pick its
+// process template, and its steps land on the Checklist ready to tick. ─
 function addProduct() {
-  var ui = SpreadsheetApp.getUi();
-  var ss = SpreadsheetApp.getActive();
-  var prods = ss.getSheetByName(TABS.PRODUCTS);
-  if (!prods) { ui.alert('Products tab not found.'); return; }
-
-  var resp = ui.prompt('Add Product',
-    'Product name (e.g. "Wedding Suite No. 6"):', ui.ButtonSet.OK_CANCEL);
-  if (resp.getSelectedButton() !== ui.Button.OK) return;
-  var name = String(resp.getResponseText() || '').trim();
-  if (!name) return;
-
-  var range = ss.getRangeByName('cc_products_list') ||
-    prods.getRange('B' + PROD.FIRST_ROW + ':B' + PROD_LAST_ROW);
-  var vals = range.getValues();
-  var target = -1;
-  for (var i = 0; i < vals.length; i++) {
-    if (!vals[i][0]) { target = range.getRow() + i; break; }
-    if (String(vals[i][0]).trim().toLowerCase() === name.toLowerCase()) {
-      ui.alert('"' + name + '" is already on the Products table.');
-      return;
-    }
-  }
-  if (target === -1) {
-    ui.alert('Products table is full. Raise PRODUCT_CAPACITY in the script and rebuild.');
+  var names = listTemplateNames_();
+  if (!names.length) {
+    SpreadsheetApp.getUi().alert('No templates found. Add one on the Templates tab first.');
     return;
   }
+  var options = names.map(function (n) {
+    return '<option value="' + n.replace(/"/g, '&quot;') + '">' + n + '</option>';
+  }).join('');
+  var statusOptions = PRODUCT_STATUSES.map(function (st) {
+    return '<option' + (st === 'Idea' ? ' selected' : '') + '>' + st + '</option>';
+  }).join('');
+  var html = HtmlService.createHtmlOutput(
+    '<div style="font-family:Roboto,Arial,sans-serif;font-size:13px;color:#1C3D2E;padding:10px 6px;line-height:1.5">' +
+    '<h2 style="font-size:15px;margin:0 0 10px">Add Product</h2>' +
+    '<label style="display:block;font-size:11px;color:#4B5F54;margin-bottom:2px">Product name</label>' +
+    '<input id="nm" type="text" style="width:95%;padding:6px;border:1px solid #C5A95A;background:#FFFDE7;margin-bottom:10px">' +
+    '<label style="display:block;font-size:11px;color:#4B5F54;margin-bottom:2px">Process template</label>' +
+    '<select id="tp" style="width:98%;padding:6px;margin-bottom:10px">' + options + '</select>' +
+    '<label style="display:block;font-size:11px;color:#4B5F54;margin-bottom:2px">Status</label>' +
+    '<select id="st" style="width:98%;padding:6px;margin-bottom:10px">' + statusOptions + '</select>' +
+    '<label style="display:block;font-size:11px;color:#4B5F54;margin-bottom:2px">Price (optional)</label>' +
+    '<input id="pr" type="number" step="0.01" style="width:95%;padding:6px;margin-bottom:10px">' +
+    '<label style="display:block;font-size:11px;color:#4B5F54;margin-bottom:2px">Target date (optional)</label>' +
+    '<input id="tg" type="date" style="width:95%;padding:6px;margin-bottom:14px">' +
+    '<button onclick="go()" style="background:#1C3D2E;color:#FAF8F2;border:0;padding:9px 18px;cursor:pointer">Create product</button>' +
+    '<div id="msg" style="margin-top:10px;font-size:11px;color:#4B5F54"></div>' +
+    '<script>' +
+    'function go(){' +
+    '  var d={name:document.getElementById("nm").value,template:document.getElementById("tp").value,' +
+    '         status:document.getElementById("st").value,price:document.getElementById("pr").value,' +
+    '         target:document.getElementById("tg").value};' +
+    '  document.getElementById("msg").textContent="Creating…";' +
+    '  google.script.run.withSuccessHandler(function(m){document.getElementById("msg").textContent=m;' +
+    '    if(m.indexOf("Added")===0){document.getElementById("nm").value="";}})' +
+    '   .withFailureHandler(function(e){document.getElementById("msg").textContent=String(e)})' +
+    '   .createProductFromIntake(d);' +
+    '}' +
+    '</scr' + 'ipt></div>'
+  ).setTitle('Column & Co. · Add Product');
+  SpreadsheetApp.getUi().showSidebar(html);
+}
+
+// Server side of the intake form. Returns a status string for the sidebar.
+function createProductFromIntake(data) {
+  var ss = SpreadsheetApp.getActive();
+  var prods = ss.getSheetByName(TABS.PRODUCTS);
+  var chk = ss.getSheetByName(TABS.CHECKLIST);
+  if (!prods || !chk) return 'Products or Checklist tab not found.';
+  var name = String((data && data.name) || '').trim();
+  if (!name) return 'Type a product name first.';
+
+  // free Products row + duplicate check
+  var nameVals = prods.getRange(PROD.FIRST_ROW, PROD.COL_NAME, PRODUCT_CAPACITY, 1).getValues();
+  var target = -1;
+  for (var i = 0; i < nameVals.length; i++) {
+    if (String(nameVals[i][0]).trim().toLowerCase() === name.toLowerCase()) {
+      return '"' + name + '" is already on the Products table.';
+    }
+    if (target === -1 && !nameVals[i][0]) target = PROD.FIRST_ROW + i;
+  }
+  if (target === -1) return 'Products table is full — raise PRODUCT_CAPACITY and rebuild.';
+
+  // template steps
+  var steps = getTemplateSteps_(String((data && data.template) || ''));
+  if (!steps.length) return 'Template "' + data.template + '" has no steps.';
+
+  // free Checklist block
+  var chkProdVals = chk.getRange(CHK.FIRST_ROW, 1, CHECKLIST_CAPACITY, 1).getValues();
+  var chkFree = -1;
+  for (var c = chkProdVals.length - 1; c >= 0; c--) {
+    if (chkProdVals[c][0]) { chkFree = CHK.FIRST_ROW + c + 1; break; }
+  }
+  if (chkFree === -1) chkFree = CHK.FIRST_ROW;
+  if (chkFree + steps.length - 1 > CHK_LAST_ROW) {
+    return 'Checklist is full — raise CHECKLIST_CAPACITY and rebuild.';
+  }
+
+  // write the product row
   prods.getRange(target, PROD.COL_NAME).setValue(name);
-  prods.getRange(target, PROD.COL_STATUS).setValue('Idea');
-  prods.activate();
-  prods.getRange(target, PROD.COL_STATUS).activate();
-  ss.toast('Added "' + name + '" — set its status and start ticking →', CC.BRAND, 4);
+  prods.getRange(target, PROD.COL_STATUS).setValue(String((data && data.status) || 'Idea'));
+  prods.getRange(target, PROD.COL_TEMPLATE).setValue(String(data.template || ''));
+  if (data && data.price) prods.getRange(target, PROD.COL_PRICE).setValue(Number(data.price));
+  if (data && data.target) {
+    var td = new Date(data.target + 'T00:00:00');
+    if (!isNaN(td.getTime())) prods.getRange(target, PROD.COL_TARGET).setValue(td);
+  }
+
+  // write the checklist block (cols A-E; Key col F is prewired)
+  var rows = steps.map(function (st, ix) {
+    var parsed = parseStep_(st);
+    return [name, parsed.group, parsed.step, false, ix + 1];
+  });
+  chk.getRange(chkFree, 1, rows.length, 5).setValues(rows);
+
+  chk.activate();
+  ss.toast('Added "' + name + '" with ' + rows.length + ' steps — tick them on the Checklist.', CC.BRAND, 5);
+  return 'Added "' + name + '" with ' + rows.length + ' steps.';
+}
+
+// Names across the Templates library row (skips blanks).
+function listTemplateNames_() {
+  var ss = SpreadsheetApp.getActive();
+  var tpl = ss.getSheetByName(TABS.TEMPLATES);
+  if (!tpl) return [];
+  return tpl.getRange(TPL.NAME_ROW, TPL.FIRST_COL, 1, TEMPLATE_SLOTS).getValues()[0]
+    .map(function (v) { return String(v || '').trim(); })
+    .filter(Boolean);
+}
+
+// 'GROUP · Step' strings for one template column.
+function getTemplateSteps_(templateName) {
+  var ss = SpreadsheetApp.getActive();
+  var tpl = ss.getSheetByName(TABS.TEMPLATES);
+  if (!tpl) return [];
+  var names = tpl.getRange(TPL.NAME_ROW, TPL.FIRST_COL, 1, TEMPLATE_SLOTS).getValues()[0];
+  var col = -1;
+  for (var i = 0; i < names.length; i++) {
+    if (String(names[i]).trim().toLowerCase() === String(templateName).trim().toLowerCase()) {
+      col = TPL.FIRST_COL + i; break;
+    }
+  }
+  if (col === -1) return [];
+  return tpl.getRange(TPL.FIRST_STEP_ROW, col, STEPS_PER_TEMPLATE, 1).getValues()
+    .map(function (r2) { return String(r2[0] || '').trim(); })
+    .filter(Boolean);
+}
+
+// ── Save Steps as Template — a product's current checklist becomes a
+// reusable process in the library ("melds into the system"). ──────────
+function saveStepsAsTemplate() {
+  var ui = SpreadsheetApp.getUi();
+  var resp1 = ui.prompt('Save Steps as Template',
+    'Which product\'s steps? (exact name from the Products table)', ui.ButtonSet.OK_CANCEL);
+  if (resp1.getSelectedButton() !== ui.Button.OK) return;
+  var product = String(resp1.getResponseText() || '').trim();
+  if (!product) return;
+  var resp2 = ui.prompt('Save Steps as Template',
+    'Name the new template:', ui.ButtonSet.OK_CANCEL);
+  if (resp2.getSelectedButton() !== ui.Button.OK) return;
+  var tplName = String(resp2.getResponseText() || '').trim();
+  if (!tplName) return;
+  var msg = saveStepsAsTemplateCore_(product, tplName);
+  SpreadsheetApp.getActive().toast(msg, CC.BRAND, 5);
+}
+
+function saveStepsAsTemplateCore_(product, tplName) {
+  var ss = SpreadsheetApp.getActive();
+  var chk = ss.getSheetByName(TABS.CHECKLIST);
+  var tpl = ss.getSheetByName(TABS.TEMPLATES);
+  if (!chk || !tpl) return 'Checklist or Templates tab not found.';
+
+  var existing = listTemplateNames_();
+  for (var e = 0; e < existing.length; e++) {
+    if (existing[e].toLowerCase() === tplName.toLowerCase()) {
+      return '"' + tplName + '" already exists in the library.';
+    }
+  }
+  if (existing.length >= TEMPLATE_SLOTS) {
+    return 'Template library is full — raise TEMPLATE_SLOTS and rebuild, or clear a column.';
+  }
+
+  // collect the product's steps in order
+  var data = chk.getRange(CHK.FIRST_ROW, 1, CHECKLIST_CAPACITY, 5).getValues();
+  var steps = [];
+  for (var r = 0; r < data.length; r++) {
+    if (String(data[r][0]).trim() === product) {
+      steps.push({ order: Number(data[r][4]) || steps.length + 1, group: String(data[r][1] || 'GENERAL'), step: String(data[r][2] || '') });
+    }
+  }
+  if (!steps.length) return 'No checklist rows found for "' + product + '".';
+  if (steps.length > STEPS_PER_TEMPLATE) steps = steps.slice(0, STEPS_PER_TEMPLATE);
+  steps.sort(function (a, b) { return a.order - b.order; });
+
+  var col = TPL.FIRST_COL + existing.length;   // next free library column
+  tpl.getRange(TPL.NAME_ROW, col).setValue(tplName);
+  tpl.getRange(TPL.FIRST_STEP_ROW, col, steps.length, 1).setValues(
+    steps.map(function (st) { return [st.group + ' · ' + st.step]; }));
+  return 'Saved "' + tplName + '" (' + steps.length + ' steps) to the Templates library.';
 }
 
 function addChannel() {
@@ -2039,9 +2343,11 @@ function openHelpSidebar() {
     '<h2 style="font-size:16px;margin:0 0 4px">The Workbench · Quick Reference</h2>' +
     '<p style="color:#4B5F54">A portfolio command deck you own. Six steps on Start Here get you running.</p>' +
     '<h3 style="font-size:13px;margin:14px 0 4px">The weekly five minutes</h3>' +
-    '<p style="color:#4B5F54">Log a Sales Log row when money lands (leave Fees blank — Net computes from your Channels defaults). Tick Products checkboxes as launch steps finish. Once a month, add a Stats row per listed product if you want the funnel.</p>' +
+    '<p style="color:#4B5F54">Log a Sales Log row when money lands (leave Fees blank — Net computes from your Channels defaults). Tick Checklist boxes as launch steps finish. Once a month, add a Stats row per listed product if you want the funnel.</p>' +
     '<h3 style="font-size:13px;margin:14px 0 4px">Reading the deck</h3>' +
     '<p style="color:#4B5F54">Pipeline shows stage counts, in-flight progress, and the next action per product. Dashboard shows top products and net after marketing spend. Product View answers scale / watch / retire for any one product — pick it from the dropdown.</p>' +
+    '<h3 style="font-size:13px;margin:14px 0 4px">Your process, your steps</h3>' +
+    '<p style="color:#4B5F54">Add Product… copies a Templates-tab column into the Checklist. Edit any product\'s steps freely, then Save Steps as Template… to reuse that process forever. Four starter templates ship in the library.</p>' +
     '<h3 style="font-size:13px;margin:14px 0 4px">Scaling up</h3>' +
     '<p style="color:#4B5F54">250 product slots, 10,000 sales rows out of the box. Need more? Raise the capacity constants at the top of the script and rerun Setup → Build workbook.</p>' +
     '<h3 style="font-size:13px;margin:14px 0 4px">Themes</h3>' +

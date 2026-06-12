@@ -1,13 +1,13 @@
 # 02 · Tab Architecture — The Workbench v1
 
-13 tabs (10 visible + 3 system). Standard brand chrome rows 1–5, title
+15 tabs (12 visible + 3 system). Standard brand chrome rows 1–5, title
 block rows 6–8, exactly as Foundation/Ledger `chrome_()` / `titleRow_()`
 build them. Reuse those helpers unchanged.
 
 **Tab order (bottom strip):**
 Start Here · Dashboard · Pipeline · Product View · Trends · Sales Log ·
-Marketing Log · Stats · Products · Channels · _Engine · _Config (hidden) ·
-_Schema (hidden)
+Marketing Log · Stats · Products · Checklist · Templates · Channels ·
+_Engine · _Config (hidden) · _Schema (hidden)
 
 Reuse legend: **[REUSE]** = lift the Foundation/Ledger pattern with renames
 only. **[ADAPT]** = existing pattern, modified per spec. **[NEW]** = no
@@ -112,24 +112,42 @@ Favorites · Orders · Notes`
 - Capacity 3,000 rows. Feeds Product View funnel + a Dashboard caption.
   Skipping it breaks nothing — every consumer IFERRORs to em-dash states.
 
-## 9 · Products — [NEW] (the master table — the only wide tab)
-One row per product. **This is where the checklist lives** — steps as
-grouped checkbox COLUMNS so the table scales by adding rows.
-- Identity block (frozen): `# (auto) · Product (yellow) · Status (dropdown:
-  Idea / Building / QA / Assets / Listing / Listed / Retired) · Price ·
-  Listing URL · Target date · Launched date · Notes`
-- **Checklist block**: 30 checkbox columns under five group header bands —
-  BUILD (8) · QA (6) · ASSETS (6) · LISTING (5) · POST (5) — plus 5 custom
-  step columns with yellow header labels. Real checkboxes (data-validation
-  checkbox), step names in 03. The owner renames custom headers freely.
-- **Computed block** (right edge, locked): Progress % (= ticked ÷ 35
-  applicable) · Next step (first unchecked step's name via MATCH against
-  the header row) · Days to target (chip).
-- Capacity `PRODUCT_CAPACITY` = **250 rows** (data rows 11–260; header
-  bands rows 9–10). Frozen columns through Status; frozen rows through the
-  header. Filter on.
-- Named ranges: `cc_products_list` (names col), `cc_products_status`,
-  `cc_products_table`.
+## 9 · Products — [NEW] (the master table, slim)
+One row per product — identity + computed; the steps live on the Checklist.
+- Identity (frozen): `# (auto) · Product (yellow) · Status (dropdown: Idea /
+  Building / QA / Assets / Listing / Listed / Retired) · Template
+  (dropdown from the library, informational) · Price · Listing URL ·
+  Target date · Launched date · Notes`
+- **Computed block** (locked): Progress % (= done ÷ that product's OWN
+  step count from the Checklist) · Next step (first unchecked by order,
+  via MINIFS + a Product|order key match) · Days to target (chip CF:
+  On Track ≥ 7 · Fair 0–6 · Over past) · Days since last sale · two
+  hidden ranking helpers for Pipeline.
+- Capacity `PRODUCT_CAPACITY` = **250 rows** (data rows 10–259). Filter on,
+  identity frozen. Products are created by the intake form (💳 → Add
+  Product…), which also writes their checklist.
+
+## 9b · Checklist — [NEW] (long format — the ticking surface)
+One row per product × step: `Product (dropdown) · Group · Step · Done
+(checkbox) · # (order) · Key (hidden, =Product&"|"&order)`. Header row 9,
+data rows 10+, capacity `CHECKLIST_CAPACITY` = **7,500 rows**, filter +
+frozen header.
+- Rows are created by Add Product… from a template. The owner can reword,
+  insert, or delete rows per product freely — that IS the per-product
+  process customization. Steps are full-text rows (the legibility fix).
+- Filter to one product to tick down its list.
+
+## 9c · Templates — [NEW] (the process library)
+Templates as columns: names row 9 (yellow), up to **50 step cells** per
+column (rows 11–60), `TEMPLATE_SLOTS` = **8** columns. Step cells read
+`GROUP · Step name` (split on the first middle dot; no dot ⇒ GENERAL).
+- Seeded in BOTH modes with four starters: **Digital Product** (30 steps,
+  the default) · **Physical / Handmade** (28) · **Service / Custom Order**
+  (20) · **Quick List** (10).
+- `Add Product…` (sidebar intake form: name, template, status, price,
+  target) copies the chosen column into the Checklist. `Save Steps as
+  Template…` writes a product's current checklist into the next free
+  column — new processes meld into the library.
 
 ## 10 · Channels — [REUSE registry pattern]
 Rows 10–21 (12 slots): `Channel · Fee % · Flat fee/order · Active · Notes`.

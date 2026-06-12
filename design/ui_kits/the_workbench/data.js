@@ -5,23 +5,40 @@
    harness): portfolio net ramps ~$940 → ~$2,100/mo · Wedding Suite No. 4
    ≈ 60% of lifetime net at ROAS ≈ 4 · Minimal Budget Sheets ad spend
    exceeds lifetime net (ROAS < 0.5) · Recipe Card Set views +40% while
-   conversion halves · progress = ticked ÷ 30 fixed steps.
+   conversion halves · progress = done steps ÷ that product's own list.
    ===================================================================== */
 
 window.CC_DATA = {
   owner: { shop: 'Juniper Paper Co.', name: 'Jules Hartley', month: 'June 2026' },
 
-  // The 30-step launch template (groups → steps), fixed order.
-  step_groups: [
-    { group: 'BUILD',   steps: ['Handoff folder written', 'Brief approved', 'Tab specs locked', 'Data model locked', 'UI kit mocked', 'Visual approval', 'Script written', 'Static verification green'] },
-    { group: 'QA',      steps: ['Mock build clean', 'Blank build clean', 'Flow test', 'Theme pass (3 palettes)', 'xlsx exports', 'Brand-voice read-through'] },
-    { group: 'ASSETS',  steps: ['Screenshots (hero order)', 'Watermarks applied', 'Thumbnail', 'Listing copy drafted', 'Tags + SEO list', 'Price set'] },
-    { group: 'LISTING', steps: ['Listing created', 'Files attached', 'Preview checked', 'Published', 'URL logged here'] },
-    { group: 'POST',    steps: ['First-sale check', 'Review request sent', 'Week-1 stats logged', 'Retro note written', 'Next-version ideas filed'] },
+  // The process-template library (Templates tab). Digital Product shown
+  // in full; products can each run a different template via Add Product.
+  templates: [
+    { name: 'Digital Product', count: 30, steps: [
+      { group: 'BUILD', step: 'Concept locked' }, { group: 'BUILD', step: 'Scope written' },
+      { group: 'BUILD', step: 'Draft built' }, { group: 'BUILD', step: 'Self-review pass' },
+      { group: 'BUILD', step: 'Revisions done' }, { group: 'BUILD', step: 'Final files exported' },
+      { group: 'BUILD', step: 'Files named cleanly' }, { group: 'BUILD', step: 'Folder organized' },
+      { group: 'QA', step: 'Fresh-eyes test' }, { group: 'QA', step: 'Print + device preview' },
+      { group: 'QA', step: 'Links + text proofread' }, { group: 'QA', step: 'Test download as a buyer' },
+      { group: 'QA', step: 'Fix pass' }, { group: 'QA', step: 'Final check' },
+      { group: 'ASSETS', step: 'Screenshots (hero order)' }, { group: 'ASSETS', step: 'Watermarks applied' },
+      { group: 'ASSETS', step: 'Thumbnail' }, { group: 'ASSETS', step: 'Listing copy drafted' },
+      { group: 'ASSETS', step: 'Tags + SEO list' }, { group: 'ASSETS', step: 'Price set' },
+      { group: 'LISTING', step: 'Listing created' }, { group: 'LISTING', step: 'Files attached' },
+      { group: 'LISTING', step: 'Preview checked' }, { group: 'LISTING', step: 'Published' },
+      { group: 'LISTING', step: 'URL logged here' },
+      { group: 'POST', step: 'First-sale check' }, { group: 'POST', step: 'Review request sent' },
+      { group: 'POST', step: 'Week-1 stats logged' }, { group: 'POST', step: 'Retro note written' },
+      { group: 'POST', step: 'Next-version ideas filed' },
+    ]},
+    { name: 'Physical / Handmade', count: 28 },
+    { name: 'Service / Custom Order', count: 20 },
+    { name: 'Quick List', count: 10 },
   ],
 
-  // Products — ticks = how many of the 30 fixed steps are done (prefix
-  // ticks except Teacher Bundle, which skips two POST steps).
+  // Products — ticks = done steps on each product's own checklist (all
+  // eight run Digital Product; Teacher Bundle skips two POST steps).
   products: [
     { name: 'Wedding Suite No. 4',   status: 'Listed',   price: 24, ticks: 30, next: 'Done',                      launchedAgo: '12 mo', target: null,  netLife: 7253, unitsLife: 344, stale: 1 },
     { name: 'Everyday Planner Kit',  status: 'Listed',   price: 16, ticks: 30, next: 'Done',                      launchedAgo: '10 mo', target: null,  netLife: 2588, unitsLife: 184, stale: 2 },
@@ -29,8 +46,8 @@ window.CC_DATA = {
     { name: 'Teacher Bundle',        status: 'Listed',   price: 14, ticks: 28, next: 'Week-1 stats logged',       launchedAgo: '45 d',  target: null,  netLife: 379,  unitsLife: 31,  stale: 3 },
     { name: 'Minimal Budget Sheets', status: 'Listed',   price: 7,  ticks: 30, next: 'Done',                      launchedAgo: '7 mo',  target: null,  netLife: 53,   unitsLife: 9,   stale: 22 },
     { name: 'Holiday Gift Tags',     status: 'Assets',   price: null, ticks: 14, next: 'Screenshots (hero order)', launchedAgo: null,   target: 9,    netLife: 0, unitsLife: 0, stale: null },
-    { name: 'Wedding Suite No. 5',   status: 'Building', price: null, ticks: 5,  next: 'Visual approval',          launchedAgo: null,   target: 30,   netLife: 0, unitsLife: 0, stale: null },
-    { name: 'Kids Chore Charts',     status: 'Idea',     price: null, ticks: 0,  next: 'Handoff folder written',   launchedAgo: null,   target: null, netLife: 0, unitsLife: 0, stale: null },
+    { name: 'Wedding Suite No. 5',   status: 'Building', price: null, ticks: 5,  next: 'Final files exported',     launchedAgo: null,   target: 30,   netLife: 0, unitsLife: 0, stale: null },
+    { name: 'Kids Chore Charts',     status: 'Idea',     price: null, ticks: 0,  next: 'Concept locked',   launchedAgo: null,   target: null, netLife: 0, unitsLife: 0, stale: null },
   ],
 
   // Dashboard — active month (Jun 2026)
@@ -45,7 +62,7 @@ window.CC_DATA = {
   snapshot: { listed: 5, in_pipeline: 3, net_mtd: 2118, best: 'Wedding Suite No. 4', stalest: 'Minimal Budget Sheets · 22 d', sales_rows: 58 },
   needs_attention: [
     { name: 'Holiday Gift Tags',   stage: 'Assets',   next: 'Screenshots (hero order)', days: 9 },
-    { name: 'Wedding Suite No. 5', stage: 'Building', next: 'Visual approval',          days: 30 },
+    { name: 'Wedding Suite No. 5', stage: 'Building', next: 'Final files exported',     days: 30 },
     { name: 'Kids Chore Charts',   stage: 'Idea',     next: 'Handoff folder written',   days: null },
   ],
   ai_insights: [
@@ -76,6 +93,22 @@ window.CC_DATA = {
     ],
     checklist: { progress: 100, stage: 'Listed', next: 'Done' },
   },
+
+  // Checklist tab sample — Holiday Gift Tags rows around its boundary
+  checklist_sample: [
+    { product: 'Holiday Gift Tags', group: 'QA',      step: 'Test download as a buyer',  done: true,  n: 12 },
+    { product: 'Holiday Gift Tags', group: 'QA',      step: 'Fix pass',                  done: true,  n: 13 },
+    { product: 'Holiday Gift Tags', group: 'QA',      step: 'Final check',               done: true,  n: 14 },
+    { product: 'Holiday Gift Tags', group: 'ASSETS',  step: 'Screenshots (hero order)',  done: false, n: 15 },
+    { product: 'Holiday Gift Tags', group: 'ASSETS',  step: 'Watermarks applied',        done: false, n: 16 },
+    { product: 'Holiday Gift Tags', group: 'ASSETS',  step: 'Thumbnail',                 done: false, n: 17 },
+    { product: 'Holiday Gift Tags', group: 'ASSETS',  step: 'Listing copy drafted',      done: false, n: 18 },
+    { product: 'Holiday Gift Tags', group: 'ASSETS',  step: 'Tags + SEO list',           done: false, n: 19 },
+    { product: 'Holiday Gift Tags', group: 'ASSETS',  step: 'Price set',                 done: false, n: 20 },
+    { product: 'Holiday Gift Tags', group: 'LISTING', step: 'Listing created',           done: false, n: 21 },
+    { product: 'Holiday Gift Tags', group: 'LISTING', step: 'Files attached',            done: false, n: 22 },
+    { product: 'Holiday Gift Tags', group: 'LISTING', step: 'Preview checked',           done: false, n: 23 },
+  ],
 
   // Sales Log — recent rows (Fees blank ⇒ Net computes from channel defaults)
   sales_recent: [
@@ -141,6 +174,8 @@ window.CC_DATA = {
     { id: 'marketing', label: 'Marketing Log' },
     { id: 'stats',     label: 'Stats' },
     { id: 'products',  label: 'Products' },
+    { id: 'checklist', label: 'Checklist' },
+    { id: 'templates', label: 'Templates' },
     { id: 'channels',  label: 'Channels' },
     { id: 'engine',    label: '_Engine', system: true },
   ],

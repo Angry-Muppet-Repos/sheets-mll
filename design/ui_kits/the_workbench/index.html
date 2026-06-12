@@ -125,6 +125,8 @@
           case 'trends':    return <StubTab tab="Trends"        copy="Portfolio net revenue vs marketing spend over a 6 / 12 / 24-month window, plus a sparkline table of your twelve biggest earners." />;
           case 'marketing': return <StubTab tab="Marketing Log" copy="One row per campaign or spend: date, product, channel, activity, dollars. Feeds net-after-spend and the ROAS verdicts." />;
           case 'stats':     return <StubTab tab="Stats"         copy="Optional: one row per product per month with views, favorites, and orders from your shop stats. Powers the conversion funnel." />;
+          case 'checklist': return <ChecklistTab />;
+          case 'templates': return <TemplatesTab />;
           case 'channels':  return <StubTab tab="Channels"      copy="Fee defaults per channel — Etsy, Shopify, Gumroad, Direct seeded. Net computes from these whenever you leave Fees blank. Verify your plan's current fees." />;
           case 'engine':    return <StubTab tab="_Engine"       copy="System tab. 24 months × portfolio, channel, and product rows — the one cross-product matrix that powers rankings. You should never need to edit it." />;
           default:          return <PipelineTab />;

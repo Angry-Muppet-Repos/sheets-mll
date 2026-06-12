@@ -15,7 +15,7 @@ sells the product).
 | `data.js` | Juniper Paper Co. dataset (8 products, locked headline truths) |
 | `components.jsx` | Atoms from the Ledger kit (KPI card, chips, yellow inputs…) |
 | `chrome.jsx` | Sheets chrome — toolbar, 💳 menu, tab strip, 24-palette picker |
-| `tabs-pipeline.jsx` | **Pipeline** (computed PM board) · **Products** (checkbox checklist) |
+| `tabs-pipeline.jsx` | **Pipeline** (computed PM board) · **Products** (slim) · **Checklist** · **Templates** |
 | `tabs-overview.jsx` | **Dashboard** + AI Insights |
 | `tabs-product.jsx` | **Product View** (dropdown-selected deep dive) · **Sales Log** · stubs |
 
@@ -24,8 +24,8 @@ sells the product).
 Portfolio net ramps ~$940 → ~$2,100/mo over 9 months · Wedding Suite No. 4
 ≈ 60% of lifetime net at **ROAS ≈ 4** (SCALE) · Minimal Budget Sheets ad
 spend exceeds lifetime net, ROAS < 0.5 (KILL) · Recipe Card Set views +40%
-while conversion halves (WATCH) · progress % counts the 30 fixed launch
-steps; custom step columns are extra credit.
+while conversion halves (WATCH) · progress = done ÷ each product's own step
+list; the template library drives per-product processes.
 
 ## Scale story the kit demonstrates
 

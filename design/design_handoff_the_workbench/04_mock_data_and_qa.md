@@ -14,9 +14,9 @@ planner inserts. Mock window: trailing **9 months** ending at build month
 | Recipe Card Set | Listed | $9 | slow decay — views up, conversion down (price test candidate) |
 | Teacher Bundle | Listed | $14 | listed 6 weeks ago, ramping |
 | Minimal Budget Sheets | Listed | $7 | the dud — ad spend > net (the KILL demo) |
-| Holiday Gift Tags | Assets | — | pipeline 47% (BUILD + QA ticked), next step "Screenshots (hero order)", target in 9 days |
-| Wedding Suite No. 5 | Building | — | pipeline 17% (first 5 BUILD steps ticked), next step "Visual approval", target in 30 days |
-| Kids Chore Charts | Idea | — | 0%, no target — the backlog row |
+| Holiday Gift Tags | Assets | — | 14 of 30 done (47%), next step "Screenshots (hero order)", target in 9 days |
+| Wedding Suite No. 5 | Building | — | 5 of 30 done (17%), next step "Final files exported", target in 30 days |
+| Kids Chore Charts | Idea | — | 0 of 30, no target — the backlog row |
 
 ## The numbers (locked targets for the generator)
 
@@ -29,8 +29,9 @@ planner inserts. Mock window: trailing **9 months** ending at build month
   and the dud (ROAS ≈ 0.4), one site-wide sale event, two price tests.
 - Stats: 9 months × the 5 listed products — the Recipe Card Set shows
   views +40% while conversion halves (the WATCH insight).
-- Checklists: four listed products fully ticked (100% · "Done"); Teacher
-  Bundle at 28 of 30 (next: "Week-1 stats logged"); the three unlisted land
+- Checklists (all eight run the Digital Product template — 240 Checklist
+  rows): four listed products fully ticked (100% · "Done"); Teacher Bundle
+  at 28 of 30 (next: "Week-1 stats logged"); the three unlisted land
   exactly 47% / 17% / 0% with next steps per the table above.
 
 ## Mock AI Insights (Dashboard, mock build only)
@@ -56,11 +57,20 @@ View (hero selected), Sales Log, Products checklist block.
   first; Needs Attention lists Holiday Gift Tags with its next step
 - [ ] Pipeline: stage counts = 5 Listed · 1 Assets · 1 Building · 1 Idea;
   In Flight shows 47% / 17% / 0%; days-left chips paint correctly
-- [ ] Products: ticking any unticked box moves Progress % and Next step
-  instantly; a fully ticked row (30 fixed) reads 100% / "Done"; custom
-  columns change nothing
+- [ ] Checklist: steps are readable full-text rows; filtering to a product
+  and ticking a box moves that product's Progress % and Next step on
+  Products/Pipeline instantly; a fully ticked product reads 100% / "Done"
+- [ ] Intake: 💳 → Add Product… → create "QA Test" on Quick List → Products
+  gains the row, Checklist gains 10 rows, progress reads 0%
+- [ ] Per-product process: reword one "QA Test" step and insert a new row —
+  only that product changes; then Save Steps as Template… ("QA Process")
+  → Templates gains a column; Add Product with it → new product carries
+  the customized steps
+- [ ] Templates: all four starters present with editable yellow cells; step
+  counts read 30 / 28 / 20 / 10
 - [ ] Product View: selector dropdown lists all 8; hero shows ROAS chip
-  "On Track"; the dud shows "Over"; funnel renders for logged months
+  "On Track"; the dud shows "Over"; funnel renders; the full-checklist
+  panel mirrors the Checklist ticks (✓/☐ per step)
 - [ ] Sales Log: a new row with Fees blank computes Net from the channel
   defaults; overtyping Fees wins; engine + Dashboard update
 - [ ] Stale check: hero shows recent sale; no listed product shows
@@ -75,8 +85,9 @@ View (hero selected), Sales Log, Products checklist block.
 - [ ] Engine matrix shows zeros (not errors) for empty product slots
 
 ## Blank build
-- [ ] No Juniper/Jules anywhere; logs empty; checklist unticked; Channels
-  shows the four default rows with the verify-fees caption
+- [ ] No Juniper/Jules anywhere; logs + Checklist empty; Templates shows
+  the four starters (library, ships both modes); Channels shows the four
+  default rows with the verify-fees caption
 - [ ] Zero #ERROR!/#N/A/#REF! on any tab (walk every tab)
 - [ ] Dashboard/Pipeline/Product View show $0/em-dash states; selector
   works with an empty product list (no crash)

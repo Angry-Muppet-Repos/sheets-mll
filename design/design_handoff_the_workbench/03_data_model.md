@@ -8,6 +8,8 @@
 | `SALES_CAPACITY` | 10,000 | Sales Log rows |
 | `MARKETING_CAPACITY` | 2,000 | Marketing Log rows |
 | `STATS_CAPACITY` | 3,000 | Stats rows |
+| `CHECKLIST_CAPACITY` | 7,500 | Checklist rows (~250 products × 30 steps) |
+| `TEMPLATE_SLOTS` × `STEPS_PER_TEMPLATE` | 8 × 50 | Templates library columns × step cells |
 | `CHANNEL_SLOTS` | 12 | Channels registry rows 10–21 + engine channel rows |
 
 Scale posture: per-product × month SUMIFS exist ONLY in the engine's net
@@ -32,26 +34,35 @@ top-N (LARGE/MATCH), never full enumerations.
 Cash basis: a row exists when money lands (per sale or per payout-day —
 both work; Units carries the count either way).
 
-## Launch-step template (30 fixed + 5 custom checkbox columns on Products)
+## The template system (per-product processes)
 
-| Group | Steps |
-|---|---|
-| BUILD (8) | Handoff folder written · Brief approved · Tab specs locked · Data model locked · UI kit mocked · Visual approval · Script written · Static verification green |
-| QA (6) | Mock build clean · Blank build clean · Flow test (import/entry) · Theme pass (≥3 palettes) · xlsx exports generated · Brand-voice read-through |
-| ASSETS (6) | Screenshots (hero order) · Watermarks applied · Thumbnail · Listing copy drafted · Tags + SEO list · Price set |
-| LISTING (5) | Listing created · Files attached · Preview checked · Published · URL logged here |
-| POST (5) | First-sale check · Review request sent · Week-1 stats logged · Retro note written · Next-version ideas filed |
+**Templates tab** — the library. Columns B–I: name (row 9) + up to 50
+step cells (rows 11–60) per column, every cell yellow/editable. Step
+convention `GROUP · Step name`. Four starters ship in BOTH modes:
 
-Custom slots: 5 extra checkbox columns, header cells yellow/renameable —
-extra credit OUTSIDE the progress math. **Progress % and Next-step run on
-the 30 fixed steps only** (a fully ticked fixed set reads 100% / "Done"),
-so renamed custom columns never distort the pipeline.
+| Template | Steps | Groups |
+|---|---|---|
+| Digital Product (default) | 30 | BUILD 8 · QA 6 · ASSETS 6 · LISTING 5 · POST 5 |
+| Physical / Handmade | 28 | SOURCE 5 · MAKE 6 · ASSETS 6 · LISTING 6 · POST 5 |
+| Service / Custom Order | 20 | OFFER 5 · SETUP 5 · LISTING 4 · POST 6 |
+| Quick List | 10 | MAKE 3 · LIST 4 · POST 3 |
 
-Computed columns (locked, right of the checklist):
-- **Progress** `=COUNTIF(fixed 30 checkrange, TRUE)/30` formatted 0%
-- **Next step** `=IFERROR(INDEX(stepHeaderRow, MATCH(FALSE, checkrange, 0)), "Done")`
-- **Days to target** `=IF(target="","—", target−TODAY())` + chip CF
-  (On Track ≥ 7 · Fair 0–6 · Over < 0)
+**Checklist tab** — long format, one row per product × step:
+`Product · Group · Step · Done(checkbox) · #(order) · Key(hidden,
+=Product&"|"&order)`. Created by the intake flow; freely editable per
+product afterward.
+
+**Flows** (script, section 12): `Add Product…` opens a sidebar intake
+form (name · template dropdown · status · price · target date) →
+`createProductFromIntake` appends the Products row + the template's steps
+as Checklist rows. `Save Steps as Template…` →
+`saveStepsAsTemplateCore_(product, name)` writes a product's current
+steps into the next free library column.
+
+Computed columns on Products (locked):
+- **Progress** `=COUNTIFS(chkProduct, name, chkDone, TRUE) / COUNTIF(chkProduct, name)` — each product against its OWN step count; blank when it has no steps
+- **Next step** `=INDEX(chkStep, MATCH(name & "|" & MINIFS(chkOrder, chkProduct, name, chkDone, FALSE), chkKey, 0))` → "Done" when nothing unchecked
+- **Days to target** `=target − TODAY()` + chip CF (On Track ≥ 7 · Fair 0–6 · Over < 0)
 
 ## Channels registry (rows 10–21) + fee defaults
 
@@ -73,8 +84,10 @@ build time, never hardcoded into formulas — Net always reads this table):
 `cc_engine_months` (B1:Y1) · `cc_engine_portfolio` (_Engine!B2:Y9) ·
 `cc_engine_products` (product matrix block) · `cc_dashboard_month`
 (Dashboard!N4) · `cc_trends_window` (Trends!N7) · `cc_selected_product`
-(Product View selector cell) · `cc_products_list` · `cc_products_status` ·
-`cc_products_table` · `cc_channels_list` · `cc_channel_fees` ·
+(Product View!C10) · `cc_products_list` (Products!B10:B259) ·
+`cc_products_status` · `cc_products_table` (A10:O259) ·
+`cc_templates_list` (Templates!B9:I9) · `cc_checklist`
+(Checklist!A10:F7509) · `cc_channels_list` · `cc_channel_fees` ·
 `cc_sales_log` · `cc_active_palette`
 
 ## Engine layout (hidden)
