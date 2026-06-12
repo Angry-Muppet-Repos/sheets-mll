@@ -527,4 +527,52 @@ let gFail = 0;
 for (const [n4, ok, got] of gChecks) { if (!ok) gFail++; console.log('  ' + (ok ? 'PASS' : 'FAIL got ' + got) + '  ' + n4); }
 console.log('g. rebuild resilience: ' + (gFail === 0 ? 'OK (' + gChecks.length + ' checks)' : 'FAIL (' + gFail + ')'));
 
-process.exit(bad + d1 + d2 + d3bad + cFail + eFail + fFail + gFail ? 1 : 0);
+// ───────────── h. cross-sheet reference inventory ─────────────
+// The Recently-Listed bug class: a formula's hardcoded column drifting
+// from the layout contract (Launched moved G→H in v2; one literal
+// missed). Every cross-sheet column reference must appear in this
+// REVIEWED inventory — a novel reference fails the build until someone
+// re-reviews it against the contracts and adds it here.
+const A1_ALLOWED = {
+  'Products':      ['B', 'B:C', 'B:K', 'C', 'D', 'H', 'J', 'K', 'L', 'M', 'N', 'O'],
+  'Checklist':     ['B', 'C', 'D'],
+  'Sales Log':     ['A', 'B', 'C', 'D', 'E', 'G', 'I'],
+  'Marketing Log': ['B', 'E'],
+  'Stats':         ['A', 'B', 'C', 'D', 'E'],
+  'Channels':      ['A'],
+  '_Engine':       ['A', 'B:Y', 'T', 'T:Y', 'Y'],
+};
+const R1C1_ALLOWED = {  // sheet-qualified whole-column refs in R1C1 formulas
+  'Products': [2], 'Sales Log': [2, 3, 4, 5, 7, 9], 'Marketing Log': [5, 7], 'Channels': [1],
+};
+let hFail = 0;
+const novel = {};
+const a1Re = /'([^']+)'!\$?([A-Z]{1,2})\$?\d*(?::\$?([A-Z]{1,2})\$?\d*)?/g;
+const r1Re = /'([^']+)'!(?:R\[?-?\d*\]?)?C(\d+)/g;
+for (const mode of ['mock', 'blank']) {
+  for (const rec of captures[mode]) {
+    if (rec.kind === 'formula') {
+      let m;
+      while ((m = a1Re.exec(rec.val)) !== null) {
+        const target = m[1];
+        if (target === rec.sheet || !(target in A1_ALLOWED)) continue;
+        const span = m[2] + (m[3] && m[3] !== m[2] ? ':' + m[3] : '');
+        if (!A1_ALLOWED[target].includes(span)) novel[target + '!' + span] = rec.sheet + '!' + rec.a1 + ' :: ' + rec.val.slice(0, 90);
+      }
+    } else if (rec.kind === 'formulaR1C1') {
+      let m;
+      while ((m = r1Re.exec(rec.val)) !== null) {
+        const target = m[1];
+        if (!(target in R1C1_ALLOWED)) continue;
+        if (!R1C1_ALLOWED[target].includes(Number(m[2]))) novel[target + '!C' + m[2] + ' (R1C1)'] = rec.sheet + '!' + rec.a1;
+      }
+    }
+  }
+}
+for (const [ref, ex] of Object.entries(novel)) {
+  hFail++;
+  console.log('  NOVEL REFERENCE ' + ref + ' — review against the layout contract, then add to the inventory. From ' + ex);
+}
+console.log('h. cross-sheet reference inventory: ' + (hFail === 0 ? 'OK (every reference matches the reviewed inventory)' : 'FAIL (' + hFail + ' novel)'));
+
+process.exit(bad + d1 + d2 + d3bad + cFail + eFail + fFail + gFail + hFail ? 1 : 0);

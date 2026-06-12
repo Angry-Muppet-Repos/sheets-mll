@@ -83,8 +83,9 @@ Everything here derives from the Products table. No inputs.
 ## 5 · Trends — [REUSE]
 Ledger Trends verbatim with relabeled series: Net Revenue vs Marketing
 Spend columns chart, Units line readout, top-category… replaced by
-**top-product sparkline table (12 rows)**: the 12 highest lifetime-net
-products — name · 6-mo sparkline · last month · Δ vs first (engine-backed).
+**top-product sparkline table (12 rows)**: the 12 highest products by
+the ACTIVE dashboard month's net — name · 6-mo sparkline · latest month
+· Δ vs first of the window (engine-backed).
 6/12/24 window toggle at N7 (`cc_trends_window`), same pills + CF.
 
 ## 6 · Sales Log — [ADAPT of Ledger Transactions]
