@@ -113,11 +113,15 @@ Hard-won build lessons (apply to every product's .gs):
   columns — out-of-grid writes surface as the opaque "Service
   Spreadsheets failed while accessing document" error.
 - Rebuilds happen IN PLACE over old workbooks: `clear()` removes neither
-  filters, merges, nor validations. `getOrCreateSheet_` must tear all
-  three down first — a stale filter makes any merge that crosses its
+  filters, merges, validations, row heights, column widths, nor hidden
+  rows/columns. `getOrCreateSheet_` must tear down AND normalize
+  geometry first — a stale filter makes any merge that crosses its
   border throw ("can't merge cells that cross the borders of an existing
-  filter", June 2026 live-QA failure). The Workbench harness models
-  filter semantics and rebuilds over a stale workbook (layer g).
+  filter"), and a stale 110px row height resurfaced as a giant empty
+  first data row (both June 2026 live-QA failures). The Workbench
+  harness models filter semantics and rebuilds over a stale workbook
+  (layer g). Mock data generators must never produce future dates —
+  staleness math goes negative.
 - Land huge mutations in slabs with flushes (`forEachSlab_`); toast
   per-tab progress so failures name their tab.
 - Static-verification harnesses live in `tools/` (verify_workbench.js,

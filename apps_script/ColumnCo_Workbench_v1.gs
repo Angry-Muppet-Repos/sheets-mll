@@ -677,6 +677,15 @@ function getOrCreateSheet_(ss, name) {
   sh.clear();
   sh.clearConditionalFormatRules();
   sh.getCharts().forEach(function (c) { sh.removeChart(c); });
+  // Geometry survives clear() too: stale row heights, hidden rows/cols,
+  // and column widths from older builds leak into rebuilds (v1's 110px
+  // header row resurfaced as a giant first data row in live QA).
+  // Normalize everything; builders re-apply every intentional
+  // height, width, and hide after this.
+  sh.showRows(1, sh.getMaxRows());
+  sh.showColumns(1, sh.getMaxColumns());
+  sh.setRowHeights(1, sh.getMaxRows(), 21);
+  sh.setColumnWidths(1, sh.getMaxColumns(), 100);
   sh.setHiddenGridlines(true);
   try { sh.showRows(1, sh.getMaxRows()); } catch (e) {}
   try { sh.showColumns(1, sh.getMaxColumns()); } catch (e) {}
@@ -994,7 +1003,9 @@ function buildProducts_(sheet, mode) {
   SpreadsheetApp.flush();
   try { sheet.setFrozenRows(hdrRow); } catch (e) {}
   try { sheet.setFrozenColumns(PROD.COL_STATUS); } catch (e) {}
-  setColWidths_(sheet, [36, 185, 86, 130, 70, 150, 100, 100, 140, 70, 190, 86, 86]);
+  // Progress / day-count columns sized so their right-aligned headers
+  // don't clip ("…s to target" in live QA)
+  setColWidths_(sheet, [36, 185, 86, 130, 70, 150, 100, 100, 140, 80, 190, 102, 102]);
   sheet.hideColumns(PROD.COL_RANK_HELPER, 2);
   sheet.getRange(PROD.HEADER_ROW, 1, 1 + PRODUCT_CAPACITY, PROD.COL_STALE).createFilter();
 
@@ -1438,6 +1449,9 @@ function generateMockSales_() {
         while (left > 0) {
           var u = Math.min(left, (i % 3 === 2) ? 2 : 1);   // mostly single-unit rows
           var day = 2 + ((i * 5 + c * 3 + m) % 26);
+          // the current month must never hold future-dated sales —
+          // Days-since-sale goes negative (live-QA finding)
+          if (m === 8) day = Math.max(1, Math.min(day, new Date().getDate()));
           rows.push([new Date(months[m].year, months[m].monthIdx, day),
             name, channels[c], u, u * price, '']);
           left -= u; i++;
@@ -1453,12 +1467,14 @@ function generateMockSales_() {
 function generateMockMarketing_() {
   var rows = [];
   var months = mockMonthDates_();
+  var todayDay = new Date().getDate();
   for (var m = 0; m < 9; m++) {
+    // current-month rows clamp to the build day — no future dates
     var hero = MOCK.marketing.hero_spend[m];
-    if (hero) rows.push([new Date(months[m].year, months[m].monthIdx, 5),
+    if (hero) rows.push([new Date(months[m].year, months[m].monthIdx, m === 8 ? Math.max(1, Math.min(5, todayDay)) : 5),
       'Wedding Suite No. 4', 'Etsy', 'Ads', hero, 'Etsy Ads month budget']);
     var dud = MOCK.marketing.dud_spend[m];
-    if (dud) rows.push([new Date(months[m].year, months[m].monthIdx, 7),
+    if (dud) rows.push([new Date(months[m].year, months[m].monthIdx, m === 8 ? Math.max(1, Math.min(7, todayDay)) : 7),
       'Minimal Budget Sheets', 'Etsy', 'Ads', dud, 'Etsy Ads test']);
   }
   // a sale event and two price tests — zero-spend actions, logged anyway
