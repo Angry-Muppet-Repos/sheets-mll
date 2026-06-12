@@ -1,6 +1,7 @@
 /* =====================================================================
-   The Workbench v1 — Pipeline (the computed PM board) + Products
-   (the master table with the 30-step checkbox checklist).
+   The Workbench v1 — Pipeline (the computed PM board) · Products (the
+   slim master table) · Checklist (horizontal, one section per process)
+   · Templates (the process library).
    ===================================================================== */
 
 function PipelineTab() {
@@ -34,7 +35,7 @@ function PipelineTab() {
             { label: 'Next Step' }, { label: 'Target', align: 'right' },
           ]} />
           {inFlight.map((p, i) => {
-            const pct = Math.round(p.ticks / 30 * 100);
+            const pct = Math.round(p.ticks / p.stepCount * 100);
             return (
               <DataRow key={p.name} widths={['1.6fr','0.8fr','1.3fr','1.6fr','0.8fr']} zebra={i % 2 === 1} last={i === inFlight.length - 1} cols={[
                 { content: <span style={{ fontWeight: 500 }}>{p.name}</span> },
@@ -88,13 +89,13 @@ function ProductsTab() {
             { label: 'Next Step' },
           ]} />
           {d.products.map((p, i) => {
-            const pct = Math.round(p.ticks / 30 * 100);
+            const pct = Math.round(p.ticks / p.stepCount * 100);
             return (
               <DataRow key={p.name} widths={widths} zebra={i % 2 === 1} last={i === d.products.length - 1} cols={[
                 { content: <span style={{ opacity: 0.5, fontVariantNumeric: 'tabular-nums' }}>{i + 1}</span> },
                 { content: <YellowInput small width={150}>{p.name}</YellowInput> },
                 { content: <span style={{ fontSize: 11 }}>{p.status} ▾</span> },
-                { content: <span style={{ fontSize: 10.5, opacity: 0.65 }}>Digital Product ▾</span> },
+                { content: <span style={{ fontSize: 10.5, opacity: 0.65 }}>{p.template} ▾</span> },
                 { content: p.price ? fmt(p.price) : '—', align: 'right', num: true },
                 { content: <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ flex: 1 }}><Progress pct={pct} status={pct >= 60 ? 'on' : pct >= 25 ? 'fair' : 'warn'} height={6} /></div>
@@ -117,44 +118,131 @@ function ProductsTab() {
 }
 
 /* =====================================================================
-   Checklist — every product's steps in long format. Full-text steps,
-   one checkbox each; each product can run a different process.
+   Checklist — THE horizontal ticking surface. Products as rows, steps
+   as columns; one section per process template in use. Readability:
+   45°-angled headers, hover notes (title=), group bands, per-row
+   Progress + Next step. Customization: headers edit in place, dashed
+   blank slots grow a process, 💳 → Add Process… builds new ones.
    ===================================================================== */
-function ChecklistTab() {
+function ChecklistTab({ onAddProcess }) {
   const d = window.CC_DATA;
-  const rows = d.checklist_sample;
-  const widths = ['1.4fr','0.7fr','2.4fr','0.5fr','0.4fr'];
-  const cb = (on) => (
-    <span style={{ display: 'inline-block', width: 15, height: 15, borderRadius: 2, border: '1.5px solid ' + (on ? 'var(--pal-primary, #1C3D2E)' : 'rgba(28,61,46,0.35)'), background: on ? 'var(--pal-primary, #1C3D2E)' : '#FFFDE7', color: '#FAF8F2', fontSize: 11, lineHeight: '14px', textAlign: 'center', fontWeight: 700 }}>{on ? '✓' : ''}</span>
-  );
-  return (
-    <div>
-      <SheetHeader tab="Checklist" subLabel="FILTERED · HOLIDAY GIFT TAGS · 14 OF 30 DONE" />
-      <div style={{ background: 'var(--pal-bg, #FAF8F2)', padding: '28px 32px' }}>
-        <TabTitle name="Checklist" desc="Every product's steps, one row each. Filter to a product and tick down the list." />
+  const RAMP = ['var(--pal-primary, #1C3D2E)', 'var(--pal-mid, #2D5C45)', '#3E7E5C', '#5C9D72', '#8FAF7E'];
+  const CELL = 27;                       // step column (the build: ~42px under 45° headers)
+  const GHOSTS = 2;                      // blank editable header slots per section
+  const LEFTW = [30, 168, 118, 162];     // # · Product · Progress · Next step
+  const LEFT_TOTAL = LEFTW.reduce((a, b) => a + b, 0);
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, fontFamily: 'Jost,sans-serif', fontSize: 11 }}>
-          <span style={{ background: 'var(--pal-primary, #1C3D2E)', color: '#FAF8F2', padding: '5px 12px', borderRadius: 999 }}>Product = Holiday Gift Tags ✕</span>
-          <span style={{ color: 'rgba(28,61,46,0.55)' }}>← the built-in filter — steps 12–23 of 30 shown</span>
+  const tick = (on, ghost) => (
+    <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: 2, opacity: ghost ? 0.30 : 1, border: '1.5px solid ' + (on ? 'var(--pal-primary, #1C3D2E)' : 'rgba(28,61,46,0.30)'), background: on ? 'var(--pal-primary, #1C3D2E)' : '#FFFDE7', color: '#FAF8F2', fontSize: 10, lineHeight: '13px', textAlign: 'center', fontWeight: 700 }}>{on ? '✓' : ''}</span>
+  );
+
+  function Section({ sec }) {
+    const tpl = d.templates.find(t => t.name === sec.template);
+    const steps = tpl.steps;
+    const groups = [];
+    steps.forEach(s => {
+      const last = groups[groups.length - 1];
+      if (last && last.name === s.group) last.n += 1; else groups.push({ name: s.group, n: 1 });
+    });
+    const rows = sec.products.map(n => d.products.find(p => p.name === n));
+    const isDone = (p, ix) => p.tickIdx ? p.tickIdx.indexOf(ix) !== -1 : ix < p.ticks;
+    const stepsW = (steps.length + GHOSTS) * CELL;
+
+    return (
+      <div style={{ marginBottom: 34, width: LEFT_TOTAL + stepsW }}>
+        {/* Template band — sticky label so the name survives horizontal scroll */}
+        <div style={{ display: 'flex', background: 'var(--pal-primary, #1C3D2E)', height: 30, alignItems: 'center' }}>
+          <div style={{ position: 'sticky', left: 0, zIndex: 3, background: 'var(--pal-primary, #1C3D2E)', height: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px' }}>
+            <span style={{ display: 'inline-block', width: 3, height: 14, background: 'var(--pal-accent, #C5A95A)' }}></span>
+            <span style={{ fontFamily: 'Jost,sans-serif', fontWeight: 600, fontSize: 10.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#FAF8F2', whiteSpace: 'nowrap' }}>{sec.template}</span>
+            <span style={{ fontFamily: 'Jost,sans-serif', fontWeight: 300, fontSize: 10, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--pal-accent, #C5A95A)', whiteSpace: 'nowrap' }}>· {steps.length} steps · {rows.length} {rows.length === 1 ? 'product' : 'products'}</span>
+          </div>
+          <div style={{ marginLeft: 'auto', paddingRight: 12, fontFamily: 'Jost,sans-serif', fontWeight: 300, fontSize: 9.5, letterSpacing: '0.08em', color: 'rgba(250,248,242,0.55)', whiteSpace: 'nowrap' }}>headers below are editable · Save Steps as Template… files this section to the library</div>
         </div>
 
-        <div style={{ background: '#FAF8F2', borderRadius: 4, overflow: 'hidden', border: '1px solid rgba(28,61,46,0.10)', marginBottom: 14 }}>
-          <ColHeader widths={widths} cols={[
-            { label: 'Product' }, { label: 'Group' }, { label: 'Step' },
-            { label: 'Done', align: 'center' }, { label: '#', align: 'right' },
-          ]} />
-          {rows.map((r, i) => (
-            <DataRow key={r.n} widths={widths} zebra={i % 2 === 1} last={i === rows.length - 1} cols={[
-              { content: <span style={{ fontSize: 11, opacity: 0.6 }}>{r.product}</span> },
-              { content: <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--pal-mid, #2D5C45)' }}>{r.group}</span> },
-              { content: <span style={{ fontWeight: r.done ? 300 : 500, opacity: r.done ? 0.55 : 1 }}>{r.step}</span> },
-              { content: cb(r.done), align: 'center' },
-              { content: <span style={{ opacity: 0.4, fontVariantNumeric: 'tabular-nums' }}>{r.n}</span>, align: 'right' },
-            ]} />
+        {/* Group bands over the step columns */}
+        <div style={{ display: 'flex', height: 20 }}>
+          <div style={{ position: 'sticky', left: 0, zIndex: 3, width: LEFT_TOTAL, flex: 'none', background: 'var(--pal-bg, #FAF8F2)' }}></div>
+          {groups.map((g, gi) => (
+            <div key={g.name} style={{ width: g.n * CELL, flex: 'none', background: RAMP[gi % RAMP.length], color: '#FAF8F2', fontFamily: 'Jost,sans-serif', fontWeight: 700, fontSize: 8.5, letterSpacing: '0.14em', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', whiteSpace: 'nowrap', borderRight: '1px solid rgba(250,248,242,0.30)' }}>{g.name}</div>
+          ))}
+          <div style={{ width: GHOSTS * CELL, flex: 'none' }}></div>
+        </div>
+
+        {/* Step headers — 45°, readable, hover for full text */}
+        <div style={{ display: 'flex', height: 104, alignItems: 'flex-end' }}>
+          <div style={{ position: 'sticky', left: 0, zIndex: 3, width: LEFT_TOTAL, flex: 'none', background: 'var(--pal-bg, #FAF8F2)', display: 'flex', alignSelf: 'stretch', alignItems: 'flex-end', borderBottom: '2px solid var(--pal-primary, #1C3D2E)' }}>
+            {['#', 'PRODUCT', 'PROGRESS', 'NEXT STEP'].map((h, i) => (
+              <div key={h} style={{ width: LEFTW[i], flex: 'none', padding: '0 10px 6px', fontFamily: 'Jost,sans-serif', fontWeight: 600, fontSize: 9, letterSpacing: '0.16em', color: 'var(--pal-mid, #2D5C45)' }}>{h}</div>
+            ))}
+          </div>
+          {steps.map((s, ix) => (
+            <div key={ix} title={s.group + ' · ' + s.step} style={{ width: CELL, flex: 'none', alignSelf: 'stretch', position: 'relative', borderBottom: '2px solid var(--pal-primary, #1C3D2E)', cursor: 'default' }}>
+              <span style={{ position: 'absolute', bottom: 8, left: 16, transformOrigin: 'left bottom', transform: 'rotate(-45deg)', whiteSpace: 'nowrap', fontFamily: 'Jost,sans-serif', fontWeight: 400, fontSize: 10, color: 'var(--pal-primary, #1C3D2E)' }}>{s.step}</span>
+            </div>
+          ))}
+          {Array.from({ length: GHOSTS }).map((_, gx) => (
+            <div key={'g' + gx} title="Type a step name here to add it to this process — its checkboxes are already wired" style={{ width: CELL, flex: 'none', alignSelf: 'stretch', position: 'relative', borderBottom: '2px dashed rgba(197,169,90,0.8)' }}>
+              {gx === 0 && <span style={{ position: 'absolute', bottom: 8, left: 16, transformOrigin: 'left bottom', transform: 'rotate(-45deg)', whiteSpace: 'nowrap', fontFamily: 'Jost,sans-serif', fontWeight: 300, fontStyle: 'italic', fontSize: 10, color: 'rgba(28,61,46,0.45)' }}>type to add a step…</span>}
+              <span style={{ position: 'absolute', bottom: 4, left: 5, width: CELL - 12, height: 13, background: '#FFFDE7', border: '1px dashed #C5A95A', borderRadius: 2 }}></span>
+            </div>
           ))}
         </div>
-        <div style={{ fontFamily: 'Jost,sans-serif', fontWeight: 300, fontSize: 11, color: 'rgba(28,61,46,0.6)', marginBottom: 24 }}>
-          Rows are created by 💳 → Add Product… from a template. Reword, insert, or delete steps for any single product — then Save Steps as Template… to reuse the new process.
+
+        {/* Product rows — tick across */}
+        {rows.map((p, ri) => {
+          const bg = ri % 2 === 1 ? 'var(--pal-zebra, #EEF2EC)' : '#FAF8F2';
+          const pctN = Math.round(p.ticks / steps.length * 100);
+          return (
+            <div key={p.name} style={{ display: 'flex', height: 31 }}>
+              <div style={{ position: 'sticky', left: 0, zIndex: 2, width: LEFT_TOTAL, flex: 'none', background: bg, display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(28,61,46,0.07)', boxShadow: '1px 0 0 rgba(28,61,46,0.08)' }}>
+                <div style={{ width: LEFTW[0], flex: 'none', padding: '0 10px', fontFamily: 'Jost,sans-serif', fontSize: 10.5, color: 'rgba(28,61,46,0.40)', fontVariantNumeric: 'tabular-nums' }}>{d.products.indexOf(p) + 1}</div>
+                <div style={{ width: LEFTW[1], flex: 'none', padding: '0 10px', fontFamily: 'Jost,sans-serif', fontWeight: 500, fontSize: 11.5, color: 'var(--pal-primary, #1C3D2E)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+                <div style={{ width: LEFTW[2], flex: 'none', padding: '0 10px', display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <div style={{ flex: 1 }}><Progress pct={pctN} status={pctN >= 60 ? 'on' : pctN >= 25 ? 'fair' : 'warn'} height={5} /></div>
+                  <span style={{ fontFamily: 'Jost,sans-serif', fontSize: 10, color: 'rgba(28,61,46,0.65)', fontVariantNumeric: 'tabular-nums', minWidth: 30, textAlign: 'right' }}>{pctN}%</span>
+                </div>
+                <div style={{ width: LEFTW[3], flex: 'none', padding: '0 10px', fontFamily: 'Jost,sans-serif', fontSize: 10.5, color: p.next === 'Done' ? 'rgba(28,61,46,0.40)' : 'var(--pal-primary, #1C3D2E)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.next}</div>
+              </div>
+              {steps.map((s, ix) => (
+                <div key={ix} title={p.name + ' — ' + s.group + ' · ' + s.step} style={{ width: CELL, height: '100%', flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: bg, borderBottom: '1px solid rgba(28,61,46,0.07)', borderRight: '1px solid rgba(28,61,46,0.05)' }}>
+                  {tick(isDone(p, ix))}
+                </div>
+              ))}
+              {Array.from({ length: GHOSTS }).map((_, gx) => (
+                <div key={'g' + gx} style={{ width: CELL, height: '100%', flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: bg, borderBottom: '1px solid rgba(28,61,46,0.07)', borderRight: '1px dashed rgba(197,169,90,0.35)' }}>
+                  {tick(false, true)}
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <SheetHeader tab="Checklist" subLabel="2 PROCESSES · 8 PRODUCTS · 3 IN FLIGHT" />
+      <div style={{ background: 'var(--pal-bg, #FAF8F2)', padding: '28px 32px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18 }}>
+          <TabTitle name="Checklist" desc="Products as rows, steps as columns — tick across the row as each product moves. One section per process." />
+          <div style={{ textAlign: 'right', flex: 'none' }}>
+            <button onClick={onAddProcess} style={{ background: 'var(--pal-primary, #1C3D2E)', color: '#FAF8F2', border: 0, borderRadius: 3, padding: '9px 16px', fontFamily: 'Jost,sans-serif', fontWeight: 600, fontSize: 11.5, letterSpacing: '0.06em', cursor: 'pointer' }}>Add Process…</button>
+            <div style={{ marginTop: 5, fontFamily: 'Jost,sans-serif', fontWeight: 300, fontSize: 9.5, color: 'rgba(28,61,46,0.55)' }}>the guided builder · lives at 💳 Column &amp; Co.</div>
+          </div>
+        </div>
+
+        <div className="sheet-scroll" style={{ overflowX: 'auto', paddingBottom: 4, paddingRight: 0 }}>
+          <div style={{ width: 'max-content', minWidth: '100%', paddingRight: 96 }}>
+            {d.checklist_sections.map(sec => <Section key={sec.template} sec={sec} />)}
+          </div>
+        </div>
+
+        <div style={{ fontFamily: 'Jost,sans-serif', fontWeight: 300, fontSize: 11, color: 'rgba(28,61,46,0.6)', lineHeight: 1.7, marginBottom: 24 }}>
+          Hover any step header for its full name — in the build every header carries a note.
+          Headers edit in place · rename a step and every product in the section follows · type into a dashed slot to add a step to that process.
+          New products land in their template's section via 💳 → Add Product… · new processes start with 💳 → Add Process…
         </div>
 
         <SheetFooter />
@@ -174,7 +262,7 @@ function TemplatesTab() {
     <div>
       <SheetHeader tab="Templates" subLabel="4 OF 8 LIBRARY SLOTS USED" />
       <div style={{ background: 'var(--pal-bg, #FAF8F2)', padding: '28px 32px' }}>
-        <TabTitle name="Templates" desc="Your process library. Add Product copies a column into the Checklist; Save Steps as Template adds new columns here." />
+        <TabTitle name="Templates" desc="Your process library. 💳 → Add Process… builds new columns here, phase by phase; Add Product… puts products on them; Save Steps as Template… files an evolved section back." />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr', gap: 12, marginBottom: 24 }}>
           {d.templates.map((t, i) => (

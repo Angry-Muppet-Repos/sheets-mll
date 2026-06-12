@@ -13,6 +13,7 @@ function SheetsChrome({
   paletteId, onPaletteChange,
   paletteOpen, setPaletteOpen,
   menuOpen, setMenuOpen,
+  onMenuAction,
   children,
 }) {
   const data = window.CC_DATA;
@@ -31,7 +32,7 @@ function SheetsChrome({
             <span>File</span><span>Edit</span><span>View</span><span>Insert</span><span>Format</span><span>Data</span><span>Tools</span><span>Extensions</span>
             <span data-popover-trigger style={{ position: 'relative', cursor: 'pointer', color: '#1C3D2E', fontWeight: 500 }} onClick={() => setMenuOpen(!menuOpen)}>
               💳 Column &amp; Co. ▾
-              {menuOpen && <ScriptMenu close={() => setMenuOpen(false)} />}
+              {menuOpen && <ScriptMenu close={() => setMenuOpen(false)} onAction={onMenuAction} />}
             </span>
             <span>Help</span>
           </div>
@@ -132,9 +133,11 @@ function SheetsChrome({
 }
 
 /* ---------- Fake "💳 Column & Co." Apps Script menu ---------- */
-function ScriptMenu({ close }) {
+function ScriptMenu({ close, onAction }) {
   const items = [
     { label: 'Add Product…' },
+    { label: 'Add Process…' },
+    { label: 'Save Steps as Template…' },
     { label: 'Add Channel…',                 sep: 'after' },
     { label: 'Sort Sales by Date' },
     { label: 'Renumber Sales Log',           sep: 'after' },
@@ -145,7 +148,7 @@ function ScriptMenu({ close }) {
     <div data-popover onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: '100%', left: 0, marginTop: 6, background: '#FAF8F2', border: '1px solid rgba(28,61,46,0.18)', borderRadius: 4, minWidth: 240, boxShadow: '0 4px 12px rgba(28,61,46,0.18)', zIndex: 50, overflow: 'hidden' }}>
       {items.map((it, i) => (
         <React.Fragment key={i}>
-          <div style={{ padding: '9px 16px', fontSize: 13, color: '#1C3D2E', cursor: 'pointer', fontWeight: 400 }} onMouseDown={close}>{it.label}</div>
+          <div style={{ padding: '9px 16px', fontSize: 13, color: '#1C3D2E', cursor: 'pointer', fontWeight: 400 }} onMouseDown={() => { close(); if (onAction) onAction(it.label); }}>{it.label}</div>
           {it.sep && <div style={{ height: 1, background: 'rgba(28,61,46,0.10)' }}></div>}
         </React.Fragment>
       ))}

@@ -32,22 +32,49 @@ window.CC_DATA = {
       { group: 'POST', step: 'Week-1 stats logged' }, { group: 'POST', step: 'Retro note written' },
       { group: 'POST', step: 'Next-version ideas filed' },
     ]},
-    { name: 'Physical / Handmade', count: 28 },
+    { name: 'Physical / Handmade', count: 28, steps: [
+      { group: 'SOURCE', step: 'Concept locked' }, { group: 'SOURCE', step: 'Materials sourced' },
+      { group: 'SOURCE', step: 'Cost per unit computed' }, { group: 'SOURCE', step: 'Prototype made' },
+      { group: 'SOURCE', step: 'Prototype tested' },
+      { group: 'MAKE', step: 'Production steps written' }, { group: 'MAKE', step: 'First batch made' },
+      { group: 'MAKE', step: 'Quality pass' }, { group: 'MAKE', step: 'Packaging chosen' },
+      { group: 'MAKE', step: 'Packaging test-shipped' }, { group: 'MAKE', step: 'Restock plan noted' },
+      { group: 'ASSETS', step: 'Photos shot (hero order)' }, { group: 'ASSETS', step: 'Photos edited' },
+      { group: 'ASSETS', step: 'Thumbnail' }, { group: 'ASSETS', step: 'Listing copy drafted' },
+      { group: 'ASSETS', step: 'Tags + SEO list' }, { group: 'ASSETS', step: 'Price set' },
+      { group: 'LISTING', step: 'Listing created' }, { group: 'LISTING', step: 'Variations + inventory set' },
+      { group: 'LISTING', step: 'Shipping profile set' }, { group: 'LISTING', step: 'Preview checked' },
+      { group: 'LISTING', step: 'Published' }, { group: 'LISTING', step: 'URL logged here' },
+      { group: 'POST', step: 'First-sale check' }, { group: 'POST', step: 'Review request sent' },
+      { group: 'POST', step: 'Week-1 stats logged' }, { group: 'POST', step: 'Retro note written' },
+      { group: 'POST', step: 'Restock trigger set' },
+    ]},
     { name: 'Service / Custom Order', count: 20 },
     { name: 'Quick List', count: 10 },
   ],
 
-  // Products — ticks = done steps on each product's own checklist (all
-  // eight run Digital Product; Teacher Bundle skips two POST steps).
+  // Products — ticks = done steps on each product's own process. Six run
+  // Digital Product; Juniper's printed line (Recipe Card Set, Holiday Gift
+  // Tags) runs Physical / Handmade — the second Checklist section. Teacher
+  // Bundle skips two POST steps (tickIdx = explicit done indices).
   products: [
-    { name: 'Wedding Suite No. 4',   status: 'Listed',   price: 24, ticks: 30, next: 'Done',                      launchedAgo: '12 mo', target: null,  netLife: 7253, unitsLife: 344, stale: 1 },
-    { name: 'Everyday Planner Kit',  status: 'Listed',   price: 16, ticks: 30, next: 'Done',                      launchedAgo: '10 mo', target: null,  netLife: 2588, unitsLife: 184, stale: 2 },
-    { name: 'Recipe Card Set',       status: 'Listed',   price: 9,  ticks: 30, next: 'Done',                      launchedAgo: '9 mo',  target: null,  netLife: 1571, unitsLife: 205, stale: 4 },
-    { name: 'Teacher Bundle',        status: 'Listed',   price: 14, ticks: 28, next: 'Week-1 stats logged',       launchedAgo: '45 d',  target: null,  netLife: 379,  unitsLife: 31,  stale: 3 },
-    { name: 'Minimal Budget Sheets', status: 'Listed',   price: 7,  ticks: 30, next: 'Done',                      launchedAgo: '7 mo',  target: null,  netLife: 53,   unitsLife: 9,   stale: 22 },
-    { name: 'Holiday Gift Tags',     status: 'Assets',   price: null, ticks: 14, next: 'Screenshots (hero order)', launchedAgo: null,   target: 9,    netLife: 0, unitsLife: 0, stale: null },
-    { name: 'Wedding Suite No. 5',   status: 'Building', price: null, ticks: 5,  next: 'Final files exported',     launchedAgo: null,   target: 30,   netLife: 0, unitsLife: 0, stale: null },
-    { name: 'Kids Chore Charts',     status: 'Idea',     price: null, ticks: 0,  next: 'Concept locked',   launchedAgo: null,   target: null, netLife: 0, unitsLife: 0, stale: null },
+    { name: 'Wedding Suite No. 4',   status: 'Listed',   price: 24, template: 'Digital Product', stepCount: 30, ticks: 30, next: 'Done',                 launchedAgo: '12 mo', target: null,  netLife: 7253, unitsLife: 344, stale: 1 },
+    { name: 'Everyday Planner Kit',  status: 'Listed',   price: 16, template: 'Digital Product', stepCount: 30, ticks: 30, next: 'Done',                launchedAgo: '10 mo', target: null,  netLife: 2588, unitsLife: 184, stale: 2 },
+    { name: 'Recipe Card Set',       status: 'Listed',   price: 9,  template: 'Physical / Handmade', stepCount: 28, ticks: 28, next: 'Done',             launchedAgo: '9 mo',  target: null,  netLife: 1571, unitsLife: 205, stale: 4 },
+    { name: 'Teacher Bundle',        status: 'Listed',   price: 14, template: 'Digital Product', stepCount: 30, ticks: 28, next: 'Week-1 stats logged',  launchedAgo: '45 d',  target: null,  netLife: 379,  unitsLife: 31,  stale: 3,
+      tickIdx: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,28] },
+    { name: 'Minimal Budget Sheets', status: 'Listed',   price: 7,  template: 'Digital Product', stepCount: 30, ticks: 30, next: 'Done',                 launchedAgo: '7 mo',  target: null,  netLife: 53,   unitsLife: 9,   stale: 22 },
+    { name: 'Holiday Gift Tags',     status: 'Assets',   price: null, template: 'Physical / Handmade', stepCount: 28, ticks: 11, next: 'Photos shot (hero order)', launchedAgo: null, target: 9,  netLife: 0, unitsLife: 0, stale: null },
+    { name: 'Wedding Suite No. 5',   status: 'Building', price: null, template: 'Digital Product', stepCount: 30, ticks: 5,  next: 'Final files exported', launchedAgo: null,   target: 30,   netLife: 0, unitsLife: 0, stale: null },
+    { name: 'Kids Chore Charts',     status: 'Idea',     price: null, template: 'Digital Product', stepCount: 30, ticks: 0,  next: 'Concept locked',       launchedAgo: null,   target: null, netLife: 0, unitsLife: 0, stale: null },
+  ],
+
+  // Checklist tab — one horizontal section per process template in use.
+  checklist_sections: [
+    { template: 'Digital Product',
+      products: ['Wedding Suite No. 4', 'Everyday Planner Kit', 'Teacher Bundle', 'Minimal Budget Sheets', 'Wedding Suite No. 5', 'Kids Chore Charts'] },
+    { template: 'Physical / Handmade',
+      products: ['Recipe Card Set', 'Holiday Gift Tags'] },
   ],
 
   // Dashboard — active month (Jun 2026)
@@ -61,9 +88,9 @@ window.CC_DATA = {
   ],
   snapshot: { listed: 5, in_pipeline: 3, net_mtd: 2118, best: 'Wedding Suite No. 4', stalest: 'Minimal Budget Sheets · 22 d', sales_rows: 58 },
   needs_attention: [
-    { name: 'Holiday Gift Tags',   stage: 'Assets',   next: 'Screenshots (hero order)', days: 9 },
+    { name: 'Holiday Gift Tags',   stage: 'Assets',   next: 'Photos shot (hero order)', days: 9 },
     { name: 'Wedding Suite No. 5', stage: 'Building', next: 'Final files exported',     days: 30 },
-    { name: 'Kids Chore Charts',   stage: 'Idea',     next: 'Handoff folder written',   days: null },
+    { name: 'Kids Chore Charts',   stage: 'Idea',     next: 'Concept locked',           days: null },
   ],
   ai_insights: [
     { tag: 'SCALE', text: 'Wedding Suite No. 4 returns about four dollars of net for every ad dollar. Raise the budget before Q4.' },
@@ -93,22 +120,6 @@ window.CC_DATA = {
     ],
     checklist: { progress: 100, stage: 'Listed', next: 'Done' },
   },
-
-  // Checklist tab sample — Holiday Gift Tags rows around its boundary
-  checklist_sample: [
-    { product: 'Holiday Gift Tags', group: 'QA',      step: 'Test download as a buyer',  done: true,  n: 12 },
-    { product: 'Holiday Gift Tags', group: 'QA',      step: 'Fix pass',                  done: true,  n: 13 },
-    { product: 'Holiday Gift Tags', group: 'QA',      step: 'Final check',               done: true,  n: 14 },
-    { product: 'Holiday Gift Tags', group: 'ASSETS',  step: 'Screenshots (hero order)',  done: false, n: 15 },
-    { product: 'Holiday Gift Tags', group: 'ASSETS',  step: 'Watermarks applied',        done: false, n: 16 },
-    { product: 'Holiday Gift Tags', group: 'ASSETS',  step: 'Thumbnail',                 done: false, n: 17 },
-    { product: 'Holiday Gift Tags', group: 'ASSETS',  step: 'Listing copy drafted',      done: false, n: 18 },
-    { product: 'Holiday Gift Tags', group: 'ASSETS',  step: 'Tags + SEO list',           done: false, n: 19 },
-    { product: 'Holiday Gift Tags', group: 'ASSETS',  step: 'Price set',                 done: false, n: 20 },
-    { product: 'Holiday Gift Tags', group: 'LISTING', step: 'Listing created',           done: false, n: 21 },
-    { product: 'Holiday Gift Tags', group: 'LISTING', step: 'Files attached',            done: false, n: 22 },
-    { product: 'Holiday Gift Tags', group: 'LISTING', step: 'Preview checked',           done: false, n: 23 },
-  ],
 
   // Sales Log — recent rows (Fees blank ⇒ Net computes from channel defaults)
   sales_recent: [
