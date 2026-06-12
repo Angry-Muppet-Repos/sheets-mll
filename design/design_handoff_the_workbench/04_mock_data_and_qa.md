@@ -9,7 +9,7 @@ planner inserts. Mock window: trailing **9 months** ending at build month
 
 | Product | Status | Price | The story it tells |
 |---|---|---|---|
-| Wedding Suite No. 4 | Listed | $24 | the hero — ~55% of net, ROAS ≈ 4 on Etsy Ads |
+| Wedding Suite No. 4 | Listed | $24 | the hero — ~60% of net, ROAS ≈ 4 on Etsy Ads |
 | Everyday Planner Kit | Listed | $16 | steady mid-earner, no spend |
 | Recipe Card Set | Listed | $9 | slow decay — views up, conversion down (price test candidate) |
 | Teacher Bundle | Listed | $14 | listed 6 weeks ago, ramping |
