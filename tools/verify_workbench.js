@@ -90,13 +90,44 @@ class RangeStub {
     return out;
   }
   getValue() { return this.fetch(0, 0); }
-  createFilter() { return { remove() {} }; }
+  // Filter semantics modeled on real Sheets: one filter per sheet,
+  // clear() does NOT remove it, and merges that cross its borders throw
+  // (the v2→v3 rebuild failure from live QA).
+  createFilter() {
+    this.assertInGrid();
+    if (this.sheet.filter) {
+      throw new Error("You can't create a filter in a sheet containing a filter (emulated): " + this.sheet.name);
+    }
+    const sheet = this.sheet;
+    sheet.filter = {
+      range: { row: this.row, col: this.col, numRows: this.numRows, numCols: this.numCols },
+      remove() { sheet.filter = null; },
+    };
+    return sheet.filter;
+  }
+  merge() {
+    this.assertInGrid();
+    const f = this.sheet.filter;
+    if (f) {
+      const r = f.range;
+      const intersects = !(this.row + this.numRows - 1 < r.row || r.row + r.numRows - 1 < this.row ||
+                           this.col + this.numCols - 1 < r.col || r.col + r.numCols - 1 < this.col);
+      const contained = this.row >= r.row && this.col >= r.col &&
+        this.row + this.numRows - 1 <= r.row + r.numRows - 1 &&
+        this.col + this.numCols - 1 <= r.col + r.numCols - 1;
+      if (intersects && !contained) {
+        throw new Error("You can't merge cells that cross the borders of an existing filter (emulated): " +
+          this.sheet.name + '!' + this.getA1Notation());
+      }
+    }
+    return this;
+  }
 }
 ['setBorder','setFontFamily','setFontSize','setFontWeight','setFontStyle',
  'setFontColor','setHorizontalAlignment','setVerticalAlignment','setWrap',
  'breakApart','clearDataValidations','sort','activate',
  'setFontLine','setTextRotation'].forEach(m => { RangeStub.prototype[m] = function () { return this; }; });
-['merge','setBackground','setNumberFormat','setDataValidation','insertCheckboxes','setNotes'].forEach(m => {
+['setBackground','setNumberFormat','setDataValidation','insertCheckboxes','setNotes'].forEach(m => {
   RangeStub.prototype[m] = function () { this.assertInGrid(); return this; };
 });
 RangeStub.prototype.clearContent = function () {
@@ -105,7 +136,7 @@ RangeStub.prototype.clearContent = function () {
 };
 
 class SheetStub {
-  constructor(ss, name) { this.ss = ss; this.name = name; this.maxRows = 1000; this.maxCols = 26; this.cells = {}; }
+  constructor(ss, name) { this.ss = ss; this.name = name; this.maxRows = 1000; this.maxCols = 26; this.cells = {}; this.filter = null; }
   getName() { return this.name; }
   insertRowsAfter(after, n) { this.maxRows += n; return this; }
   insertColumnsAfter(after, n) { this.maxCols += n; return this; }
@@ -134,7 +165,7 @@ class SheetStub {
   setColumnWidth() { return this; } setColumnWidths() { return this; }
   hideColumns() {} hideRows() {} showRows() {} showColumns() {}
   setFrozenRows() {} setFrozenColumns() {}
-  getFilter() { return null; }
+  getFilter() { return this.filter; }
   getLastRow() { return 9; }
   hideSheet() {} activate() {}
 }
@@ -463,4 +494,30 @@ let fFail = 0;
 for (const [n3, ok, got] of fChecks) { if (!ok) fFail++; console.log('  ' + (ok ? 'PASS' : 'FAIL got ' + got) + '  ' + n3); }
 console.log('f. functional (intake + sections + save-as-template + wizard): ' + (fFail === 0 ? 'OK (' + fChecks.length + ' checks)' : 'FAIL (' + fFail + ')'));
 
-process.exit(bad + d1 + d2 + d3bad + cFail + eFail + fFail ? 1 : 0);
+// ───────────── g. rebuild resilience — building OVER a stale workbook ─────────────
+// clear() never removes filters or merges. Dan rebuilds in place, so the
+// build must tear everything down first. This reproduces the live-QA
+// failure: a v2 workbook's Checklist filter + the v3 band merge.
+CURRENT_MODE = 'func';
+ss = new SSStub();
+api.buildWorkbook('mock');
+const staleChk = ss.sheets['Checklist'];
+staleChk.filter = { range: { row: 9, col: 1, numRows: 7501, numCols: 6 }, remove() { staleChk.filter = null; } };
+const gChecks = [];
+try {
+  api.buildWorkbook('mock');
+  gChecks.push(['rebuild over a stale v2 Checklist filter succeeds', true, '']);
+} catch (e) {
+  gChecks.push(['rebuild over a stale v2 Checklist filter succeeds', false, e.message]);
+}
+try {
+  api.buildWorkbook('blank');
+  gChecks.push(['blank-over-mock rebuild succeeds (self-created filters torn down)', true, '']);
+} catch (e) {
+  gChecks.push(['blank-over-mock rebuild succeeds (self-created filters torn down)', false, e.message]);
+}
+let gFail = 0;
+for (const [n4, ok, got] of gChecks) { if (!ok) gFail++; console.log('  ' + (ok ? 'PASS' : 'FAIL got ' + got) + '  ' + n4); }
+console.log('g. rebuild resilience: ' + (gFail === 0 ? 'OK (' + gChecks.length + ' checks)' : 'FAIL (' + gFail + ')'));
+
+process.exit(bad + d1 + d2 + d3bad + cFail + eFail + fFail + gFail ? 1 : 0);

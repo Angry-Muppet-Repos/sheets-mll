@@ -112,6 +112,12 @@ Hard-won build lessons (apply to every product's .gs):
 - Grow the grid (`ensureGrid_`) before writing past 1,000 rows / 26
   columns — out-of-grid writes surface as the opaque "Service
   Spreadsheets failed while accessing document" error.
+- Rebuilds happen IN PLACE over old workbooks: `clear()` removes neither
+  filters, merges, nor validations. `getOrCreateSheet_` must tear all
+  three down first — a stale filter makes any merge that crosses its
+  border throw ("can't merge cells that cross the borders of an existing
+  filter", June 2026 live-QA failure). The Workbench harness models
+  filter semantics and rebuilds over a stale workbook (layer g).
 - Land huge mutations in slabs with flushes (`forEachSlab_`); toast
   per-tab progress so failures name their tab.
 - Static-verification harnesses live in `tools/` (verify_workbench.js,

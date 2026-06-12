@@ -667,6 +667,11 @@ function buildWorkbook(mode) {
 function getOrCreateSheet_(ss, name) {
   var sh = ss.getSheetByName(name);
   if (!sh) sh = ss.insertSheet(name);
+  // Filter teardown comes FIRST: clear() never removes a basic filter,
+  // and both breakApart() and merge() throw when they cross a stale
+  // filter's borders (the v2→v3 rebuild failure).
+  var existingFilter = sh.getFilter();
+  if (existingFilter) existingFilter.remove();
   try { sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).breakApart(); } catch (e) {}
   sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearDataValidations();
   sh.clear();
