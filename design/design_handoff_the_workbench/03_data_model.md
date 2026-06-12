@@ -8,7 +8,7 @@
 | `SALES_CAPACITY` | 10,000 | Sales Log rows |
 | `MARKETING_CAPACITY` | 2,000 | Marketing Log rows |
 | `STATS_CAPACITY` | 3,000 | Stats rows |
-| `CHECKLIST_CAPACITY` | 7,500 | Checklist rows (~250 products × 30 steps) |
+| `CHK.ROW_BUDGET` | 400 | Checklist row budget (section chrome + 250 product rows) |
 | `TEMPLATE_SLOTS` × `STEPS_PER_TEMPLATE` | 8 × 50 | Templates library columns × step cells |
 | `CHANNEL_SLOTS` | 12 | Channels registry rows 10–21 + engine channel rows |
 
@@ -47,21 +47,37 @@ convention `GROUP · Step name`. Four starters ship in BOTH modes:
 | Service / Custom Order | 20 | OFFER 5 · SETUP 5 · LISTING 4 · POST 6 |
 | Quick List | 10 | MAKE 3 · LIST 4 · POST 3 |
 
-**Checklist tab** — long format, one row per product × step:
-`Product · Group · Step · Done(checkbox) · #(order) · Key(hidden,
-=Product&"|"&order)`. Created by the intake flow; freely editable per
-product afterward.
+**Checklist tab** — horizontal sections, one per process in use. Columns:
+`A # · B Product · C Progress · D Next step · E..BB 50 checkbox step
+columns · BC hidden META marker (band:<tpl> · groups · header · row)`.
+Steps are customized **per process**: a section's header row IS the
+process — rename a header and every product in the section follows; type
+into a gold ghost slot to add a step (its checkboxes are pre-wired and
+it joins the math via COUNTA); blank a header to retire one. One-off
+variation = Save Steps as Template… a variant and move the product.
 
-**Flows** (script, section 12): `Add Product…` opens a sidebar intake
-form (name · template dropdown · status · price · target date) →
-`createProductFromIntake` appends the Products row + the template's steps
-as Checklist rows. `Save Steps as Template…` →
-`saveStepsAsTemplateCore_(product, name)` writes a product's current
-steps into the next free library column.
+Per-row formulas (written at insert, header row absolute):
+- **Progress** `=SUMPRODUCT((hdr<>"")*(ticks=TRUE))/COUNTA(hdr)` — ticks
+  under NAMED headers only
+- **Next step** `=INDEX(hdr, MATCH(1, INDEX((hdr<>"")*(ticks=FALSE),0),0))`
+  → "Done" when nothing unchecked
+
+**Flows** (script, section 12):
+- `Add Product…` sidebar → `createProductFromIntake`: Products row +
+  `ensureChecklistSection_(template)` (creates the section on first
+  use) + `insertRowsAfter` at the section bottom + the row write.
+- `Add Process…` sidebar wizard → `createProcessFromWizard({name,
+  phases})`: hybrid waterfall · iterative guided builder (kind seeds →
+  phase plan → step walk with review loops) writing a `PHASE · Step`
+  column into the next free library slot.
+- `Save Steps as Template…` → `saveStepsAsTemplateCore_(sectionName,
+  newName)`: a section's live headers + group bands → library column.
+- Structural changes call `refreshChecklistChrome_` (re-store the
+  scan-derived theme roles for the band rows; re-tune visible columns).
 
 Computed columns on Products (locked):
-- **Progress** `=COUNTIFS(chkProduct, name, chkDone, TRUE) / COUNTIF(chkProduct, name)` — each product against its OWN step count; blank when it has no steps
-- **Next step** `=INDEX(chkStep, MATCH(name & "|" & MINIFS(chkOrder, chkProduct, name, chkDone, FALSE), chkKey, 0))` → "Done" when nothing unchecked
+- **Progress / Next step** `=INDEX(Checklist!C:C or D:D, MATCH(name,
+  Checklist!B:B, 0))` — each product's Checklist row carries the math
 - **Days to target** `=target − TODAY()` + chip CF (On Track ≥ 7 · Fair 0–6 · Over < 0)
 
 ## Channels registry (rows 10–21) + fee defaults
@@ -87,7 +103,7 @@ build time, never hardcoded into formulas — Net always reads this table):
 (Product View!C10) · `cc_products_list` (Products!B10:B259) ·
 `cc_products_status` · `cc_products_table` (A10:O259) ·
 `cc_templates_list` (Templates!B9:I9) · `cc_checklist`
-(Checklist!A10:F7509) · `cc_channels_list` · `cc_channel_fees` ·
+(Checklist!A10:BB409) · `cc_channels_list` · `cc_channel_fees` ·
 `cc_sales_log` · `cc_active_palette`
 
 ## Engine layout (hidden)

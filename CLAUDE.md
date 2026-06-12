@@ -100,11 +100,13 @@ diverge, the workbook is ground truth.
 - **The Ledger v1** (`apps_script/ColumnCo_Ledger_v1.gs`) — merged via
   PR #2, statically verified, paused before Dan's live QA.
 - **The Workbench v1** (`apps_script/ColumnCo_Workbench_v1.gs`) — PR #3
-  open. The latest checklist redesign (commit `f899a6a`) was REJECTED by
-  Dan; the rework contract is
-  `design/design_handoff_the_workbench/05_revision_brief_checklist_v2.md`
-  and the kickoff prompt is `NEXT_SESSION_PROMPT.txt` in the same folder.
-  Read both before touching the Workbench.
+  open. Checklist v3 (June 2026): the rejected vertical layout was
+  reworked to HORIZONTAL TEMPLATE SECTIONS (Option A of
+  `design/design_handoff_the_workbench/05_revision_brief_checklist_v2.md`)
+  plus a guided Add Process wizard — Dan picked the design and approved
+  the visual mockup (`design/ui_kits/the_workbench/`) before the script
+  was written. Statically verified; awaiting Dan's live QA. Docs
+  02/03/04/06 describe the current v3 build.
 
 Hard-won build lessons (apply to every product's .gs):
 - Grow the grid (`ensureGrid_`) before writing past 1,000 rows / 26

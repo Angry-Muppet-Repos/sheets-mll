@@ -60,7 +60,6 @@ var CHANNEL_SLOTS     = 12;      // Channels registry rows 10-21
 // product's checklist back into the next free library column.
 var TEMPLATE_SLOTS = 8;
 var STEPS_PER_TEMPLATE = 50;
-var CHECKLIST_CAPACITY = 7500;   // checklist rows (~250 products × 30 steps)
 
 var TEMPLATES = [
   ['Digital Product', [
@@ -205,8 +204,27 @@ var ENGINE_PRODUCT_LAST = ENGINE_ROWS.PRODUCT_FIRST + PRODUCT_CAPACITY - 1;  // 
 // Templates + Checklist layout contracts
 var TPL = { NAME_ROW: 9, COUNT_ROW: 10, FIRST_STEP_ROW: 11, FIRST_COL: 2 };
 var TPL_LAST_STEP_ROW = TPL.FIRST_STEP_ROW + STEPS_PER_TEMPLATE - 1;   // 60
-var CHK = { HEADER_ROW: 9, FIRST_ROW: 10 };
-var CHK_LAST_ROW = CHK.FIRST_ROW + CHECKLIST_CAPACITY - 1;             // 7509
+// ── Checklist layout contract (v3 — horizontal sections) ─────────────
+// One SECTION per process template in use. Section anatomy, top down:
+//   band   — template name · live step count · live product count
+//   groups — colored group segments over the step columns
+//   header — step names (45°, hover notes); blank slots beyond are
+//            ghost columns: type a name and the step joins the process
+//   rows   — one product per row: # · Name · Progress · Next step,
+//            then a checkbox per step column
+//   (one spacer row, then the next section)
+// The script finds sections by scanning the hidden META column — never
+// by absolute row — so owner edits don't break it.
+var CHK = {
+  FIRST_ROW: 10,                  // first band row of the first section
+  COL_NUM: 1, COL_NAME: 2, COL_PROGRESS: 3, COL_NEXT: 4,
+  COL_STEP_FIRST: 5,              // E = step 1
+  STEP_COLS: STEPS_PER_TEMPLATE,  // 50 pre-wired checkbox columns
+  COL_META: 55,                   // hidden: band:<tpl> · groups · header · row
+  ROW_BUDGET: 400                 // section overhead + product rows
+};
+var CHK_LAST_COL = CHK.COL_STEP_FIRST + CHK.STEP_COLS - 1;             // 54 (BB)
+var CHK_LAST_ROW = CHK.FIRST_ROW + CHK.ROW_BUDGET - 1;                 // 409
 
 // Registry/log layout contracts
 var CHAN = { FIRST_ROW: 10, ROWS: CHANNEL_SLOTS };                 // Channels 10-21
@@ -219,22 +237,23 @@ var STATSL = { HEADER_ROW: 9, FIRST_ROW: 10 };                     // data 10..3
 // asserts: net ramp m0→m8 between 2.0× and 2.4× · hero ≈ 55-65% of
 // lifetime net at ROAS 3.5-4.5 · dud net < $60 with ROAS < 0.5 · Recipe
 // Card Set views +40% while conversion at most halves-ish · pipeline
-// progress exactly 47% / 17% / 0%.
+// progress exactly 39% / 17% / 0%.
 var MOCK = {
   owner: { shop: 'Juniper Paper Co.', name: 'Jules Hartley' },
 
   // [name, status, price, listedMonthsAgo|null, targetDaysFromToday|null,
-  //  ticks ('all' · 'tb' · first-N number · 0), unitsByMonth] — every mock
-  //  product runs the Digital Product template (30 steps)
+  //  ticks ('all' · 'tb' · first-N number · 0), unitsByMonth, template] —
+  //  Juniper's printed line (Recipe Card Set, Holiday Gift Tags) runs
+  //  Physical / Handmade: the Checklist's second section.
   products: [
-    ['Wedding Suite No. 4',   'Listed',   24, 12,  null, 'all', [23, 25, 27, 31, 34, 39, 45, 54, 66]],
-    ['Everyday Planner Kit',  'Listed',   16, 10,  null, 'all', [17, 18, 20, 20, 21, 21, 22, 22, 23]],
-    ['Recipe Card Set',       'Listed',    9,  9,  null, 'all', [28, 27, 25, 23, 22, 21, 20, 20, 19]],
-    ['Teacher Bundle',        'Listed',   14,  1.5, null, 'tb', [0, 0, 0, 0, 0, 0, 0, 10, 21]],
-    ['Minimal Budget Sheets', 'Listed',    7,  7,  null, 'all', [0, 0, 1, 1, 1, 2, 2, 1, 1]],
-    ['Holiday Gift Tags',     'Assets',  null, null,  9, 14,    null],
-    ['Wedding Suite No. 5',   'Building', null, null, 30, 5,    null],
-    ['Kids Chore Charts',     'Idea',    null, null, null, 0,   null]
+    ['Wedding Suite No. 4',   'Listed',   24, 12,  null, 'all', [23, 25, 27, 31, 34, 39, 45, 54, 66], 'Digital Product'],
+    ['Everyday Planner Kit',  'Listed',   16, 10,  null, 'all', [17, 18, 20, 20, 21, 21, 22, 22, 23], 'Digital Product'],
+    ['Recipe Card Set',       'Listed',    9,  9,  null, 'all', [28, 27, 25, 23, 22, 21, 20, 20, 19], 'Physical / Handmade'],
+    ['Teacher Bundle',        'Listed',   14,  1.5, null, 'tb', [0, 0, 0, 0, 0, 0, 0, 10, 21],        'Digital Product'],
+    ['Minimal Budget Sheets', 'Listed',    7,  7,  null, 'all', [0, 0, 1, 1, 1, 2, 2, 1, 1],          'Digital Product'],
+    ['Holiday Gift Tags',     'Assets',  null, null,  9, 11,    null,                                  'Physical / Handmade'],
+    ['Wedding Suite No. 5',   'Building', null, null, 30, 5,    null,                                  'Digital Product'],
+    ['Kids Chore Charts',     'Idea',    null, null, null, 0,   null,                                  'Digital Product']
   ],
 
   // channel weights per listed product (Etsy/Shopify/Gumroad)
@@ -273,25 +292,36 @@ var MOCK_TB_TICKS = (function () {
   var t = []; for (var i = 0; i < 27; i++) t.push(i); t.push(28); return t;
 })();
 
-// Pure: the Juniper checklist — every mock product gets the Digital
-// Product steps with done flags per its tick plan. Returns rows of
-// [Product, Group, Step, Done, Order] for the Checklist tab.
+// 'GROUP · Step' strings for a template name, from the TEMPLATES constant
+// (generators and the blank build read this; runtime flows read the
+// Templates SHEET via getTemplateSteps_ so owner edits count).
+function templateSteps_(name) {
+  for (var i = 0; i < TEMPLATES.length; i++) {
+    if (TEMPLATES[i][0] === name) return TEMPLATES[i][1];
+  }
+  return [];
+}
+
+// Pure: the Juniper checklist as horizontal SECTIONS — one per process
+// in use, in order of first use. Each product carries its done flags
+// against its own template's steps.
 function generateMockChecklist_() {
-  var steps = TEMPLATES[0][1];
-  var rows = [];
+  var sections = [], byTpl = {};
   MOCK.products.forEach(function (p) {
-    var name = p[0], ticks = p[5];
+    var name = p[0], ticks = p[5], tplName = p[7] || DEFAULT_TEMPLATE;
+    var steps = templateSteps_(tplName);
     var flags = [];
     for (var i = 0; i < steps.length; i++) flags.push(false);
     if (ticks === 'all') { for (var a = 0; a < steps.length; a++) flags[a] = true; }
     else if (ticks === 'tb') { MOCK_TB_TICKS.forEach(function (ix) { flags[ix] = true; }); }
     else if (typeof ticks === 'number') { for (var f = 0; f < ticks; f++) flags[f] = true; }
-    for (var st = 0; st < steps.length; st++) {
-      var parsed = parseStep_(steps[st]);
-      rows.push([name, parsed.group, parsed.step, flags[st], st + 1]);
+    if (!byTpl[tplName]) {
+      byTpl[tplName] = { template: tplName, steps: steps, products: [] };
+      sections.push(byTpl[tplName]);
     }
+    byTpl[tplName].products.push({ name: name, flags: flags });
   });
-  return rows;
+  return sections;
 }
 /**
  * Column & Co. — The Workbench v1.0
@@ -664,7 +694,7 @@ function setNamedRanges_(ss) {
     'cc_products_status':  TABS.PRODUCTS + '!C' + PROD.FIRST_ROW + ':C' + PROD_LAST_ROW,
     'cc_products_table':   TABS.PRODUCTS + '!A' + PROD.FIRST_ROW + ':O' + PROD_LAST_ROW,
     'cc_templates_list':   TABS.TEMPLATES + '!B' + TPL.NAME_ROW + ':I' + TPL.NAME_ROW,
-    'cc_checklist':        TABS.CHECKLIST + '!A' + CHK.FIRST_ROW + ':F' + CHK_LAST_ROW,
+    'cc_checklist':        TABS.CHECKLIST + '!A' + CHK.FIRST_ROW + ':' + columnToLetter_(CHK_LAST_COL) + CHK_LAST_ROW,
     'cc_channels_list':    TABS.CHANNELS + '!A10:A21',
     'cc_channel_fees':     TABS.CHANNELS + '!A10:C21',
     'cc_sales_log':        TABS.SALES + '!A' + SALES.FIRST_ROW + ':I' + (SALES.FIRST_ROW + SALES_CAPACITY - 1),
@@ -713,12 +743,16 @@ function buildSchema_(sheet, mode) {
     '  • Products — the master table. One row per product (' + PRODUCT_CAPACITY + ' slots):',
     '    name, status, template, price, listing URL, dates, then computed',
     '    Progress, Next step, Days to target, and Days since last sale.',
-    '  • Checklist — every product\'s launch steps in long format: one row',
-    '    per step (Product, Group, Step, Done checkbox, order). Each product',
-    '    runs its own process — add, reword, or delete rows freely.',
+    '  • Checklist — the ticking surface, horizontal: products as rows,',
+    '    steps as checkbox columns, one SECTION per process template in',
+    '    use. Each section: a band (template name + live counts), group',
+    '    bands, a header row of step names (rename in place; type into a',
+    '    blank gold slot to add a step to that whole process), then one',
+    '    row per product with computed Progress and Next step.',
     '  • Templates — the process library (' + TEMPLATE_SLOTS + ' slots × up to ' + STEPS_PER_TEMPLATE + ' steps).',
-    '    Add Product copies a template\'s steps to the Checklist; Save Steps',
-    '    as Template writes a product\'s checklist back into the library.',
+    '    Add Process builds a new column here, guided phase by phase;',
+    '    Add Product puts a product row in its template\'s section; Save',
+    '    Steps as Template files a section\'s current headers back here.',
     '  • Sales Log — one row when money lands. Columns: Date, Product,',
     '    Channel, Units, Gross, Fees, Net, Notes, Month. When Fees is blank,',
     '    Net computes from the Channels fee defaults.',
@@ -726,7 +760,7 @@ function buildSchema_(sheet, mode) {
     '  • Stats — optional: per product per month, Views / Favorites / Orders',
     '    typed from shop stats. Powers the conversion funnel.',
     '  • Channels — fee defaults per sales channel (editable).',
-    '  • Progress = done steps ÷ that product\'s own step count.',
+    '  • Progress = ticked boxes ÷ the named steps of that product\'s section.',
     '  • Pipeline — computed board: stage counts, in-flight ranking, next',
     '    actions. Nothing is typed here.',
     '  • Product View — one product picked by dropdown: trend, channel',
@@ -789,7 +823,7 @@ function buildChannels_(sheet) {
 function buildTemplates_(sheet) {
   chrome_(sheet, TABS.TEMPLATES, 'I');
   var r = titleRow_(sheet, 'I', 'Templates',
-    'Your process library. Add Product copies a column into the Checklist; Save Steps as Template adds new columns here.');
+    'Your process library. 💳 → Add Process… builds new columns here, phase by phase; Add Product… puts products on them; Save Steps as Template… files an evolved section back.');
 
   // Name row (9) + live step-count row (10) + step slots (11-60).
   setCell_(sheet, 'A' + TPL.NAME_ROW, { value: 'Process', font: FONT.BODY, size: 10, bold: true, color: BRAND.BODY, v: 'middle' });
@@ -874,19 +908,19 @@ function buildProducts_(sheet, mode) {
   sheet.getRange(first, PROD.COL_TARGET, n, 2).setNumberFormat('mmm d, yyyy').setBackground(BRAND.YELLOW);
   sheet.getRange(first, PROD.COL_NOTES, n, 1).setBackground(BRAND.YELLOW);
 
-  // Computed columns over the Checklist (each product's OWN step count).
+  // Computed columns: Progress + Next step pull each product's row off
+  // the sectioned Checklist (its row computes against its own section's
+  // header), matched by name on the Checklist's name column.
   var chk = "'" + TABS.CHECKLIST + "'";
-  var chkProd = chk + '!$A$' + CHK.FIRST_ROW + ':$A$' + CHK_LAST_ROW;
-  var chkStep = chk + '!$C$' + CHK.FIRST_ROW + ':$C$' + CHK_LAST_ROW;
-  var chkDone = chk + '!$D$' + CHK.FIRST_ROW + ':$D$' + CHK_LAST_ROW;
-  var chkOrder = chk + '!$E$' + CHK.FIRST_ROW + ':$E$' + CHK_LAST_ROW;
-  var chkKey = chk + '!$F$' + CHK.FIRST_ROW + ':$F$' + CHK_LAST_ROW;
+  var chkName = chk + '!$' + columnToLetter_(CHK.COL_NAME) + '$' + CHK.FIRST_ROW + ':$' + columnToLetter_(CHK.COL_NAME) + '$' + CHK_LAST_ROW;
+  var chkProg = chk + '!$' + columnToLetter_(CHK.COL_PROGRESS) + '$' + CHK.FIRST_ROW + ':$' + columnToLetter_(CHK.COL_PROGRESS) + '$' + CHK_LAST_ROW;
+  var chkNext = chk + '!$' + columnToLetter_(CHK.COL_NEXT) + '$' + CHK.FIRST_ROW + ':$' + columnToLetter_(CHK.COL_NEXT) + '$' + CHK_LAST_ROW;
   var progL = columnToLetter_(PROD.COL_PROGRESS);
   var fProgress = [], fNext = [], fDays = [], fStale = [], fRank = [], fListed = [];
   for (var pr = 0; pr < n; pr++) {
     var rr = first + pr;
-    fProgress.push(['=IF($B' + rr + '="","",IF(COUNTIF(' + chkProd + ',$B' + rr + ')=0,"",COUNTIFS(' + chkProd + ',$B' + rr + ',' + chkDone + ',TRUE)/COUNTIF(' + chkProd + ',$B' + rr + ')))']);
-    fNext.push(['=IF($B' + rr + '="","",IF(COUNTIF(' + chkProd + ',$B' + rr + ')=0,"add steps — 💳 → Add Product",IF(COUNTIFS(' + chkProd + ',$B' + rr + ',' + chkDone + ',FALSE)=0,"Done",IFERROR(INDEX(' + chkStep + ',MATCH($B' + rr + '&"|"&MINIFS(' + chkOrder + ',' + chkProd + ',$B' + rr + ',' + chkDone + ',FALSE),' + chkKey + ',0)),"—"))))']);
+    fProgress.push(['=IF($B' + rr + '="","",IFERROR(INDEX(' + chkProg + ',MATCH($B' + rr + ',' + chkName + ',0)),""))']);
+    fNext.push(['=IF($B' + rr + '="","",IFERROR(INDEX(' + chkNext + ',MATCH($B' + rr + ',' + chkName + ',0)),"add steps — 💳 → Add Product"))']);
     fDays.push(['=IF(OR($B' + rr + '="",$G' + rr + '=""),"",$G' + rr + '-TODAY())']);
     fStale.push(['=IF(OR($B' + rr + '="",$C' + rr + '<>"Listed"),"",IFERROR(TODAY()-MAXIFS(\'' + TABS.SALES + '\'!$A:$A,\'' + TABS.SALES + '\'!$B:$B,$B' + rr + '),""))']);
     fRank.push(['=IF(OR($B' + rr + '="",$C' + rr + '="Listed",$C' + rr + '="Retired"),"",N(' + progL + rr + ')+ROW()/1000000)']);
@@ -928,7 +962,7 @@ function buildProducts_(sheet, mode) {
       var row = first + i;
       sheet.getRange(row, PROD.COL_NAME).setValue(p[0]);
       sheet.getRange(row, PROD.COL_STATUS).setValue(p[1]);
-      sheet.getRange(row, PROD.COL_TEMPLATE).setValue(DEFAULT_TEMPLATE);
+      sheet.getRange(row, PROD.COL_TEMPLATE).setValue(p[7] || DEFAULT_TEMPLATE);
       if (p[2] != null) sheet.getRange(row, PROD.COL_PRICE).setValue(p[2]);
       if (p[1] === 'Listed') {
         sheet.getRange(row, PROD.COL_URL).setValue('etsy.com/listing/junipr-' + (i + 1));
@@ -953,57 +987,250 @@ function buildProducts_(sheet, mode) {
   footer_(sheet, PROD_LAST_ROW + 2, lastColLetter);
 }
 
-// ── Checklist — every product\'s steps, one row each (the ticking
-// surface; long format scales to any process shape) ───────────────────
+// ── Checklist — THE horizontal ticking surface. Products as rows,
+// steps as columns; one section per process template in use. ──────────
 function buildChecklist_(sheet, mode) {
-  var existingFilter = sheet.getFilter();
-  if (existingFilter) existingFilter.remove();
-  ensureGrid_(sheet, CHK.FIRST_ROW + CHECKLIST_CAPACITY + 5, 26);
+  // 55 columns > the 26-column default grid — grow it BEFORE any write.
+  ensureGrid_(sheet, CHK_LAST_ROW + 6, CHK.COL_META);
+  var lastColLetter = columnToLetter_(CHK_LAST_COL);
+  chrome_(sheet, TABS.CHECKLIST, lastColLetter);
+  titleRow_(sheet, lastColLetter, 'Checklist',
+    'Products as rows, steps as columns — tick across the row as each product moves. One section per process.');
+  setCell_(sheet, 'A8', {
+    value: 'Hover any step header for its full name  ·  headers edit in place — rename a step and the whole section follows; type into a blank gold slot to add one  ·  new processes: 💳 → Add Process…',
+    merge: 'Z8', font: FONT.BODY, size: 10, italic: true, color: BRAND.CAPTION });
 
-  chrome_(sheet, TABS.CHECKLIST, 'F');
-  titleRow_(sheet, 'F', 'Checklist',
-    "Every product's steps, one row each. Filter to a product and tick down the list.");
+  var sections = (mode === 'mock')
+    ? generateMockChecklist_()
+    : [{ template: DEFAULT_TEMPLATE, steps: templateSteps_(DEFAULT_TEMPLATE), products: [] }];
 
-  var headerRow = CHK.HEADER_ROW;   // 9
-  sheet.getRange(headerRow, 1, 1, 6).setValues([['Product', 'Group', 'Step', 'Done', '#', 'Key']])
-    .setFontWeight('bold').setBackground(BRAND.FOREST).setFontColor(BRAND.PARCHMENT)
-    .setFontFamily(FONT.BODY).setFontSize(10);
-  themable_(sheet.getName(), 'primary', sheet.getRange(headerRow, 1, 1, 6).getA1Notation());
-  SpreadsheetApp.flush();
-  try { sheet.setFrozenRows(headerRow); } catch (e) {}
-
-  var firstData = CHK.FIRST_ROW;
-  var rows = (mode === 'mock') ? generateMockChecklist_() : [];
-  if (rows.length) {
-    // cols A-E; the Key col F keeps its prewired formula
-    sheet.getRange(firstData, 1, rows.length, 5).setValues(rows);
-  }
-
-  var ss = SpreadsheetApp.getActive();
-  var prodRule = SpreadsheetApp.newDataValidation()
-    .requireValueInRange(ss.getRangeByName('cc_products_list') ||
-      ss.getRange("'" + TABS.PRODUCTS + "'!B" + PROD.FIRST_ROW + ':B' + PROD_LAST_ROW), true).build();
-  // Checkboxes, validations, order format + Key formula — slabbed.
-  forEachSlab_(firstData, CHECKLIST_CAPACITY, 1000, function (slabStart, slabRows) {
-    sheet.getRange(slabStart, 4, slabRows, 1).insertCheckboxes();
-    sheet.getRange(slabStart, 1, slabRows, 1).setDataValidation(prodRule);
-    sheet.getRange(slabStart, 6, slabRows, 1).setFormulaR1C1('=IF(RC1="","",RC1&"|"&RC5)');
+  var row = CHK.FIRST_ROW;
+  var firstHeaderRow = 0;
+  sections.forEach(function (sec) {
+    var written = writeChecklistSection_(sheet, row, sec.template, sec.steps);
+    if (!firstHeaderRow) firstHeaderRow = written.headerRow;
+    var r2 = written.headerRow + 1;
+    sec.products.forEach(function (p) {
+      writeChecklistProductRow_(sheet, r2, written.headerRow, p.name, p.flags);
+      r2 += 1;
+    });
+    row = r2 + 1;   // one spacer row between sections
   });
-  sheet.getRange(firstData, 5, CHECKLIST_CAPACITY, 1).setNumberFormat('#,##0');
 
-  // Re-assert the mock done flags AFTER insertCheckboxes (it resets cells
-  // in some Sheets versions): write the Done column again from the rows.
-  if (rows.length) {
-    var doneCol = rows.map(function (r) { return [r[3]]; });
-    sheet.getRange(firstData, 4, doneCol.length, 1).setValues(doneCol);
+  if (mode !== 'mock') {
+    setCell_(sheet, 'B' + (firstHeaderRow + 1), {
+      value: 'Add your first product — 💳 → Add Product… puts its row here, ready to tick.',
+      font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION });
   }
 
-  setColWidths_(sheet, [200, 95, 330, 60, 50, 90]);
-  sheet.hideColumns(6);   // Key is a helper column
-  sheet.getRange(headerRow, 1, 1 + CHECKLIST_CAPACITY, 6).createFilter();
+  THEME_MAP[TABS.CHECKLIST] = checklistThemeRoles_(sheet);
+  tuneChecklistColumns_(sheet);
+  sheet.hideColumns(CHK.COL_META);
+  SpreadsheetApp.flush();
+  try { sheet.setFrozenRows(firstHeaderRow); } catch (e) {}
+  try { sheet.setFrozenColumns(CHK.COL_NEXT); } catch (e) {}
 
-  var capRow = 7;   // caption sits in the title block spacer row 8? keep below header instead
-  setCell_(sheet, 'E8', { value: 'rows are added by 💳 → Add Product…', font: FONT.BODY, size: 9, italic: true, color: BRAND.CAPTION });
+  footer_(sheet, row + 1, lastColLetter);
+}
+
+// Write one section's chrome (band + group bands + header row) at
+// startRow. Returns { bandRow, groupsRow, headerRow }.
+function writeChecklistSection_(sheet, startRow, templateName, steps) {
+  var bandRow = startRow, groupsRow = startRow + 1, headerRow = startRow + 2;
+  var lastL = columnToLetter_(CHK_LAST_COL);
+  var firstL = columnToLetter_(CHK.COL_STEP_FIRST);
+  var safeName = String(templateName).replace(/"/g, '""');
+  var hdrAbs = firstL + '$' + headerRow + ':' + lastL + '$' + headerRow;
+  var tplCol = "'" + TABS.PRODUCTS + "'!$" + columnToLetter_(PROD.COL_TEMPLATE) + '$' + PROD.FIRST_ROW +
+    ':$' + columnToLetter_(PROD.COL_TEMPLATE) + '$' + PROD_LAST_ROW;
+
+  // Band: template name + live step/product counts (merged, Forest).
+  sheet.getRange(bandRow, 1, 1, CHK_LAST_COL).merge().setBackground(BRAND.FOREST);
+  sheet.getRange(bandRow, 1).setFormula(
+    '=UPPER("' + safeName + '")&"   ·   "&COUNTA(' + hdrAbs + ')&" STEPS   ·   "&COUNTIF(' + tplCol + ',"' + safeName + '")&" PRODUCTS"')
+    .setFontFamily(FONT.BODY).setFontSize(10).setFontWeight('bold')
+    .setFontColor(BRAND.PARCHMENT).setVerticalAlignment('middle');
+  sheet.setRowHeight(bandRow, 26);
+  sheet.getRange(bandRow, CHK.COL_META).setValue('band:' + templateName);
+
+  // Group bands: merged colored segments over the named step columns.
+  var groups = [];
+  steps.forEach(function (st) {
+    var g = parseStep_(st).group;
+    var last = groups[groups.length - 1];
+    if (last && last.name === g) last.n += 1; else groups.push({ name: g, n: 1 });
+  });
+  var col = CHK.COL_STEP_FIRST;
+  for (var gi = 0; gi < groups.length; gi++) {
+    var seg = sheet.getRange(groupsRow, col, 1, groups[gi].n);
+    seg.merge().setBackground(BRAND.GROUP_FILLS[gi % BRAND.GROUP_FILLS.length]);
+    sheet.getRange(groupsRow, col).setValue(groups[gi].name)
+      .setFontFamily(FONT.BODY).setFontSize(8).setFontWeight('bold')
+      .setFontColor(BRAND.PARCHMENT).setHorizontalAlignment('center').setVerticalAlignment('middle');
+    col += groups[gi].n;
+  }
+  sheet.setRowHeight(groupsRow, 18);
+  sheet.getRange(groupsRow, CHK.COL_META).setValue('groups');
+  // Left labels live on the groups row, merged A:B so column B only ever
+  // holds product names (Products formulas MATCH on column B).
+  sheet.getRange(groupsRow, 1, 1, 2).merge();
+  sheet.getRange(groupsRow, 1).setValue('PRODUCT')
+    .setFontFamily(FONT.BODY).setFontSize(8).setFontWeight('bold').setFontColor(BRAND.BODY).setVerticalAlignment('middle');
+  sheet.getRange(groupsRow, CHK.COL_PROGRESS).setValue('PROGRESS')
+    .setFontFamily(FONT.BODY).setFontSize(8).setFontWeight('bold').setFontColor(BRAND.BODY).setVerticalAlignment('middle');
+  sheet.getRange(groupsRow, CHK.COL_NEXT).setValue('NEXT STEP')
+    .setFontFamily(FONT.BODY).setFontSize(8).setFontWeight('bold').setFontColor(BRAND.BODY).setVerticalAlignment('middle');
+
+  // Header row: step names at 45° with full-text notes; the slots
+  // beyond stay blank — gold dashed GHOSTS, pre-wired to join the math.
+  var names = [], notes = [];
+  for (var i = 0; i < CHK.STEP_COLS; i++) {
+    if (i < steps.length) {
+      var parsed = parseStep_(steps[i]);
+      names.push(parsed.step);
+      notes.push(parsed.group + ' · ' + parsed.step);
+    } else {
+      names.push('');
+      notes.push('Type a step name here to add it to this process — its checkboxes are already wired.');
+    }
+  }
+  var hdrRange = sheet.getRange(headerRow, CHK.COL_STEP_FIRST, 1, CHK.STEP_COLS);
+  hdrRange.setValues([names]).setNotes([notes])
+    .setFontFamily(FONT.BODY).setFontSize(9).setFontColor(BRAND.FOREST)
+    .setTextRotation(45).setVerticalAlignment('bottom').setHorizontalAlignment('left');
+  if (steps.length < CHK.STEP_COLS) {
+    sheet.getRange(headerRow, CHK.COL_STEP_FIRST + steps.length, 1, CHK.STEP_COLS - steps.length)
+      .setBackground(BRAND.YELLOW)
+      .setBorder(null, null, true, null, null, null, BRAND.GOLD, SpreadsheetApp.BorderStyle.DASHED);
+  }
+  sheet.getRange(headerRow, 1, 1, CHK_LAST_COL)
+    .setBorder(null, null, true, null, null, null, BRAND.FOREST, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  sheet.setRowHeight(headerRow, 96);
+  sheet.getRange(headerRow, CHK.COL_META).setValue('header');
+
+  return { bandRow: bandRow, groupsRow: groupsRow, headerRow: headerRow };
+}
+
+// Write one product's row: # · name · Progress · Next step + checkboxes.
+// Formulas reference the section's header row absolutely, so they keep
+// tracking it when rows are inserted above.
+function writeChecklistProductRow_(sheet, row, headerRow, name, flags) {
+  var lastL = columnToLetter_(CHK_LAST_COL);
+  var firstL = columnToLetter_(CHK.COL_STEP_FIRST);
+  var hdr = firstL + '$' + headerRow + ':' + lastL + '$' + headerRow;
+  var tick = firstL + row + ':' + lastL + row;
+
+  sheet.getRange(row, CHK.COL_NUM).setFormula(
+    '=IF($B' + row + '="","",IFERROR(MATCH($B' + row + ',cc_products_list,0),"—"))')
+    .setFontColor(BRAND.CAPTION).setFontSize(9).setFontFamily(FONT.BODY);
+  sheet.getRange(row, CHK.COL_NAME).setValue(name)
+    .setFontFamily(FONT.BODY).setFontSize(11).setFontWeight('bold').setFontColor(BRAND.FOREST);
+  // Progress: ticked ÷ named headers — a renamed/added/blanked header
+  // changes the math for every row in the section, no script involved.
+  sheet.getRange(row, CHK.COL_PROGRESS).setFormula(
+    '=IF($B' + row + '="","",IF(COUNTA(' + hdr + ')=0,"",SUMPRODUCT((' + hdr + '<>"")*(' + tick + '=TRUE))/COUNTA(' + hdr + ')))')
+    .setNumberFormat('0%').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
+  sheet.getRange(row, CHK.COL_NEXT).setFormula(
+    '=IF($B' + row + '="","",IFERROR(INDEX(' + hdr + ',MATCH(1,INDEX((' + hdr + '<>"")*(' + tick + '=FALSE),0),0)),"Done"))')
+    .setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
+
+  sheet.getRange(row, CHK.COL_STEP_FIRST, 1, CHK.STEP_COLS).insertCheckboxes();
+  // Re-assert flags AFTER insertCheckboxes (it resets cells in some
+  // Sheets versions). Ghost-column boxes stay unticked.
+  if (flags && flags.length) {
+    sheet.getRange(row, CHK.COL_STEP_FIRST, 1, flags.length).setValues([flags]);
+  }
+  sheet.getRange(row, 1, 1, CHK_LAST_COL)
+    .setBorder(null, null, true, null, null, null, BRAND.HAIRLINE, SpreadsheetApp.BorderStyle.SOLID);
+  sheet.setRowHeight(row, 26);
+  sheet.getRange(row, CHK.COL_META).setValue('row');
+}
+
+// Scan the hidden META column → ordered sections with their key rows.
+function scanChecklistSections_(sheet) {
+  var meta = sheet.getRange(CHK.FIRST_ROW, CHK.COL_META, CHK.ROW_BUDGET, 1).getValues();
+  var sections = [], cur = null;
+  for (var i = 0; i < meta.length; i++) {
+    var m = String(meta[i][0] || ''), r = CHK.FIRST_ROW + i;
+    if (m.indexOf('band:') === 0) {
+      cur = { template: m.slice(5), bandRow: r, groupsRow: 0, headerRow: 0, lastRow: r };
+      sections.push(cur);
+    } else if (cur && m === 'groups') { cur.groupsRow = r; cur.lastRow = r; }
+    else if (cur && m === 'header') { cur.headerRow = r; cur.lastRow = r; }
+    else if (cur && m === 'row') { cur.lastRow = r; }
+  }
+  return sections;
+}
+
+// Find a template's section; create it at the bottom on first use.
+// Returns the scanned section entry, or a string error message.
+function ensureChecklistSection_(templateName) {
+  var ss = SpreadsheetApp.getActive();
+  var sheet = ss.getSheetByName(TABS.CHECKLIST);
+  if (!sheet) return 'Checklist tab not found.';
+  var sections = scanChecklistSections_(sheet);
+  for (var i = 0; i < sections.length; i++) {
+    if (sections[i].template.toLowerCase() === String(templateName).toLowerCase() &&
+        sections[i].headerRow) return sections[i];
+  }
+  var steps = getTemplateSteps_(templateName);
+  if (!steps.length) return 'Template "' + templateName + '" has no steps.';
+  var startRow = sections.length ? sections[sections.length - 1].lastRow + 2 : CHK.FIRST_ROW;
+  if (startRow + 3 > CHK_LAST_ROW) {
+    return 'Checklist is full — raise CHK.ROW_BUDGET and rebuild.';
+  }
+  writeChecklistSection_(sheet, startRow, templateName, steps);
+  refreshChecklistChrome_(sheet);
+  return { template: templateName, bandRow: startRow, groupsRow: startRow + 1, headerRow: startRow + 2, lastRow: startRow + 2 };
+}
+
+// Theme roles for the Checklist, regenerated by scan (rows shift as the
+// catalog grows, so the stored A1 list is rebuilt, never patched).
+function checklistThemeRoles_(sheet) {
+  var lastL = columnToLetter_(CHK_LAST_COL);
+  var primary = [];
+  scanChecklistSections_(sheet).forEach(function (sec) {
+    primary.push('A' + sec.bandRow + ':' + lastL + sec.bandRow);
+  });
+  return { primary: primary };
+}
+
+// After any runtime structural change: re-store the theme roles and
+// re-tune the visible step columns.
+function refreshChecklistChrome_(sheet) {
+  try {
+    var dp = PropertiesService.getDocumentProperties();
+    var raw = dp.getProperty('cc_theme_map');
+    var map = raw ? JSON.parse(raw) : {};
+    map[TABS.CHECKLIST] = checklistThemeRoles_(sheet);
+    dp.setProperty('cc_theme_map', JSON.stringify(map));
+  } catch (e) {}
+  tuneChecklistColumns_(sheet);
+}
+
+// Show the named step columns of the widest section plus two ghost
+// slots; hide the rest so the tab stays tight. Typing into the last
+// visible ghost reveals the next one (onEdit hook).
+function tuneChecklistColumns_(sheet) {
+  var sections = scanChecklistSections_(sheet);
+  var maxNamed = 0;
+  sections.forEach(function (sec) {
+    if (!sec.headerRow) return;
+    var names = sheet.getRange(sec.headerRow, CHK.COL_STEP_FIRST, 1, CHK.STEP_COLS).getValues()[0];
+    var n = 0;
+    for (var i = 0; i < names.length; i++) if (String(names[i]).length) n = i + 1;
+    if (n > maxNamed) maxNamed = n;
+  });
+  var visible = Math.min(CHK.STEP_COLS, Math.max(maxNamed, 8) + 2);
+  sheet.setColumnWidth(CHK.COL_NUM, 34);
+  sheet.setColumnWidth(CHK.COL_NAME, 180);
+  sheet.setColumnWidth(CHK.COL_PROGRESS, 84);
+  sheet.setColumnWidth(CHK.COL_NEXT, 172);
+  sheet.setColumnWidths(CHK.COL_STEP_FIRST, visible, 42);
+  sheet.showColumns(CHK.COL_STEP_FIRST, visible);
+  if (visible < CHK.STEP_COLS) {
+    sheet.hideColumns(CHK.COL_STEP_FIRST + visible, CHK.STEP_COLS - visible);
+  }
 }
 
 // ── Sales Log — the append-only money record (10,000 rows) ────────────
@@ -1365,8 +1592,8 @@ function buildStartHere_(sheet) {
   var steps = [
     ['1', 'Install the Script', 'Extensions → Apps Script → paste the ColumnCo file. A 💳 Column & Co. menu appears.'],
     ['2', 'Check Your Channels', 'Etsy, Shopify, Gumroad fee defaults are seeded. Verify them against your plan.'],
-    ['3', 'Add Your First Product', '💳 → Add Product… — name it, pick a process template, and its steps appear on the Checklist.'],
-    ['4', 'Tick Steps As You Build', 'Work down the Checklist. Pipeline computes your stage, progress, and next action from the ticks.'],
+    ['3', 'Add Your First Product', '💳 → Add Product… — name it, pick a process, and its row lands in that process\'s Checklist section. Add Process… builds new processes, guided.'],
+    ['4', 'Tick Steps As You Build', 'Tick across your product\'s row as steps finish. Pipeline computes your stage, progress, and next action from the ticks.'],
     ['5', 'Log Sales As They Land', 'One row each on the Sales Log. Leave Fees blank — Net computes itself.'],
     ['6', 'Read the Dashboard', 'Top products, what needs attention, and what the catalog earned after spend.']
   ];
@@ -1746,7 +1973,11 @@ function buildProductView_(sheet, mode) {
     merge: 'I' + (r + 1), font: FONT.BODY, size: 12, bold: true, color: BRAND.FOREST });
   setCell_(sheet, 'J' + (r + 1), { formula: '=IF(' + SEL + '="","",IFERROR(VLOOKUP(' + SEL + ',' + vlookTable + ',' + progOffset + ',FALSE),""))',
     font: FONT.DISPLAY, size: 16, bold: true, color: BRAND.FOREST, format: '0%' });
-  setCell_(sheet, 'K' + (r + 1), { value: 'full list below ↓', merge: 'L' + (r + 1), font: FONT.BODY, size: 10.5, color: BRAND.CAPTION });
+  var nextOffset = PROD.COL_NEXT - PROD.COL_NAME + 1;
+  setCell_(sheet, 'K' + (r + 1), { formula: '=IF(' + SEL + '="","",IFERROR(VLOOKUP(' + SEL + ',' + vlookTable + ',' + nextOffset + ',FALSE),""))',
+    merge: 'L' + (r + 1), font: FONT.BODY, size: 10.5, color: BRAND.FOREST });
+  setCell_(sheet, 'H' + (r + 2), { value: 'stage · progress · next step — tick on the Checklist tab, in this product\'s process section',
+    merge: 'L' + (r + 2), font: FONT.BODY, size: 9, italic: true, color: BRAND.CAPTION });
   r += 4;
 
   // Funnel — trailing 3 engine months from the Stats log.
@@ -1768,36 +1999,8 @@ function buildProductView_(sheet, mode) {
   }
   r += 4;
 
-  // The selected product's FULL checklist — every step, plainly readable.
-  sectionLabel_(sheet, 'A' + r, 'L' + r, 'THE FULL CHECKLIST · SELECTED PRODUCT');
-  r += 1;
-  sheet.getRange(r, 1, 1, 4).setValues([['', 'Group', 'Step', '']])
-    .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
-  r += 1;
-  var chk = "'" + TABS.CHECKLIST + "'";
-  var chkGroup = chk + '!$B$' + CHK.FIRST_ROW + ':$B$' + CHK_LAST_ROW;
-  var chkStep = chk + '!$C$' + CHK.FIRST_ROW + ':$C$' + CHK_LAST_ROW;
-  var chkDone = chk + '!$D$' + CHK.FIRST_ROW + ':$D$' + CHK_LAST_ROW;
-  var chkKey = chk + '!$F$' + CHK.FIRST_ROW + ':$F$' + CHK_LAST_ROW;
-  var listStart = r;
-  for (var st = 1; st <= STEPS_PER_TEMPLATE; st++) {
-    var lr = listStart + st - 1;
-    var keyExpr = SEL + '&"|"&' + st;
-    var matchExpr = 'MATCH(' + keyExpr + ',' + chkKey + ',0)';
-    sheet.getRange(lr, 1).setFormula(
-      '=IF(' + SEL + '="","",IFERROR(IF(INDEX(' + chkDone + ',' + matchExpr + ')=TRUE,"✓","☐"),""))')
-      .setFontSize(12).setHorizontalAlignment('center').setFontColor(BRAND.FOREST);
-    sheet.getRange(lr, 2).setFormula(
-      '=IF(' + SEL + '="","",IFERROR(INDEX(' + chkGroup + ',' + matchExpr + '),""))')
-      .setFontFamily(FONT.BODY).setFontSize(9).setFontColor(BRAND.CAPTION);
-    sheet.getRange(lr, 3, 1, 4).merge();
-    sheet.getRange(lr, 3).setFormula(
-      '=IF(' + SEL + '="","",IFERROR(INDEX(' + chkStep + ',' + matchExpr + '),""))')
-      .setFontFamily(FONT.BODY).setFontSize(11).setFontColor(BRAND.FOREST);
-  }
-  r = listStart + STEPS_PER_TEMPLATE + 1;
   setCell_(sheet, 'A' + r, {
-    value: 'Tick the boxes on the Checklist tab — this list mirrors them. Cash basis from your Sales Log; everything computes for the selected product only.',
+    value: 'Cash basis from your Sales Log; everything on this tab computes for the selected product only. Its full checklist lives in its process section on the Checklist tab.',
     merge: 'L' + r, font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION, wrap: true });
 
   footer_(sheet, r + 2, 'L');
@@ -1914,6 +2117,7 @@ function buildMenu_() {
   var ui = SpreadsheetApp.getUi();
   var menu = ui.createMenu(CC.MENU_TITLE);
   menu.addItem('Add Product…', 'addProduct');
+  menu.addItem('Add Process…', 'addProcess');
   menu.addItem('Save Steps as Template…', 'saveStepsAsTemplate');
   menu.addItem('Add Channel…', 'addChannel');
   menu.addSeparator();
@@ -1952,6 +2156,17 @@ function onEdit(e) {
         !sheet.getRange(row, PROD.COL_LAUNCHED).getValue()) {
       sheet.getRange(row, PROD.COL_LAUNCHED).setValue(new Date());
     }
+  }
+
+  // Checklist: typing into a section's header (renaming a step or
+  // naming a ghost slot) re-tunes the visible step columns so a fresh
+  // ghost slot is always in reach.
+  if (name === TABS.CHECKLIST && col >= CHK.COL_STEP_FIRST && col <= CHK_LAST_COL &&
+      row >= CHK.FIRST_ROW && row <= CHK_LAST_ROW) {
+    try {
+      var marker = String(sheet.getRange(row, CHK.COL_META).getValue() || '');
+      if (marker === 'header') tuneChecklistColumns_(sheet);
+    } catch (err) {}
   }
 }
 
@@ -2123,19 +2338,15 @@ function createProductFromIntake(data) {
   }
   if (target === -1) return 'Products table is full — raise PRODUCT_CAPACITY and rebuild.';
 
-  // template steps
+  // template steps (for the message + first-use section creation)
   var steps = getTemplateSteps_(String((data && data.template) || ''));
   if (!steps.length) return 'Template "' + data.template + '" has no steps.';
 
-  // free Checklist block
-  var chkProdVals = chk.getRange(CHK.FIRST_ROW, 1, CHECKLIST_CAPACITY, 1).getValues();
-  var chkFree = -1;
-  for (var c = chkProdVals.length - 1; c >= 0; c--) {
-    if (chkProdVals[c][0]) { chkFree = CHK.FIRST_ROW + c + 1; break; }
-  }
-  if (chkFree === -1) chkFree = CHK.FIRST_ROW;
-  if (chkFree + steps.length - 1 > CHK_LAST_ROW) {
-    return 'Checklist is full — raise CHECKLIST_CAPACITY and rebuild.';
+  // the template's Checklist section — created on first use
+  var section = ensureChecklistSection_(String(data.template));
+  if (typeof section === 'string') return section;
+  if (section.lastRow + 1 > CHK_LAST_ROW) {
+    return 'Checklist is full — raise CHK.ROW_BUDGET and rebuild.';
   }
 
   // write the product row
@@ -2148,16 +2359,20 @@ function createProductFromIntake(data) {
     if (!isNaN(td.getTime())) prods.getRange(target, PROD.COL_TARGET).setValue(td);
   }
 
-  // write the checklist block (cols A-E; Key col F is prewired)
-  var rows = steps.map(function (st, ix) {
-    var parsed = parseStep_(st);
-    return [name, parsed.group, parsed.step, false, ix + 1];
-  });
-  chk.getRange(chkFree, 1, rows.length, 5).setValues(rows);
+  // insert the product's row at the bottom of its section — rows below
+  // (later sections, footer) shift down; their formulas track.
+  var insertAt = section.lastRow + 1;
+  chk.insertRowsAfter(section.lastRow, 1);
+  writeChecklistProductRow_(chk, insertAt, section.headerRow, name, null);
+  // first product in a blank build: the placeholder caption below the
+  // empty section shifted down a row — clear it.
+  var capCell = chk.getRange(insertAt + 1, CHK.COL_NAME);
+  if (String(capCell.getValue()).indexOf('Add your first product') === 0) capCell.clearContent();
+  refreshChecklistChrome_(chk);
 
   chk.activate();
-  ss.toast('Added "' + name + '" with ' + rows.length + ' steps — tick them on the Checklist.', CC.BRAND, 5);
-  return 'Added "' + name + '" with ' + rows.length + ' steps.';
+  ss.toast('Added "' + name + '" to the ' + section.template + ' section — tick across its row.', CC.BRAND, 5);
+  return 'Added "' + name + '" with ' + steps.length + ' steps.';
 }
 
 // Names across the Templates library row (skips blanks).
@@ -2188,25 +2403,26 @@ function getTemplateSteps_(templateName) {
     .filter(Boolean);
 }
 
-// ── Save Steps as Template — a product's current checklist becomes a
-// reusable process in the library ("melds into the system"). ──────────
+// ── Save Steps as Template — a section's CURRENT headers (renames,
+// added steps and all) become a reusable process in the library
+// ("melds into the system"). ───────────────────────────────────────────
 function saveStepsAsTemplate() {
   var ui = SpreadsheetApp.getUi();
   var resp1 = ui.prompt('Save Steps as Template',
-    'Which product\'s steps? (exact name from the Products table)', ui.ButtonSet.OK_CANCEL);
+    'Which process? (a section name on the Checklist — e.g. Digital Product)', ui.ButtonSet.OK_CANCEL);
   if (resp1.getSelectedButton() !== ui.Button.OK) return;
-  var product = String(resp1.getResponseText() || '').trim();
-  if (!product) return;
+  var section = String(resp1.getResponseText() || '').trim();
+  if (!section) return;
   var resp2 = ui.prompt('Save Steps as Template',
     'Name the new template:', ui.ButtonSet.OK_CANCEL);
   if (resp2.getSelectedButton() !== ui.Button.OK) return;
   var tplName = String(resp2.getResponseText() || '').trim();
   if (!tplName) return;
-  var msg = saveStepsAsTemplateCore_(product, tplName);
+  var msg = saveStepsAsTemplateCore_(section, tplName);
   SpreadsheetApp.getActive().toast(msg, CC.BRAND, 5);
 }
 
-function saveStepsAsTemplateCore_(product, tplName) {
+function saveStepsAsTemplateCore_(sectionName, tplName) {
   var ss = SpreadsheetApp.getActive();
   var chk = ss.getSheetByName(TABS.CHECKLIST);
   var tpl = ss.getSheetByName(TABS.TEMPLATES);
@@ -2222,23 +2438,162 @@ function saveStepsAsTemplateCore_(product, tplName) {
     return 'Template library is full — raise TEMPLATE_SLOTS and rebuild, or clear a column.';
   }
 
-  // collect the product's steps in order
-  var data = chk.getRange(CHK.FIRST_ROW, 1, CHECKLIST_CAPACITY, 5).getValues();
-  var steps = [];
-  for (var r = 0; r < data.length; r++) {
-    if (String(data[r][0]).trim() === product) {
-      steps.push({ order: Number(data[r][4]) || steps.length + 1, group: String(data[r][1] || 'GENERAL'), step: String(data[r][2] || '') });
-    }
+  // find the section, read its live header + group bands
+  var sections = scanChecklistSections_(chk);
+  var sec = null;
+  for (var i = 0; i < sections.length; i++) {
+    if (sections[i].template.toLowerCase() === String(sectionName).trim().toLowerCase() &&
+        sections[i].headerRow) { sec = sections[i]; break; }
   }
-  if (!steps.length) return 'No checklist rows found for "' + product + '".';
+  if (!sec) return 'No section named "' + sectionName + '" on the Checklist.';
+
+  var names = chk.getRange(sec.headerRow, CHK.COL_STEP_FIRST, 1, CHK.STEP_COLS).getValues()[0];
+  var groupCells = sec.groupsRow
+    ? chk.getRange(sec.groupsRow, CHK.COL_STEP_FIRST, 1, CHK.STEP_COLS).getValues()[0]
+    : [];
+  var steps = [];
+  var curGroup = 'GENERAL';
+  for (var c = 0; c < CHK.STEP_COLS; c++) {
+    if (groupCells[c] && String(groupCells[c]).trim()) curGroup = String(groupCells[c]).trim();
+    var nm = String(names[c] || '').trim();
+    if (nm) steps.push(curGroup + ' · ' + nm);    // added ghost steps carry the last group
+  }
+  if (!steps.length) return 'The "' + sectionName + '" section has no named steps.';
   if (steps.length > STEPS_PER_TEMPLATE) steps = steps.slice(0, STEPS_PER_TEMPLATE);
-  steps.sort(function (a, b) { return a.order - b.order; });
 
   var col = TPL.FIRST_COL + existing.length;   // next free library column
   tpl.getRange(TPL.NAME_ROW, col).setValue(tplName);
   tpl.getRange(TPL.FIRST_STEP_ROW, col, steps.length, 1).setValues(
-    steps.map(function (st) { return [st.group + ' · ' + st.step]; }));
+    steps.map(function (st) { return [st]; }));
   return 'Saved "' + tplName + '" (' + steps.length + ' steps) to the Templates library.';
+}
+
+// ── Add Process — the guided process builder (sidebar). Hybrid
+// waterfall · iterative: phases planned up front, in order; each phase
+// walked step by step, with one-click review loops for the iteration.
+// Saves into the Templates library; its Checklist section appears with
+// the first product added on it. ──────────────────────────────────────
+var WIZARD_SEEDS = {
+  digital: { label: 'Digital download', hint: 'printables, templates, fonts, presets', phases: [
+    { name: 'BUILD',   steps: ['Concept locked', 'Scope written', 'Draft built', 'Final files exported'] },
+    { name: 'QA',      steps: ['Fresh-eyes test', 'Test download as a buyer', 'Fix pass', 'Final check'] },
+    { name: 'ASSETS',  steps: ['Screenshots (hero order)', 'Thumbnail', 'Listing copy drafted', 'Tags + SEO list', 'Price set'] },
+    { name: 'LISTING', steps: ['Listing created', 'Files attached', 'Preview checked', 'Published', 'URL logged here'] },
+    { name: 'POST',    steps: ['First-sale check', 'Review request sent', 'Week-1 stats logged', 'Retro note written'] }
+  ]},
+  physical: { label: 'Physical · made-to-order', hint: '3D prints, handmade, small-batch goods', phases: [
+    { name: 'DESIGN',  steps: ['Model finalized', 'Slicer profile tuned', 'Test print approved', 'Tolerances checked'] },
+    { name: 'PRINT',   steps: ['Material + color locked', 'Batch printed', 'Supports removed', 'Surface finished'] },
+    { name: 'QC + PACK', steps: ['Fit + function check', 'Flaw inspection', 'Packaging chosen', 'Test ship survived'] },
+    { name: 'LISTING', steps: ['Photos shot (hero order)', 'Listing created', 'Variations + inventory set', 'Shipping profile set', 'Published'] },
+    { name: 'POST',    steps: ['First-sale check', 'Review request sent', 'Restock trigger set', 'Retro note written'] }
+  ]},
+  service: { label: 'Service · custom order', hint: 'commissions, design work, personalization', phases: [
+    { name: 'OFFER',   steps: ['Offer defined', 'Scope + boundaries written', 'Price + tiers set', 'Intake questions written'] },
+    { name: 'SETUP',   steps: ['Booking flow tested', 'Listing copy drafted', 'Portfolio examples chosen', 'Turnaround time set'] },
+    { name: 'LISTING', steps: ['Listing created', 'Preview checked', 'Published', 'URL logged here'] },
+    { name: 'POST',    steps: ['First-order walkthrough', 'Delivery flow tested', 'Review request sent', 'Retro note written'] }
+  ]},
+  blank: { label: 'Start from blank', hint: 'name your own phases from scratch', phases: [
+    { name: 'PHASE 1', steps: [] }, { name: 'PHASE 2', steps: [] }, { name: 'PHASE 3', steps: [] }
+  ]}
+};
+
+// Server side of the wizard. data = { name, phases: [{name, steps:[…]}] }.
+// Writes a 'GROUP · Step' column into the next free library slot.
+function createProcessFromWizard(data) {
+  var ss = SpreadsheetApp.getActive();
+  var tpl = ss.getSheetByName(TABS.TEMPLATES);
+  if (!tpl) return 'Templates tab not found.';
+  var name = String((data && data.name) || '').trim();
+  if (!name) return 'Name the process first.';
+
+  var existing = listTemplateNames_();
+  for (var e = 0; e < existing.length; e++) {
+    if (existing[e].toLowerCase() === name.toLowerCase()) {
+      return '"' + name + '" already exists in the library.';
+    }
+  }
+  if (existing.length >= TEMPLATE_SLOTS) {
+    return 'Template library is full — raise TEMPLATE_SLOTS and rebuild, or clear a column.';
+  }
+
+  var phases = (data && data.phases) || [];
+  var steps = [];
+  for (var p = 0; p < phases.length; p++) {
+    var g = String(phases[p].name || 'GENERAL').trim().toUpperCase() || 'GENERAL';
+    var ph = phases[p].steps || [];
+    for (var s = 0; s < ph.length; s++) {
+      var st = String(ph[s] || '').trim();
+      if (st) steps.push(g + ' · ' + st);
+    }
+  }
+  if (!steps.length) return 'Add at least one step before saving.';
+  if (steps.length > STEPS_PER_TEMPLATE) {
+    return 'That is ' + steps.length + ' steps — the library holds ' + STEPS_PER_TEMPLATE + ' per process. Trim a few.';
+  }
+
+  var col = TPL.FIRST_COL + existing.length;
+  tpl.getRange(TPL.NAME_ROW, col).setValue(name);
+  tpl.getRange(TPL.FIRST_STEP_ROW, col, steps.length, 1).setValues(
+    steps.map(function (st2) { return [st2]; }));
+  ss.toast('Saved "' + name + '" — its Checklist section appears with the first product you add on it.', CC.BRAND, 6);
+  return 'Saved "' + name + '" to the Templates library (' + steps.length + ' steps across ' + phases.length + ' phases).';
+}
+
+function addProcess() {
+  var html = HtmlService.createHtmlOutput(
+    '<div id="app" style="font-family:Roboto,Arial,sans-serif;font-size:13px;color:#1C3D2E;padding:10px 8px;line-height:1.5"></div>' +
+    '<script>' +
+    'var SEEDS=' + JSON.stringify(WIZARD_SEEDS) + ';' +
+    'var LOOP=["Review pass","Fix list worked","Re-check passed"];' +
+    'var S={stage:0,kind:"physical",name:"",phases:JSON.parse(JSON.stringify(SEEDS.physical.phases)),ix:0,chain:true,saved:false,msg:""};' +
+    'function esc(t){return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");}' +
+    'function pick(k){S.kind=k;S.phases=JSON.parse(JSON.stringify(SEEDS[k].phases));S.ix=0;render();}' +
+    'function inp(v,fn,ph){return \'<input value="\'+esc(v)+\'" placeholder="\'+(ph||"")+\'" onchange="\'+fn+\'" style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #C5A95A;background:#FFFDE7;font-size:12px;margin:2px 0">\';}' +
+    'function btn(label,fn,ghost){return \'<button onclick="\'+fn+\'" style="\'+(ghost?"background:transparent;color:#1C3D2E;border:1px solid #888":"background:#1C3D2E;color:#FAF8F2;border:0")+\';padding:8px 14px;cursor:pointer;font-size:12px;margin-top:6px">\'+label+"</button>";}' +
+    'function crumbs(){var names=["Foundation","Phases","Steps","Save"];return "<div style=\\"font-size:9px;letter-spacing:0.1em;color:#4B5F54;margin-bottom:10px\\">"+names.map(function(n,i){return i===S.stage?("<b>"+n.toUpperCase()+"</b>"):n.toUpperCase();}).join(" › ")+"</div>";}' +
+    'function stage0(){var h="<p style=\\"font-size:11px;color:#4B5F54\\">Phases run in order — the waterfall. Inside a phase you loop until it passes — the iteration. Name the process, pick a starting point, then we walk it phase by phase.</p>";' +
+    ' h+="<label style=\\"font-size:10px;color:#4B5F54\\">PROCESS NAME</label>"+inp(S.name,"S.name=this.value","e.g. 3D Print · Made to Order");' +
+    ' h+="<label style=\\"font-size:10px;color:#4B5F54\\">WHAT ARE YOU MAKING?</label>";' +
+    ' Object.keys(SEEDS).forEach(function(k){var sd=SEEDS[k];h+=\'<div onclick="pick(\\\'\'+k+\'\\\')" style="border:\'+(S.kind===k?"2px solid #C5A95A;background:#FFFDE7":"1px solid #ccc")+\';padding:7px 9px;margin:4px 0;cursor:pointer"><b style="font-size:12px">\'+sd.label+\'</b><div style="font-size:10px;color:#4B5F54">\'+sd.hint+"</div></div>";});' +
+    ' h+="<p style=\\"font-size:10px;color:#4B5F54\\">Starting points only — every phase and step is yours to rename next.</p>";return h;}' +
+    'function stage1(){var h="<p style=\\"font-size:11px;color:#4B5F54\\">The waterfall: these run in order, left to right across the Checklist. Rename, reorder, add, or drop phases — you name each phase\\u2019s steps next.</p>";' +
+    ' S.phases.forEach(function(p,i){h+=\'<div style="display:flex;gap:5px;align-items:center;margin:3px 0"><b style="font-size:11px;min-width:14px">\'+(i+1)+\'</b><input value="\'+esc(p.name)+\'" onchange="S.phases[\'+i+\'].name=this.value" style="flex:1;padding:5px;border:1px solid #C5A95A;background:#FFFDE7;font-size:11px;text-transform:uppercase"><span style="font-size:9px;color:#4B5F54">\'+p.steps.length+\' steps</span><a href="#" onclick="mv(\'+i+\',-1);return false">▲</a><a href="#" onclick="mv(\'+i+\',1);return false">▼</a><a href="#" onclick="rmP(\'+i+\');return false" style="color:#832F30">✕</a></div>\';});' +
+    ' h+=btn("+ Add phase","S.phases.push({name:\'NEW PHASE\',steps:[]});render()",true);return h;}' +
+    'function mv(i,d){var j=i+d;if(j<0||j>=S.phases.length)return;var t=S.phases[i];S.phases[i]=S.phases[j];S.phases[j]=t;render();}' +
+    'function rmP(i){if(S.phases.length>1)S.phases.splice(i,1);if(S.ix>=S.phases.length)S.ix=S.phases.length-1;render();}' +
+    'function stage2(){var p=S.phases[S.ix];if(!p)return "";' +
+    ' var h="<div style=\\"font-size:9px;color:#4B5F54\\">PHASE "+(S.ix+1)+" OF "+S.phases.length+"</div><div style=\\"font-size:16px;font-weight:bold;margin-bottom:6px\\">"+esc(p.name)+"</div>";' +
+    ' h+="<p style=\\"font-size:10px;color:#4B5F54\\">Name what done looks like — each line becomes one checkbox column on the Checklist.</p>";' +
+    ' p.steps.forEach(function(st,j){var inLoop=LOOP.indexOf(st)>-1;h+=\'<div style="display:flex;gap:5px;align-items:center;margin:2px 0;\'+(inLoop?"border-left:3px solid #C5A95A;padding-left:4px":"")+\'"><span style="font-size:9px;color:#4B5F54;min-width:12px;text-align:right">\'+(j+1)+\'</span><input value="\'+esc(st)+\'" onchange="S.phases[\'+S.ix+\'].steps[\'+j+\']=this.value" style="flex:1;padding:4px 6px;border:1px solid #C5A95A;background:#FFFDE7;font-size:11px"><a href="#" onclick="S.phases[\'+S.ix+\'].steps.splice(\'+j+\',1);render();return false" style="color:#832F30">✕</a></div>\';});' +
+    ' h+=\'<div style="display:flex;gap:5px;margin-top:6px"><input id="draft" placeholder="Add a step…" onkeydown="if(event.key===\\\'Enter\\\'){addStep();}" style="flex:1;padding:5px;border:1px solid #C5A95A;background:#FFFDE7;font-size:11px">\'+btn("+ Add","addStep()",true)+"</div>";' +
+    ' h+=btn("+ Insert review loop · review › fix › re-check","S.phases["+S.ix+"].steps=S.phases["+S.ix+"].steps.concat(LOOP);render()",true);' +
+    ' h+="<p style=\\"font-size:10px;color:#4B5F54\\">The iterative part — a loop you repeat until the phase passes, then the waterfall moves on.</p>";return h;}' +
+    'function addStep(){var el=document.getElementById("draft");if(el&&el.value.trim()){S.phases[S.ix].steps.push(el.value.trim());el.value="";render();}}' +
+    'function total(){return S.phases.reduce(function(a,p){return a+p.steps.length;},0);}' +
+    'function stage3(){var h="<div style=\\"font-size:16px;font-weight:bold\\">"+esc(S.name||"Untitled process")+"</div><div style=\\"font-size:10px;color:#4B5F54;margin-bottom:8px\\">"+S.phases.length+" phases · "+total()+" steps</div>";' +
+    ' S.phases.forEach(function(p){h+=\'<div style="margin:5px 0"><span style="background:#2D5C45;color:#FAF8F2;font-size:9px;padding:1px 7px">\'+esc(p.name).toUpperCase()+"</span>";p.steps.forEach(function(st){h+=\'<div style="font-size:11px;padding-left:9px">· \'+esc(st)+"</div>";});if(!p.steps.length)h+=\'<div style="font-size:10px;color:#832F30;font-style:italic;padding-left:9px">no steps yet — go back and add at least one</div>\';h+="</div>";});' +
+    ' h+=\'<label style="display:block;font-size:11px;margin:10px 0"><input type="checkbox" \'+(S.chain?"checked":"")+\' onchange="S.chain=this.checked"> Open Add Product… on this process after saving</label>\';' +
+    ' h+="<p style=\\"font-size:10px;color:#4B5F54\\">Saving files this process into the Templates library. Its Checklist section appears the moment its first product is added.</p>";' +
+    ' if(S.msg)h+=\'<div style="font-size:11px;color:#832F30;margin:6px 0">\'+esc(S.msg)+"</div>";return h;}' +
+    'function savedView(){return "<div style=\\"text-align:center;padding:24px 0\\"><div style=\\"font-size:15px;font-weight:bold\\">Saved to your library</div><p style=\\"font-size:11px;color:#4B5F54\\">"+esc(S.name)+" · "+S.phases.length+" phases · "+total()+" steps. Find it on the Templates tab — its Checklist section appears with your first product.</p>"+btn("Done","google.script.host.close()")+"</div>";}' +
+    'function save(){S.msg="Saving…";render();' +
+    ' google.script.run.withSuccessHandler(function(m){if(m.indexOf("Saved")===0){if(S.chain){google.script.run.addProduct();}else{S.saved=true;}}S.msg=(m.indexOf("Saved")===0)?"":m;render();})' +
+    ' .withFailureHandler(function(e2){S.msg=String(e2);render();})' +
+    ' .createProcessFromWizard({name:S.name,phases:S.phases});}' +
+    'function nav(){var h="<div style=\\"display:flex;justify-content:space-between;margin-top:14px\\">";' +
+    ' h+=(S.stage>0)?btn("← Back","back()",true):"<span></span>";' +
+    ' if(S.stage<3)h+=btn(S.stage===2?(S.ix<S.phases.length-1?"Next phase →":"Review →"):"Continue →","next()");' +
+    ' else h+=btn("Save process","save()");' +
+    ' return h+"</div>";}' +
+    'function next(){if(S.stage===0&&!S.name.trim()){S.name=SEEDS[S.kind].label;}if(S.stage===2&&S.ix<S.phases.length-1){S.ix++;render();return;}S.stage++;render();}' +
+    'function back(){if(S.stage===2&&S.ix>0){S.ix--;render();return;}if(S.stage>0)S.stage--;render();}' +
+    'function render(){var h=S.saved?savedView():crumbs()+[stage0,stage1,stage2,stage3][S.stage]()+nav();document.getElementById("app").innerHTML=h;}' +
+    'render();' +
+    '</scr' + 'ipt>'
+  ).setTitle('Column & Co. · Add Process');
+  SpreadsheetApp.getUi().showSidebar(html);
 }
 
 function addChannel() {

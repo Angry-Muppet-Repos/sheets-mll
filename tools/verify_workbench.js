@@ -94,11 +94,15 @@ class RangeStub {
 }
 ['setBorder','setFontFamily','setFontSize','setFontWeight','setFontStyle',
  'setFontColor','setHorizontalAlignment','setVerticalAlignment','setWrap',
- 'breakApart','clearDataValidations','clearContent','sort','activate',
+ 'breakApart','clearDataValidations','sort','activate',
  'setFontLine','setTextRotation'].forEach(m => { RangeStub.prototype[m] = function () { return this; }; });
-['merge','setBackground','setNumberFormat','setDataValidation','insertCheckboxes'].forEach(m => {
+['merge','setBackground','setNumberFormat','setDataValidation','insertCheckboxes','setNotes'].forEach(m => {
   RangeStub.prototype[m] = function () { this.assertInGrid(); return this; };
 });
+RangeStub.prototype.clearContent = function () {
+  for (let r = 0; r < this.numRows; r++) for (let c = 0; c < this.numCols; c++) this.store(r, c, '');
+  return this;
+};
 
 class SheetStub {
   constructor(ss, name) { this.ss = ss; this.name = name; this.maxRows = 1000; this.maxCols = 26; this.cells = {}; }
@@ -177,7 +181,7 @@ const SpreadsheetApp = {
   getUi: () => ({ createMenu: () => menuBuilder(), alert: () => {}, prompt: () => {}, showSidebar: () => {}, ButtonSet: {} }),
   newDataValidation: validationBuilder,
   newConditionalFormatRule: cfBuilder,
-  BorderStyle: { SOLID: 1, SOLID_MEDIUM: 2 },
+  BorderStyle: { SOLID: 1, SOLID_MEDIUM: 2, DASHED: 3 },
   flush: () => {},
 };
 function menuBuilder() { const m = {}; ['addItem','addSeparator','addSubMenu','addToUi'].forEach(k => m[k] = () => m); return m; }
@@ -190,7 +194,7 @@ const HtmlService = { createHtmlOutput: () => ({ setTitle: () => ({}) }) };
 
 // ───────────────────────── run both builds ─────────────────────────
 const factory = new Function('SpreadsheetApp', 'PropertiesService', 'Utilities', 'Logger', 'HtmlService',
-  src + '\n;return { buildWorkbook, TABS, ENGINE_ROWS, PALETTES, MOCK, TEMPLATES, MOCK_TB_TICKS, CHANNEL_DEFAULTS, PROD, generateMockSales_, generateMockMarketing_, generateMockStats_, generateMockChecklist_, createProductFromIntake, saveStepsAsTemplateCore_, listTemplateNames_, getTemplateSteps_, parseStep_, PRODUCT_CAPACITY };');
+  src + '\n;return { buildWorkbook, TABS, ENGINE_ROWS, PALETTES, MOCK, TEMPLATES, MOCK_TB_TICKS, CHANNEL_DEFAULTS, PROD, CHK, generateMockSales_, generateMockMarketing_, generateMockStats_, generateMockChecklist_, createProductFromIntake, createProcessFromWizard, saveStepsAsTemplateCore_, scanChecklistSections_, listTemplateNames_, getTemplateSteps_, parseStep_, PRODUCT_CAPACITY };');
 const api = factory(SpreadsheetApp, PropertiesService, Utilities, Logger, HtmlService);
 
 const namedByMode = {};
@@ -295,7 +299,7 @@ const expectNamed = {
   cc_products_status: 'Products!C10:C259',
   cc_products_table: 'Products!A10:O259',
   cc_templates_list: 'Templates!B9:I9',
-  cc_checklist: 'Checklist!A10:F7509',
+  cc_checklist: 'Checklist!A10:BB409',
   cc_channels_list: 'Channels!A10:A21',
   cc_channel_fees: 'Channels!A10:C21',
   cc_sales_log: 'Sales Log!A10:I10009',
@@ -321,21 +325,29 @@ audits.push(['Templates name row: B9 = Digital Product', writes['Templates!B9'] 
 audits.push(['Templates E9 = Quick List', writes['Templates!E9'] === 'Quick List', writes['Templates!E9']]);
 audits.push(['Templates first step at B11', writes['Templates!B11'] === 'BUILD · Concept locked', writes['Templates!B11']]);
 audits.push(['Templates seeded in blank too (library, not mock)', captures.blank.some(x => x.kind === 'value' && x.sheet === 'Templates' && x.val === 'Digital Product'), '']);
-// checklist
-audits.push(['Checklist headers A9..F9', writes['Checklist!A9'] === 'Product' && writes['Checklist!D9'] === 'Done' && writes['Checklist!F9'] === 'Key', '']);
-audits.push(['Checklist key R1C1 prewired (first slab F10:F1009)', (r1c1['Checklist!F10:F1009'] || '').includes('RC1&"|"&RC5'), r1c1['Checklist!F10:F1009']]);
-audits.push(['Checklist first mock row = Wedding Suite step 1', writes['Checklist!A10'] === 'Wedding Suite No. 4' && writes['Checklist!C10'] === 'Concept locked', writes['Checklist!C10']]);
-audits.push(['blank build seeds NO checklist rows', !captures.blank.some(x => x.sheet === 'Checklist' && x.kind === 'value' && x.a1 === 'A10' && x.val !== ''), '']);
+// checklist — v3 horizontal sections (meta markers in col BC = 55)
+// Mock layout: Digital band 10 · groups 11 · header 12 · rows 13-18,
+// spacer 19, Physical band 20 · groups 21 · header 22 · rows 23-24.
+audits.push(['Digital section band marker at BC10', writes['Checklist!BC10'] === 'band:Digital Product', writes['Checklist!BC10']]);
+audits.push(['Digital band shows live step/product counts', (formulas['Checklist!A10'] || '').includes('STEPS') && (formulas['Checklist!A10'] || '').includes('COUNTIF'), formulas['Checklist!A10']]);
+audits.push(['Digital header: step 1 at E12, groups row above', writes['Checklist!E12'] === 'Concept locked' && writes['Checklist!E11'] === 'BUILD', writes['Checklist!E12']]);
+audits.push(['Digital rows 13-18 carry the six digital products', writes['Checklist!B13'] === 'Wedding Suite No. 4' && writes['Checklist!B18'] === 'Kids Chore Charts' && writes['Checklist!BC18'] === 'row', writes['Checklist!B13']]);
+audits.push(['Physical section band at BC20', writes['Checklist!BC20'] === 'band:Physical / Handmade', writes['Checklist!BC20']]);
+audits.push(['Physical header: step 12 at P22 = Photos shot', writes['Checklist!P22'] === 'Photos shot (hero order)', writes['Checklist!P22']]);
+audits.push(['Physical rows: Recipe Card Set + Holiday Gift Tags', writes['Checklist!B23'] === 'Recipe Card Set' && writes['Checklist!B24'] === 'Holiday Gift Tags', '']);
+audits.push(['row Progress divides by COUNTA of named headers', (formulas['Checklist!C13'] || '').includes('COUNTA(E$12:BB$12)') && (formulas['Checklist!C13'] || '').includes('SUMPRODUCT'), formulas['Checklist!C13']]);
+audits.push(['row Next step indexes the section header row', (formulas['Checklist!D13'] || '').includes('INDEX(E$12:BB$12') && (formulas['Checklist!D13'] || '').includes('"Done"'), '']);
+audits.push(['blank build: one empty Digital section, no product rows', captures.blank.some(x => x.kind === 'value' && x.sheet === 'Checklist' && x.val === 'band:Digital Product') && !captures.blank.some(x => x.kind === 'value' && x.sheet === 'Checklist' && x.val === 'row'), '']);
 // products
 audits.push(['Products header B9/J9/K9', writes['Products!B9'] === 'Product' && writes['Products!J9'] === 'Progress' && writes['Products!K9'] === 'Next step', '']);
-audits.push(['Progress formula counts the product\'s own steps', (formulas['Products!J10'] || '').includes('COUNTIFS') && (formulas['Products!J10'] || '').includes("'Checklist'"), '']);
-audits.push(['Next-step formula uses MINIFS over order + key match', (formulas['Products!K10'] || '').includes('MINIFS') && (formulas['Products!K10'] || '').includes('&"|"&'), '']);
+audits.push(['Progress pulls the product\'s Checklist row by name', (formulas['Products!J10'] || '').includes("'Checklist'!$C$10:$C$409") && (formulas['Products!J10'] || '').includes('MATCH'), formulas['Products!J10']]);
+audits.push(['Next step pulls the Checklist row\'s Next column', (formulas['Products!K10'] || '').includes("'Checklist'!$D$10:$D$409") && (formulas['Products!K10'] || '').includes('Add Product'), '']);
 audits.push(['Stale formula MAXIFS over Sales Log', (formulas['Products!M10'] || '').includes('MAXIFS'), '']);
-audits.push(['Mock product row has template name', writes['Products!D10'] === 'Digital Product', writes['Products!D10']]);
+audits.push(['Mock hero runs Digital, mock Recipe runs Physical', writes['Products!D10'] === 'Digital Product' && writes['Products!D12'] === 'Physical / Handmade', writes['Products!D12']]);
 // sales (unchanged contracts)
 audits.push(['Sales Net R1C1 uses cc_channel_fees', (r1c1['Sales Log!G10:G2009'] || '').includes('VLOOKUP(RC3,cc_channel_fees'), '']);
 // product view
-audits.push(['PV full-checklist rows key-match the selected product', Object.entries(formulas).some(([k, v]) => k.startsWith('Product View!') && v.includes('cc_selected_product&"|"&1') && v.includes('MATCH')), '']);
+audits.push(['PV checklist position pulls Next step off Products (col offset 10)', Object.entries(formulas).some(([k, v]) => k.startsWith('Product View!') && v.includes('VLOOKUP') && v.includes(',10,FALSE')), '']);
 audits.push(['PV trend helper at row 100', (formulas['Product View!B100'] || '').includes('cc_selected_product'), '']);
 
 let cFail = 0;
@@ -348,7 +360,7 @@ console.log('c. cross-reference audit: ' + (cFail === 0 ? 'OK (' + audits.length
 // ───────────── e. mock integrity ─────────────
 const sales = api.generateMockSales_();
 const mk = api.generateMockMarketing_();
-const chkRows = api.generateMockChecklist_();
+const chkSections = api.generateMockChecklist_();
 const fee = {}; api.CHANNEL_DEFAULTS.forEach(c => fee[c[0]] = { p: c[1], f: c[2] });
 const code = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
 const net = r => Math.round((r[4] - (r[4] * fee[r[2]].p + fee[r[2]].f * r[3])) * 100) / 100;
@@ -362,15 +374,20 @@ const dudNet = byP['Minimal Budget Sheets'] || 0;
 const heroSpend = mk.filter(r => r[1] === 'Wedding Suite No. 4').reduce((a, r) => a + r[4], 0);
 const dudSpend = mk.filter(r => r[1] === 'Minimal Budget Sheets').reduce((a, r) => a + r[4], 0);
 const m0 = byM[months[0]], m8 = byM[months[8]];
-// checklist truths
+// checklist truths — sections shape: [{ template, steps, products: [{name, flags}] }]
 const perProduct = {};
-for (const r of chkRows) {
-  perProduct[r[0]] = perProduct[r[0]] || { total: 0, done: 0, firstFalse: null };
-  perProduct[r[0]].total++;
-  if (r[3]) perProduct[r[0]].done++;
-  else if (perProduct[r[0]].firstFalse === null) perProduct[r[0]].firstFalse = r[2];
+for (const sec of chkSections) {
+  for (const p of sec.products) {
+    const done = p.flags.filter(Boolean).length;
+    let firstFalse = null;
+    for (let i = 0; i < p.flags.length; i++) {
+      if (!p.flags[i]) { firstFalse = api.parseStep_(sec.steps[i]).step; break; }
+    }
+    perProduct[p.name] = { total: sec.steps.length, done, firstFalse, template: sec.template };
+  }
 }
 const pp = n => perProduct[n] || {};
+const sectionShape = chkSections.map(s => s.template + ':' + s.products.length).join(' · ');
 const eChecks = [
   ['9 mock months', months.length === 9, months.length],
   ['net ramp m8/m0 in [1.9, 2.5]', m8 / m0 > 1.9 && m8 / m0 < 2.5, (m8 / m0).toFixed(2)],
@@ -378,10 +395,12 @@ const eChecks = [
   ['hero ROAS 3.5-4.5', heroNet / heroSpend > 3.5 && heroNet / heroSpend < 4.5, (heroNet / heroSpend).toFixed(2)],
   ['dud net < $60 with ROAS < 0.5', dudNet < 60 && dudNet / dudSpend < 0.5, dudNet.toFixed(2)],
   ['sales rows 450-750', sales.length >= 450 && sales.length <= 750, sales.length],
-  ['checklist = 8 products × 30 steps = 240 rows', chkRows.length === 240, chkRows.length],
-  ['4 listed products fully ticked', ['Wedding Suite No. 4', 'Everyday Planner Kit', 'Recipe Card Set', 'Minimal Budget Sheets'].every(n => pp(n).done === 30), ''],
+  ['two sections: Digital ×6 · Physical ×2',
+    chkSections.length === 2 && sectionShape === 'Digital Product:6 · Physical / Handmade:2', sectionShape],
+  ['listed digitals fully ticked (30/30)', ['Wedding Suite No. 4', 'Everyday Planner Kit', 'Minimal Budget Sheets'].every(n => pp(n).done === 30 && pp(n).total === 30), ''],
+  ['Recipe Card Set fully ticked on Physical (28/28)', pp('Recipe Card Set').done === 28 && pp('Recipe Card Set').total === 28 && pp('Recipe Card Set').template === 'Physical / Handmade', pp('Recipe Card Set').done],
   ['Teacher Bundle 28/30, next = Week-1 stats logged', pp('Teacher Bundle').done === 28 && pp('Teacher Bundle').firstFalse === 'Week-1 stats logged', pp('Teacher Bundle').firstFalse],
-  ['Gift Tags 14/30 (47%), next = Screenshots (hero order)', pp('Holiday Gift Tags').done === 14 && pp('Holiday Gift Tags').firstFalse === 'Screenshots (hero order)', pp('Holiday Gift Tags').firstFalse],
+  ['Gift Tags 11/28 (39%), next = Photos shot (hero order)', pp('Holiday Gift Tags').done === 11 && pp('Holiday Gift Tags').total === 28 && pp('Holiday Gift Tags').firstFalse === 'Photos shot (hero order)', pp('Holiday Gift Tags').firstFalse],
   ['WS5 5/30 (17%), next = Final files exported', pp('Wedding Suite No. 5').done === 5 && pp('Wedding Suite No. 5').firstFalse === 'Final files exported', pp('Wedding Suite No. 5').firstFalse],
   ['Chore Charts 0/30', pp('Kids Chore Charts').done === 0, pp('Kids Chore Charts').done],
   ['template library: 4 starters, step counts 30/28/20/10',
@@ -393,28 +412,55 @@ let eFail = 0;
 for (const [n2, ok, got] of eChecks) { if (!ok) eFail++; console.log('  ' + (ok ? 'PASS' : 'FAIL got ' + got) + '  ' + n2); }
 console.log('e. mock integrity: ' + (eFail === 0 ? 'OK (' + eChecks.length + ' checks)' : 'FAIL (' + eFail + ')'));
 
-// ───────────── f. functional tests — intake + save-as-template ─────────────
+// ───────────── f. functional tests — intake · sections · save-as-template · wizard ─────────────
+// Stub caveat: insertRowsAfter grows the grid but does NOT shift stored
+// cells (real Sheets shifts rows below). Assertions therefore target the
+// rows the code WRITES, not the post-shift positions of rows below them.
 CURRENT_MODE = 'func';
 ss = new SSStub();
 api.buildWorkbook('mock');
 const fChecks = [];
+
+// 1 · intake into the existing Digital section (rows 13-18 → insert at 19)
 const msg1 = api.createProductFromIntake({ name: 'Test Product', template: 'Digital Product', status: 'Building', price: '12', target: '2026-08-01' });
 fChecks.push(['intake returns Added…30 steps', msg1 === 'Added "Test Product" with 30 steps.', msg1]);
 const prodsSheet = ss.sheets['Products'];
 fChecks.push(['intake wrote Products row 18 (after 8 mock rows)', prodsSheet.getRange(18, 2).getValue() === 'Test Product' && prodsSheet.getRange(18, 3).getValue() === 'Building', prodsSheet.getRange(18, 2).getValue()]);
 const chkSheet = ss.sheets['Checklist'];
-fChecks.push(['intake appended checklist block at row 250', chkSheet.getRange(250, 1).getValue() === 'Test Product' && chkSheet.getRange(250, 3).getValue() === 'Concept locked', String(chkSheet.getRange(250, 1).getValue()) + '/' + String(chkSheet.getRange(250, 3).getValue())]);
+fChecks.push(['intake inserted the row at the section bottom (row 19)', chkSheet.getRange(19, 2).getValue() === 'Test Product' && chkSheet.getRange(19, api.CHK.COL_META).getValue() === 'row', String(chkSheet.getRange(19, 2).getValue())]);
 fChecks.push(['intake rejects duplicates', api.createProductFromIntake({ name: 'Test Product', template: 'Quick List' }).indexOf('already') !== -1, '']);
 fChecks.push(['intake rejects blank name', api.createProductFromIntake({ name: '  ', template: 'Quick List' }).indexOf('Type a product name') !== -1, '']);
-const msg2 = api.saveStepsAsTemplateCore_('Test Product', 'My Process');
-fChecks.push(['save-as-template returns Saved…30 steps', msg2 === 'Saved "My Process" (30 steps) to the Templates library.', msg2]);
+
+// 2 · intake on an unused template creates its section on first use
+//     (scan: Digital ends 19 · Physical ends 24 → new section at 26)
+const msg2 = api.createProductFromIntake({ name: 'Quick Thing', template: 'Quick List', status: 'Idea' });
+fChecks.push(['quick intake returns Added…10 steps', msg2 === 'Added "Quick Thing" with 10 steps.', msg2]);
+fChecks.push(['new section band at row 26', chkSheet.getRange(26, api.CHK.COL_META).getValue() === 'band:Quick List', String(chkSheet.getRange(26, api.CHK.COL_META).getValue())]);
+fChecks.push(['new section header row 28 carries Quick List step 1', chkSheet.getRange(28, 5).getValue() === 'Concept locked', String(chkSheet.getRange(28, 5).getValue())]);
+fChecks.push(['product row landed under the new header (row 29)', chkSheet.getRange(29, 2).getValue() === 'Quick Thing' && chkSheet.getRange(29, api.CHK.COL_META).getValue() === 'row', String(chkSheet.getRange(29, 2).getValue())]);
+const scanned = api.scanChecklistSections_(chkSheet);
+fChecks.push(['scan sees three sections in order', scanned.map(s => s.template).join('·') === 'Digital Product·Physical / Handmade·Quick List', scanned.map(s => s.template).join('·')]);
+
+// 3 · save-as-template reads a SECTION's live headers into the library
+const msg3 = api.saveStepsAsTemplateCore_('Digital Product', 'My Process');
+fChecks.push(['save-as-template returns Saved…30 steps', msg3 === 'Saved "My Process" (30 steps) to the Templates library.', msg3]);
 const tplSheet = ss.sheets['Templates'];
 fChecks.push(['new template landed in col F (next free)', tplSheet.getRange(9, 6).getValue() === 'My Process' && tplSheet.getRange(11, 6).getValue() === 'BUILD · Concept locked', String(tplSheet.getRange(9, 6).getValue())]);
 fChecks.push(['library now lists 5 templates', api.listTemplateNames_().length === 5, api.listTemplateNames_().length]);
-fChecks.push(['save-as-template rejects duplicate name', api.saveStepsAsTemplateCore_('Test Product', 'Quick List').indexOf('already exists') !== -1, '']);
-fChecks.push(['save-as-template rejects unknown product', api.saveStepsAsTemplateCore_('Nope', 'Another').indexOf('No checklist rows') !== -1, '']);
+fChecks.push(['save-as-template rejects duplicate name', api.saveStepsAsTemplateCore_('Digital Product', 'Quick List').indexOf('already exists') !== -1, '']);
+fChecks.push(['save-as-template rejects unknown section', api.saveStepsAsTemplateCore_('Nope', 'Another').indexOf('No section named') !== -1, '']);
+
+// 4 · the Add Process wizard's server function
+const msg4 = api.createProcessFromWizard({ name: 'Client Work', phases: [
+  { name: 'Plan', steps: ['Brief written', 'Quote sent'] },
+  { name: 'Deliver', steps: ['Work done', 'Invoice paid'] }] });
+fChecks.push(['wizard returns Saved…4 steps across 2 phases', msg4 === 'Saved "Client Work" to the Templates library (4 steps across 2 phases).', msg4]);
+fChecks.push(['wizard column landed in col G with PLAN · prefix', tplSheet.getRange(9, 7).getValue() === 'Client Work' && tplSheet.getRange(11, 7).getValue() === 'PLAN · Brief written', String(tplSheet.getRange(11, 7).getValue())]);
+fChecks.push(['wizard rejects duplicate name', api.createProcessFromWizard({ name: 'My Process', phases: [{ name: 'X', steps: ['y'] }] }).indexOf('already exists') !== -1, '']);
+fChecks.push(['wizard rejects a process with no steps', api.createProcessFromWizard({ name: 'Empty One', phases: [{ name: 'X', steps: [] }] }).indexOf('at least one step') !== -1, '']);
+
 let fFail = 0;
 for (const [n3, ok, got] of fChecks) { if (!ok) fFail++; console.log('  ' + (ok ? 'PASS' : 'FAIL got ' + got) + '  ' + n3); }
-console.log('f. functional (intake + save-as-template): ' + (fFail === 0 ? 'OK (' + fChecks.length + ' checks)' : 'FAIL (' + fFail + ')'));
+console.log('f. functional (intake + sections + save-as-template + wizard): ' + (fFail === 0 ? 'OK (' + fChecks.length + ' checks)' : 'FAIL (' + fFail + ')'));
 
 process.exit(bad + d1 + d2 + d3bad + cFail + eFail + fFail ? 1 : 0);
