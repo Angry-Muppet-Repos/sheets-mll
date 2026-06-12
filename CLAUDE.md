@@ -93,6 +93,32 @@ diverge, the workbook is ground truth.
 4. Anything substantive — verify with Dan before shipping. Speculative
    commits are noise.
 
+## Current product state (June 2026)
+
+- **The Foundation v2.1** — listed on Etsy. Do not touch its files in
+  other products' work.
+- **The Ledger v1** (`apps_script/ColumnCo_Ledger_v1.gs`) — merged via
+  PR #2, statically verified, paused before Dan's live QA.
+- **The Workbench v1** (`apps_script/ColumnCo_Workbench_v1.gs`) — PR #3
+  open. The latest checklist redesign (commit `f899a6a`) was REJECTED by
+  Dan; the rework contract is
+  `design/design_handoff_the_workbench/05_revision_brief_checklist_v2.md`
+  and the kickoff prompt is `NEXT_SESSION_PROMPT.txt` in the same folder.
+  Read both before touching the Workbench.
+
+Hard-won build lessons (apply to every product's .gs):
+- Grow the grid (`ensureGrid_`) before writing past 1,000 rows / 26
+  columns — out-of-grid writes surface as the opaque "Service
+  Spreadsheets failed while accessing document" error.
+- Land huge mutations in slabs with flushes (`forEachSlab_`); toast
+  per-tab progress so failures name their tab.
+- Static-verification harnesses live in `tools/` (verify_workbench.js,
+  verify_ledger.js): stub SpreadsheetApp with grid enforcement + value
+  store. Keep them green; update their contracts with the design.
+- Mock the UX in `design/ui_kits/<product>/` and get Dan's visual
+  approval BEFORE writing tab builders — layout changes that skip the
+  mockup gate get rejected in live QA (see the Workbench checklist v2).
+
 ## New products
 
 Future Column & Co. products (single evocative names: The Ledger, The
