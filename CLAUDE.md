@@ -98,15 +98,21 @@ diverge, the workbook is ground truth.
 - **The Foundation v2.1** — listed on Etsy. Do not touch its files in
   other products' work.
 - **The Ledger v1** (`apps_script/ColumnCo_Ledger_v1.gs`) — merged via
-  PR #2, statically verified, paused before Dan's live QA.
+  PR #2, statically verified, paused before Dan's live QA. NOT yet
+  listed — it has never been live-QA'd.
 - **The Workbench v1** (`apps_script/ColumnCo_Workbench_v1.gs`) — PR #3
-  open. Checklist v3 (June 2026): the rejected vertical layout was
-  reworked to HORIZONTAL TEMPLATE SECTIONS (Option A of
-  `design/design_handoff_the_workbench/05_revision_brief_checklist_v2.md`)
-  plus a guided Add Process wizard — Dan picked the design and approved
-  the visual mockup (`design/ui_kits/the_workbench/`) before the script
-  was written. Statically verified; awaiting Dan's live QA. Docs
-  02/03/04/06 describe the current v3 build.
+  open. Checklist v3 (horizontal template sections + Add Process wizard)
+  built June 2026 after Dan's design pick and visual-mockup approval,
+  then LIVE-QA'D BY DAN through five fix rounds (rebuild teardown,
+  geometry normalization, future-dated mock sales, alignment/chrome
+  polish, Pipeline launched-column drift — all in PR #3 history).
+  Dan paused development 2026-06-12 satisfied with the workbook.
+  Remaining before listing (Dan's levers): merge PR #3, write the
+  Product Guide (requirements recorded in
+  `design_handoff_the_workbench/06_listing_facts.md`), listing
+  screenshots per 04, pricing call. Harness layers a–h green,
+  including the rebuild-resilience and cross-sheet
+  reference-inventory layers.
 
 Hard-won build lessons (apply to every product's .gs):
 - Grow the grid (`ensureGrid_`) before writing past 1,000 rows / 26
