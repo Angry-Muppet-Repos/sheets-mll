@@ -15,7 +15,7 @@ changes, update this file in the same commit so listing copy never drifts.
 | Tabs | **15** — Start Here · Dashboard · P&L · Tax Center · Trends · Invoices · Mileage · Transactions · Bank Import Guide · Clients · Accounts · Categories · _Engine · _Config (hidden) · _Schema (hidden) |
 | Palettes | **24** swappable in-sheet palettes, one-click via 💳 Column & Co. ▸ Apply Theme (brand chrome stays locked) |
 | Categories | **20** fixed expense categories, every one mapped to its Schedule C line, **+ 5 custom slots** |
-| Keyword rules | **90** pre-seeded auto-categorization + type-routing rules |
+| Keyword rules | **88** pre-seeded auto-categorization + type-routing rules |
 | Ledger capacity | 5,000 transaction rows, dropdowns pre-extended |
 | Price band | $45–60 (final number is Dan's call at listing time) |
 
