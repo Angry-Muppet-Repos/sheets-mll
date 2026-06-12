@@ -364,6 +364,28 @@ function sparkLine_(rangeRef, color) {
   return '=SPARKLINE(' + rangeRef + ', {"charttype","line";"color","' + color + '";"linewidth",2})';
 }
 
+// Grow the sheet's grid to at least rows × cols BEFORE writing past the
+// 1,000 × 26 default. Writing beyond the grid is what surfaces as the
+// opaque "Service Spreadsheets failed while accessing document" error —
+// the Products tab (49 columns) and the logs (10,000+ rows) both exceed
+// a fresh sheet's grid.
+function ensureGrid_(sheet, rows, cols) {
+  var maxR = sheet.getMaxRows();
+  if (rows > maxR) sheet.insertRowsAfter(maxR, rows - maxR);
+  var maxC = sheet.getMaxColumns();
+  if (cols > maxC) sheet.insertColumnsAfter(maxC, cols - maxC);
+}
+
+// Run fn(startRow, nRows) over row slabs, flushing between them, so huge
+// writes land as several digestible mutations instead of one giant one.
+function forEachSlab_(firstRow, totalRows, slabSize, fn) {
+  for (var start = firstRow; start < firstRow + totalRows; start += slabSize) {
+    var n = Math.min(slabSize, firstRow + totalRows - start);
+    fn(start, n);
+    SpreadsheetApp.flush();
+  }
+}
+
 // Set several column widths at once: widths is an array starting at col 1.
 function setColWidths_(sheet, widths) {
   for (var i = 0; i < widths.length; i++) sheet.setColumnWidth(i + 1, widths[i]);
@@ -486,23 +508,29 @@ function buildWorkbook(mode) {
   var sheets = {};
   TAB_ORDER.forEach(function (name) { sheets[name] = getOrCreateSheet_(ss, name); });
 
-  // 2. Hidden data + system sheets first (registries before the logs and
-  //    engine that reference them).
-  buildConfig_(sheets[TABS.CONFIG]);
-  buildSchema_(sheets[TABS.SCHEMA], mode);
-  buildChannels_(sheets[TABS.CHANNELS]);
-  buildProducts_(sheets[TABS.PRODUCTS], mode);
-  buildSalesLog_(sheets[TABS.SALES], mode);
-  buildMarketingLog_(sheets[TABS.MARKETING], mode);
-  buildStats_(sheets[TABS.STATS], mode);
-  buildEngine_(sheets[TABS.ENGINE], mode);
-
-  // 3. Presentation tabs.
-  buildStartHere_(sheets[TABS.START]);
-  buildDashboard_(sheets[TABS.DASHBOARD], mode);
-  buildPipeline_(sheets[TABS.PIPELINE], mode);
-  buildProductView_(sheets[TABS.PRODUCT_VIEW], mode);
-  buildTrends_(sheets[TABS.TRENDS], mode);
+  // 2-3. Registries before the logs and engine that reference them, then
+  // the presentation tabs. Each step toasts + flushes so a failure names
+  // its tab and the backend digests the build in pieces.
+  var plan = [
+    [TABS.CONFIG,       function () { buildConfig_(sheets[TABS.CONFIG]); }],
+    [TABS.SCHEMA,       function () { buildSchema_(sheets[TABS.SCHEMA], mode); }],
+    [TABS.CHANNELS,     function () { buildChannels_(sheets[TABS.CHANNELS]); }],
+    [TABS.PRODUCTS,     function () { buildProducts_(sheets[TABS.PRODUCTS], mode); }],
+    [TABS.SALES,        function () { buildSalesLog_(sheets[TABS.SALES], mode); }],
+    [TABS.MARKETING,    function () { buildMarketingLog_(sheets[TABS.MARKETING], mode); }],
+    [TABS.STATS,        function () { buildStats_(sheets[TABS.STATS], mode); }],
+    [TABS.ENGINE,       function () { buildEngine_(sheets[TABS.ENGINE], mode); }],
+    [TABS.START,        function () { buildStartHere_(sheets[TABS.START]); }],
+    [TABS.DASHBOARD,    function () { buildDashboard_(sheets[TABS.DASHBOARD], mode); }],
+    [TABS.PIPELINE,     function () { buildPipeline_(sheets[TABS.PIPELINE], mode); }],
+    [TABS.PRODUCT_VIEW, function () { buildProductView_(sheets[TABS.PRODUCT_VIEW], mode); }],
+    [TABS.TRENDS,       function () { buildTrends_(sheets[TABS.TRENDS], mode); }]
+  ];
+  for (var p = 0; p < plan.length; p++) {
+    ss.toast('Building ' + plan[p][0] + ' · ' + (p + 1) + ' of ' + plan.length, CC.BRAND, 5);
+    plan[p][1]();
+    SpreadsheetApp.flush();
+  }
 
   // 4. Named ranges (catalog from 03_data_model.md).
   setNamedRanges_(ss);
@@ -685,6 +713,8 @@ function buildProducts_(sheet, mode) {
   var existingFilter = sheet.getFilter();
   if (existingFilter) existingFilter.remove();
   var LAST_COL = PROD.COL_LISTED_HELPER;            // 49 (AW)
+  // 49 columns > the 26-column default grid — grow it BEFORE any write.
+  ensureGrid_(sheet, PROD_LAST_ROW + 5, LAST_COL);
   var lastColLetter = columnToLetter_(LAST_COL);
   chrome_(sheet, TABS.PRODUCTS, lastColLetter);
   titleRow_(sheet, lastColLetter, 'Products',
@@ -746,8 +776,11 @@ function buildProducts_(sheet, mode) {
   sheet.getRange(first, PROD.COL_TARGET, n, 2).setNumberFormat('mmm d, yyyy').setBackground(BRAND.YELLOW);
   sheet.getRange(first, PROD.COL_NOTES, n, 1).setBackground(BRAND.YELLOW);
 
-  // Checklist: real checkboxes across fixed + custom step columns.
-  sheet.getRange(first, PROD.COL_STEP_FIRST, n, STEP_COUNT + CUSTOM_STEP_SLOTS).insertCheckboxes();
+  // Checklist: real checkboxes across fixed + custom step columns —
+  // slabbed (8,750 cells in one mutation chokes the Sheets backend).
+  forEachSlab_(first, n, 50, function (slabStart, slabRows) {
+    sheet.getRange(slabStart, PROD.COL_STEP_FIRST, slabRows, STEP_COUNT + CUSTOM_STEP_SLOTS).insertCheckboxes();
+  });
 
   // Computed columns — Progress + Next-step run on the 30 fixed steps only.
   // Built as per-column formula arrays and written in ONE setFormulas call
@@ -765,12 +798,15 @@ function buildProducts_(sheet, mode) {
     fRank.push(['=IF(OR($B' + rr + '="",$C' + rr + '="Listed",$C' + rr + '="Retired"),"",' + progL + rr + '+ROW()/1000000)']);
     fListed.push(['=IF(AND($B' + rr + '<>"",$C' + rr + '="Listed",$G' + rr + '<>""),$G' + rr + '+ROW()/1000000,"")']);
   }
-  sheet.getRange(first, PROD.COL_PROGRESS, n, 1).setFormulas(fProgress);
-  sheet.getRange(first, PROD.COL_NEXT, n, 1).setFormulas(fNext);
-  sheet.getRange(first, PROD.COL_DAYS, n, 1).setFormulas(fDays);
-  sheet.getRange(first, PROD.COL_STALE, n, 1).setFormulas(fStale);
-  sheet.getRange(first, PROD.COL_RANK_HELPER, n, 1).setFormulas(fRank);
-  sheet.getRange(first, PROD.COL_LISTED_HELPER, n, 1).setFormulas(fListed);
+  forEachSlab_(first, n, 50, function (slabStart, slabRows) {
+    var off = slabStart - first;
+    sheet.getRange(slabStart, PROD.COL_PROGRESS, slabRows, 1).setFormulas(fProgress.slice(off, off + slabRows));
+    sheet.getRange(slabStart, PROD.COL_NEXT, slabRows, 1).setFormulas(fNext.slice(off, off + slabRows));
+    sheet.getRange(slabStart, PROD.COL_DAYS, slabRows, 1).setFormulas(fDays.slice(off, off + slabRows));
+    sheet.getRange(slabStart, PROD.COL_STALE, slabRows, 1).setFormulas(fStale.slice(off, off + slabRows));
+    sheet.getRange(slabStart, PROD.COL_RANK_HELPER, slabRows, 1).setFormulas(fRank.slice(off, off + slabRows));
+    sheet.getRange(slabStart, PROD.COL_LISTED_HELPER, slabRows, 1).setFormulas(fListed.slice(off, off + slabRows));
+  });
   sheet.getRange(first, PROD.COL_PROGRESS, n, 1).setNumberFormat('0%');
   sheet.getRange(first, PROD.COL_DAYS, n, 1).setNumberFormat('0" d"');
   sheet.getRange(first, PROD.COL_STALE, n, 1).setNumberFormat('0" d"');
@@ -849,6 +885,7 @@ function buildSalesLog_(sheet, mode) {
   var existingFilter = sheet.getFilter();
   if (existingFilter) existingFilter.remove();
 
+  ensureGrid_(sheet, SALES.FIRST_ROW + SALES_CAPACITY + 5, 26);
   chrome_(sheet, TABS.SALES, 'I');
   var r = titleRow_(sheet, 'I', 'Sales Log',
     'One row when money lands. Leave Fees blank and Net computes from your channel defaults.');
@@ -872,22 +909,25 @@ function buildSalesLog_(sheet, mode) {
   sheet.getRange(firstData, 4, SALES_CAPACITY, 1).setNumberFormat('#,##0');
   sheet.getRange(firstData, 5, SALES_CAPACITY, 2).setNumberFormat('$#,##0.00');
   sheet.getRange(firstData, 7, SALES_CAPACITY, 1).setNumberFormat('$#,##0.00');
-  // Net: explicit Fees wins; else Gross − (Gross × fee% + flat × Units),
-  // fee defaults VLOOKUPed live from the Channels registry.
-  sheet.getRange(firstData, 7, SALES_CAPACITY, 1).setFormulaR1C1(
-    '=IF(RC1="","",IF(RC6<>"",RC5-RC6,ROUND(RC5-(RC5*IFERROR(VLOOKUP(RC3,cc_channel_fees,2,FALSE),0)+IFERROR(VLOOKUP(RC3,cc_channel_fees,3,FALSE),0)*IF(RC4="",1,RC4)),2)))');
-  sheet.getRange(firstData, 9, SALES_CAPACITY, 1)
-    .setFormulaR1C1('=IF(RC1="","",TEXT(RC1,"yyyy-mm"))');
 
   var ss = SpreadsheetApp.getActive();
   var prodRule = SpreadsheetApp.newDataValidation()
     .requireValueInRange(ss.getRangeByName('cc_products_list') ||
       ss.getRange("'" + TABS.PRODUCTS + "'!B" + PROD.FIRST_ROW + ':B' + PROD_LAST_ROW), true).build();
-  sheet.getRange(firstData, 2, SALES_CAPACITY, 1).setDataValidation(prodRule);
   var chRule = SpreadsheetApp.newDataValidation()
     .requireValueInRange(ss.getRangeByName('cc_channels_list') ||
       ss.getRange("'" + TABS.CHANNELS + "'!A10:A21"), true).build();
-  sheet.getRange(firstData, 3, SALES_CAPACITY, 1).setDataValidation(chRule);
+  // Net: explicit Fees wins; else Gross − (Gross × fee% + flat × Units),
+  // fee defaults VLOOKUPed live from the Channels registry. Formulas +
+  // validations land in 2,000-row slabs — 10,000-row single mutations are
+  // what the Sheets backend gives up on.
+  forEachSlab_(firstData, SALES_CAPACITY, 2000, function (slabStart, slabRows) {
+    sheet.getRange(slabStart, 7, slabRows, 1).setFormulaR1C1(
+      '=IF(RC1="","",IF(RC6<>"",RC5-RC6,ROUND(RC5-(RC5*IFERROR(VLOOKUP(RC3,cc_channel_fees,2,FALSE),0)+IFERROR(VLOOKUP(RC3,cc_channel_fees,3,FALSE),0)*IF(RC4="",1,RC4)),2)))');
+    sheet.getRange(slabStart, 9, slabRows, 1).setFormulaR1C1('=IF(RC1="","",TEXT(RC1,"yyyy-mm"))');
+    sheet.getRange(slabStart, 2, slabRows, 1).setDataValidation(prodRule);
+    sheet.getRange(slabStart, 3, slabRows, 1).setDataValidation(chRule);
+  });
 
   setColWidths_(sheet, [105, 220, 105, 60, 90, 90, 95, 200, 80]);
   sheet.hideColumns(9); // Month is a helper column
@@ -900,6 +940,7 @@ function buildMarketingLog_(sheet, mode) {
   var existingFilter = sheet.getFilter();
   if (existingFilter) existingFilter.remove();
 
+  ensureGrid_(sheet, MKT.FIRST_ROW + MARKETING_CAPACITY + 5, 26);
   chrome_(sheet, TABS.MARKETING, 'G');
   var r = titleRow_(sheet, 'G', 'Marketing Log',
     'One row per campaign or spend. Feeds net-after-spend and the per-product verdicts.');
@@ -918,8 +959,9 @@ function buildMarketingLog_(sheet, mode) {
 
   sheet.getRange(firstData, 1, MARKETING_CAPACITY, 1).setNumberFormat('mmm d, yyyy');
   sheet.getRange(firstData, 5, MARKETING_CAPACITY, 1).setNumberFormat('$#,##0.00');
-  sheet.getRange(firstData, 7, MARKETING_CAPACITY, 1)
-    .setFormulaR1C1('=IF(RC1="","",TEXT(RC1,"yyyy-mm"))');
+  forEachSlab_(firstData, MARKETING_CAPACITY, 2000, function (slabStart, slabRows) {
+    sheet.getRange(slabStart, 7, slabRows, 1).setFormulaR1C1('=IF(RC1="","",TEXT(RC1,"yyyy-mm"))');
+  });
 
   var ss = SpreadsheetApp.getActive();
   // Product validation allows invalid so "— Portfolio —" rows are typeable.
@@ -946,6 +988,7 @@ function buildStats_(sheet, mode) {
   var existingFilter = sheet.getFilter();
   if (existingFilter) existingFilter.remove();
 
+  ensureGrid_(sheet, STATSL.FIRST_ROW + STATS_CAPACITY + 5, 26);
   chrome_(sheet, TABS.STATS, 'F');
   var r = titleRow_(sheet, 'F', 'Stats',
     'Optional. One row per product per month — views, favorites, orders from your shop stats. Skipping it breaks nothing.');
@@ -1070,6 +1113,7 @@ function generateMockStats_() {
 
 // ── _Engine — the one cross-product matrix + portfolio/channel rows ───
 function buildEngine_(sheet, mode) {
+  ensureGrid_(sheet, ENGINE_PRODUCT_LAST + 5, 26);
   var monthCodes = monthCodesEndingAt_(new Date());
   sheet.getRange('A1').setValue('metric \\ month').setFontWeight('bold');
   sheet.getRange(1, 2, 1, 24).setNumberFormat('@').setValues([monthCodes]).setFontWeight('bold');
@@ -1107,10 +1151,13 @@ function buildEngine_(sheet, mode) {
   // Product matrix rows 30-279 — names from Products col B (offset −19);
   // net per product-month. ONE R1C1 template covers the whole matrix.
   sheet.getRange(29, 1).setValue('— product net × month —').setFontColor(BRAND.CAPTION).setFontSize(8);
-  sheet.getRange(ENGINE_ROWS.PRODUCT_FIRST, 1, PRODUCT_CAPACITY, 1).setFormulaR1C1(
-    "=IF('" + TABS.PRODUCTS + "'!R[-" + (ENGINE_ROWS.PRODUCT_FIRST - PROD.FIRST_ROW) + "]C2=\"\",\"\",'" + TABS.PRODUCTS + "'!R[-" + (ENGINE_ROWS.PRODUCT_FIRST - PROD.FIRST_ROW) + "]C2)");
-  sheet.getRange(ENGINE_ROWS.PRODUCT_FIRST, 2, PRODUCT_CAPACITY, 24).setFormulaR1C1(
-    '=IF(RC1="",0,SUMIFS(' + sales + '!C7,' + sales + '!C2,RC1,' + sales + '!C9,R1C[0]))');
+  // 250 × 25 formulas — slabbed so the matrix lands as several mutations.
+  forEachSlab_(ENGINE_ROWS.PRODUCT_FIRST, PRODUCT_CAPACITY, 50, function (slabStart, slabRows) {
+    sheet.getRange(slabStart, 1, slabRows, 1).setFormulaR1C1(
+      "=IF('" + TABS.PRODUCTS + "'!R[-" + (ENGINE_ROWS.PRODUCT_FIRST - PROD.FIRST_ROW) + "]C2=\"\",\"\",'" + TABS.PRODUCTS + "'!R[-" + (ENGINE_ROWS.PRODUCT_FIRST - PROD.FIRST_ROW) + "]C2)");
+    sheet.getRange(slabStart, 2, slabRows, 24).setFormulaR1C1(
+      '=IF(RC1="",0,SUMIFS(' + sales + '!C7,' + sales + '!C2,RC1,' + sales + '!C9,R1C[0]))');
+  });
 
   sheet.getRange(2, 2, 6, 24).setNumberFormat('$#,##0');
   sheet.getRange(ENGINE_ROWS.UNITS, 2, 1, 24).setNumberFormat('#,##0');
@@ -1954,18 +2001,20 @@ function renumberSalesLog() {
   sh.getRange(firstData, 1, SALES_CAPACITY, 1).setNumberFormat('mmm d, yyyy');
   sh.getRange(firstData, 4, SALES_CAPACITY, 1).setNumberFormat('#,##0');
   sh.getRange(firstData, 5, SALES_CAPACITY, 2).setNumberFormat('$#,##0.00');
-  sh.getRange(firstData, 7, SALES_CAPACITY, 1).setNumberFormat('$#,##0.00').setFormulaR1C1(
-    '=IF(RC1="","",IF(RC6<>"",RC5-RC6,ROUND(RC5-(RC5*IFERROR(VLOOKUP(RC3,cc_channel_fees,2,FALSE),0)+IFERROR(VLOOKUP(RC3,cc_channel_fees,3,FALSE),0)*IF(RC4="",1,RC4)),2)))');
-  sh.getRange(firstData, 9, SALES_CAPACITY, 1).setFormulaR1C1('=IF(RC1="","",TEXT(RC1,"yyyy-mm"))');
-
   var prodRule = SpreadsheetApp.newDataValidation()
     .requireValueInRange(ss.getRangeByName('cc_products_list') ||
       ss.getRange("'" + TABS.PRODUCTS + "'!B" + PROD.FIRST_ROW + ':B' + PROD_LAST_ROW), true).build();
-  sh.getRange(firstData, 2, SALES_CAPACITY, 1).setDataValidation(prodRule);
   var chRule = SpreadsheetApp.newDataValidation()
     .requireValueInRange(ss.getRangeByName('cc_channels_list') ||
       ss.getRange("'" + TABS.CHANNELS + "'!A10:A21"), true).build();
-  sh.getRange(firstData, 3, SALES_CAPACITY, 1).setDataValidation(chRule);
+  sh.getRange(firstData, 7, SALES_CAPACITY, 1).setNumberFormat('$#,##0.00');
+  forEachSlab_(firstData, SALES_CAPACITY, 2000, function (slabStart, slabRows) {
+    sh.getRange(slabStart, 7, slabRows, 1).setFormulaR1C1(
+      '=IF(RC1="","",IF(RC6<>"",RC5-RC6,ROUND(RC5-(RC5*IFERROR(VLOOKUP(RC3,cc_channel_fees,2,FALSE),0)+IFERROR(VLOOKUP(RC3,cc_channel_fees,3,FALSE),0)*IF(RC4="",1,RC4)),2)))');
+    sh.getRange(slabStart, 9, slabRows, 1).setFormulaR1C1('=IF(RC1="","",TEXT(RC1,"yyyy-mm"))');
+    sh.getRange(slabStart, 2, slabRows, 1).setDataValidation(prodRule);
+    sh.getRange(slabStart, 3, slabRows, 1).setDataValidation(chRule);
+  });
   ss.toast('Sales Log formats refreshed', CC.BRAND, 3);
 }
 
