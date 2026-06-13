@@ -97,6 +97,20 @@ diverge, the workbook is ground truth.
 
 - **The Foundation v2.1** — listed on Etsy. Do not touch its files in
   other products' work.
+- **The Payoff v1** (in design — NOT yet built) — the next product, a
+  debt-payoff system. Brief + specs in `design/design_handoff_the_payoff/`
+  (01 brief · 02 tabs · 03 data model · 04 mock+QA · 05 gamification —
+  LOCKED 2026-06-13). The motivational layer is the differentiator:
+  **The Temple** (debts become columns; Column & Co.'s mark is a column),
+  the **Stylobate** (a customizable savings buffer as the temple's base),
+  **The Hall** (trophy room), the strategy **Race**, the **Time Machine**
+  scrubber, pre-written **Letters**, and data-derived streaks — full
+  anatomy vocabulary Stylobate·Column·Capital·Entablature·Pediment.
+  Dan approved the full all-tabs mockup (`design/ui_kits/the_payoff/
+  full_mockup.html`, the canonical navigable prototype; the `concepts_*.html`
+  are the iteration history). NEXT: build `tools/verify_payoff.js`
+  (mirror the Workbench harness + a JS re-amortization math layer) and
+  `apps_script/ColumnCo_Payoff_v1.gs`.
 - **The Ledger v1** (`apps_script/ColumnCo_Ledger_v1.gs`) — merged via
   PR #2, statically verified, paused before Dan's live QA. NOT yet
   listed — it has never been live-QA'd.

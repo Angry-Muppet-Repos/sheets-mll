@@ -1,25 +1,50 @@
 # The Payoff v1 — UI Kit
 
-High-fidelity mock of the debt-payoff product as it appears inside
-Google Sheets. Chrome and atoms carried from the Workbench kit; story
-and figures from `design/design_handoff_the_payoff/04` — **every number
-is computed** by the 03 amortization iteration (run in node), not
-invented.
+High-fidelity mock of the debt-payoff product inside Google Sheets.
+Every figure is computed by the engine simulation (the 03 amortization
+run in node), not invented.
 
-Open `index.html` — it lands on **The Plan** (the hero: the debt-free
-date). The four hi-fi tabs are the mockup-approval surface:
+## Start here
 
-| Tab | What to judge |
+**`full_mockup.html`** — the canonical, navigable all-tabs prototype.
+Open it and click the bottom tab strip to walk the whole product; swap
+palettes with the pill; open the 💳 menu. This is the "feel the product"
+artifact Dan approved (2026-06-13). All nine visible tabs:
+
+| Tab | What it shows |
 |---|---|
-| **The Plan** | strategy + extra inputs, the headline date block, what-if chips (+$50/+$100), payoff order with TARGET chip and below-the-line tracked mortgage, balance timeline to zero |
-| **Compare** | full side-by-side (Dan's pick): both strategies' dates, interest, first win, priority orders, shared-scale timelines, the verdict line |
-| **Dashboard** | KPI row (incl. the "minimums never finish" sub-line), the Kill List, this month's payments, milestones, AI insights |
-| **Debts** | the registry: yellow inputs, In plan? toggle (mortgage = TRACKED), Underwater-min warning on the Visa, Balance override demo |
+| Start Here | setup steps + the temple anatomy vocabulary |
+| **Dashboard** | the Wall + the **Temple** (hero) on its Stylobate + KPIs + this-month payments · "Watch the build" |
+| **The Plan** | strategy + extra + headline date + what-if chips + the **Time Machine** month scrubber |
+| **Compare** | the **strategy race** — snowball vs avalanche mini-temples filling at different rates |
+| Debts | the registry (In-plan toggle, Underwater chip, override) |
+| Payments Log | the append-only payment record |
+| **Progress** | the **Stylobate** (buffer, contributions ledger, customizable goal) + streaks |
+| **The Hall** | the trophy room — slain-debt plaques + record trophies + locked future |
+| Bank Import | paste → map → dedupe → append |
 
-Locked story truths (sim-verified): two kills (Sep 2025 · Apr 2026) ·
-$31,741 of $40,950 left · snowball 47 mo / $7,487 vs avalanche 46 mo /
-$6,515 · first win m12 vs m27 · +$50 = 2 months sooner · saved $26,772
-through the 10-yr window, minimums alone never finish.
+## Iteration history (superseded by full_mockup.html)
 
-Stubs: Start Here · Payments Log · Progress · Bank Import · _Engine.
-24-palette picker wired.
+The `concepts_*.html` files are the gamification design exploration, in
+order: `concepts.html` / `concepts_v2.html` (idea boards) →
+`concepts_live.html` (Column + Demolition working demo) →
+`concepts_temple.html` / `concepts_temple_v3.html` (the multi-debt
+temple, scrubber, race) → `concepts_hall.html` (the Hall) →
+`concepts_stylobate.html` (the buffer base). Kept for the record; the
+integrated product is `full_mockup.html`.
+
+The React component files (`components.jsx`, `chrome.jsx`,
+`tabs-*.jsx`, `data.js`, `index.html`) are the earlier pre-gamification
+tab mocks — superseded by `full_mockup.html` for the product feel, kept
+as atom references.
+
+## Locked story truths (engine-computed)
+
+Casey Alvarez, 14 months into a snowball with $250 extra. Total
+$40,950 → $31,741 now; $9,209 slain; two kills (Store card Sep 2025,
+Medical bill Apr 2026). Snowball 51 mo / $10,381 interest vs avalanche
+49 mo / $8,230 (saves $2,151, first win 15 mo sooner). Debt-free
+**Jul 2029**, 37 months out; $28,533 saved vs minimums (which never
+finish — $15,559 still owed at the 10-yr horizon). Stylobate $600 of a
+$1,000 goal. The gamification spec is
+`design/design_handoff_the_payoff/05_gamification.md`.
