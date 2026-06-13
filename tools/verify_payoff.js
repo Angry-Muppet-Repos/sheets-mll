@@ -26,8 +26,15 @@ function parseA1(ref) {
 }
 
 const captures = { mock: [], blank: [], func: [] };
+const mergeViolations = [];
 let CURRENT_MODE = 'mock';
 const record = rec => { if (CURRENT_MODE !== 'func') captures[CURRENT_MODE].push(rec); };
+// merge geometry — real Sheets throws "You must select all cells in a
+// merged range to merge or unmerge them" when a merge/breakApart partially
+// covers an existing merge (intersects without fully containing it).
+const rectsOverlap = (a, b) => !(a.r + a.nr - 1 < b.r || b.r + b.nr - 1 < a.r || a.c + a.nc - 1 < b.c || b.c + b.nc - 1 < a.c);
+const rectContains = (a, b) => b.r >= a.r && b.c >= a.c && b.r + b.nr - 1 <= a.r + a.nr - 1 && b.c + b.nc - 1 <= a.c + a.nc - 1;
+const rectEqual = (a, b) => a.r === b.r && a.c === b.c && a.nr === b.nr && a.nc === b.nc;
 
 class RangeStub {
   constructor(sheet, row, col, numRows, numCols) {
@@ -115,6 +122,7 @@ class RangeStub {
     };
     return sheet.filter;
   }
+  rect() { return { r: this.row, c: this.col, nr: this.numRows, nc: this.numCols }; }
   merge() {
     this.assertInGrid();
     const f = this.sheet.filter;
@@ -130,14 +138,36 @@ class RangeStub {
           this.sheet.name + '!' + this.getA1Notation());
       }
     }
+    const R = this.rect();
+    for (const M of this.sheet.merges) {
+      if (rectEqual(R, M)) return this;                       // idempotent re-merge
+      if (rectsOverlap(R, M) && !rectContains(R, M)) {
+        mergeViolations.push({ mode: CURRENT_MODE, sheet: this.sheet.name, a1: this.getA1Notation(), over: LETTER(M.c) + M.r });
+        throw new Error('You must select all cells in a merged range to merge or unmerge them (emulated): ' +
+          this.sheet.name + '!' + this.getA1Notation() + ' partially overlaps the merge at ' + LETTER(M.c) + M.r);
+      }
+    }
+    this.sheet.merges = this.sheet.merges.filter(M => !rectContains(R, M));
+    this.sheet.merges.push(R);
     return this;
   }
   mergeAcross() { return this.merge(); }
+  breakApart() {
+    const R = this.rect();
+    for (const M of this.sheet.merges) {
+      if (rectsOverlap(R, M) && !rectContains(R, M)) {
+        mergeViolations.push({ mode: CURRENT_MODE, sheet: this.sheet.name, a1: this.getA1Notation(), op: 'breakApart', over: LETTER(M.c) + M.r });
+        throw new Error('breakApart crosses a merge border (emulated): ' + this.sheet.name + '!' + this.getA1Notation());
+      }
+    }
+    this.sheet.merges = this.sheet.merges.filter(M => !rectContains(R, M));
+    return this;
+  }
 }
 // Fluent no-ops: styling that doesn't need grid enforcement.
 ['setBorder','setFontFamily','setFontSize','setFontWeight','setFontStyle',
  'setFontColor','setFontColors','setHorizontalAlignment','setVerticalAlignment','setWrap',
- 'setWraps','breakApart','clearDataValidations','sort','activate','setComment',
+ 'setWraps','clearDataValidations','sort','activate','setComment',
  'setFontLine','setTextRotation','setHorizontalAlignments','setVerticalAlignments',
  'setFontFamilies','setFontSizes','setFontWeights','setFontStyles','setShowHyphenation',
  'clearFormat','clearNote','setBackgroundRGB','copyTo','setVerticalText'].forEach(m => { RangeStub.prototype[m] = function () { return this; }; });
@@ -153,7 +183,7 @@ RangeStub.prototype.clearContent = function () {
 RangeStub.prototype.clear = function () { return this.clearContent(); };
 
 class SheetStub {
-  constructor(ss, name) { this.ss = ss; this.name = name; this.maxRows = 1000; this.maxCols = 26; this.cells = {}; this.filter = null; this.hidden = false; }
+  constructor(ss, name) { this.ss = ss; this.name = name; this.maxRows = 1000; this.maxCols = 26; this.cells = {}; this.filter = null; this.hidden = false; this.merges = []; }
   getName() { return this.name; }
   insertRowsAfter(after, n) { this.maxRows += n; return this; }
   insertColumnsAfter(after, n) { this.maxCols += n; return this; }
@@ -322,6 +352,19 @@ const section = (label, fails, total) => {
   console.log(label + ': ' + (fails === 0 ? 'OK' + (total != null ? ' (' + total + ' checks)' : '') : 'FAIL (' + fails + (total != null ? ' of ' + total : '') + ')'));
   FAILS += fails;
 };
+
+// ───────────── i. merge-overlap audit (the build-killer) ─────────────
+// safeMerge_ swallows the throw in production so a stray overlap is a
+// no-op cell, not a fatal exception; but every overlap is recorded here so
+// it is caught and fixed before shipping (the v1 live-QA failure class).
+let iFail = 0;
+const seenViol = {};
+for (const v of mergeViolations.filter(v => v.mode !== 'func')) {
+  const k = v.sheet + '!' + v.a1 + (v.op || '');
+  if (seenViol[k]) continue; seenViol[k] = true; iFail++;
+  console.log('  OVERLAP [' + v.mode + '] ' + (v.op || 'merge') + ' ' + v.sheet + '!' + v.a1 + ' over merge at ' + v.over);
+}
+section('i. merge-overlap audit', iFail);
 
 // ───────────── b. formula balance ─────────────
 function balanced(f) {

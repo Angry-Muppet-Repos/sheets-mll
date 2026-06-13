@@ -348,6 +348,17 @@ function columnToLetter_(col) {
   return s;
 }
 
+// Merge a range without ever aborting the build. A partial-overlap merge
+// throws "You must select all cells in a merged range…" in Apps Script —
+// an uncaught one kills the whole build mid-way (hard-won lesson). Routing
+// every merge through here makes a stray overlap a no-op cell, not a fatal
+// exception. tools/verify_payoff.js models the overlap and FAILS the build
+// statically so overlaps are caught before they ship, not swallowed blind.
+function safeMerge_(rng) {
+  try { rng.merge(); } catch (e) {}
+  return rng;
+}
+
 /**
  * setCell_ — style a single cell or range in one call.
  * opts: { value, formula, font, size, bold, italic, color, bg, h, v,
@@ -356,7 +367,7 @@ function columnToLetter_(col) {
 function setCell_(sheet, a1, opts) {
   opts = opts || {};
   var rng = sheet.getRange(opts.merge ? (a1 + ':' + opts.merge) : a1);
-  if (opts.merge) rng.merge();
+  if (opts.merge) safeMerge_(rng);
   if (opts.formula != null) rng.setFormula(opts.formula);
   else if (opts.value != null) rng.setValue(opts.value);
   if (opts.font) rng.setFontFamily(opts.font);
@@ -403,9 +414,9 @@ function titleRow_(sheet, lastColLetter, name, desc) {
 function kpiCard_(sheet, topLeftA1, widthCols, label, valueOrFormula, sub, accentColor) {
   var cell = sheet.getRange(topLeftA1);
   var r = cell.getRow(), c = cell.getColumn();
-  var labelRng = sheet.getRange(r, c, 1, widthCols).merge();
-  var valRng = sheet.getRange(r + 1, c, 1, widthCols).merge();
-  var subRng = sheet.getRange(r + 2, c, 1, widthCols).merge();
+  var labelRng = safeMerge_(sheet.getRange(r, c, 1, widthCols));
+  var valRng = safeMerge_(sheet.getRange(r + 1, c, 1, widthCols));
+  var subRng = safeMerge_(sheet.getRange(r + 2, c, 1, widthCols));
 
   labelRng.setValue(label).setFontFamily(FONT.BODY).setFontSize(10).setFontWeight('bold')
     .setFontColor(BRAND.CAPTION).setBackground(BRAND.PARCHMENT)
@@ -455,8 +466,11 @@ function forEachSlab_(firstRow, totalRows, slabSize, fn) {
   for (var start = firstRow; start < firstRow + totalRows; start += slabSize) {
     var n = Math.min(slabSize, firstRow + totalRows - start);
     fn(start, n);
-    SpreadsheetApp.flush();
   }
+  // One flush after the slab group — the slabbed writes still avoid a single
+  // giant mutation, but we don't force a recalc after every 40-row slice
+  // (the engine is 6 blocks × 120 × 25, so per-slab flushes were costly).
+  SpreadsheetApp.flush();
 }
 
 function setColWidths_(sheet, widths) {
@@ -493,14 +507,14 @@ function chrome_(sheet, tabName, lastColLetter, subLabel) {
   var splitCol = Math.max(2, lastCol - 3);
   var name = sheet.getName();
 
-  var left = sheet.getRange(1, 1, 2, splitCol - 1).merge();
+  var left = safeMerge_(sheet.getRange(1, 1, 2, splitCol - 1));
   left.setBackground(BRAND.FOREST).setVerticalAlignment('middle')
     .setHorizontalAlignment('left').setFontColor(BRAND.PARCHMENT)
     .setFontFamily(FONT.DISPLAY).setFontSize(20).setFontWeight('bold')
     .setValue('  ' + CC.BRAND);
   themable_(name, 'primary', left.getA1Notation());
 
-  var right = sheet.getRange(1, splitCol, 2, lastCol - splitCol + 1).merge();
+  var right = safeMerge_(sheet.getRange(1, splitCol, 2, lastCol - splitCol + 1));
   right.setBackground(BRAND.FOREST).setVerticalAlignment('middle')
     .setHorizontalAlignment('right').setFontColor(BRAND.PARCHMENT)
     .setFontFamily(FONT.BODY).setFontSize(11)
@@ -508,7 +522,7 @@ function chrome_(sheet, tabName, lastColLetter, subLabel) {
   themable_(name, 'primary', right.getA1Notation());
   sheet.setRowHeight(1, 30); sheet.setRowHeight(2, 30);
 
-  var band = sheet.getRange(3, 1, 1, lastCol).merge();
+  var band = safeMerge_(sheet.getRange(3, 1, 1, lastCol));
   band.setBackground(BRAND.CANOPY).setVerticalAlignment('middle')
     .setHorizontalAlignment('right').setFontColor(BRAND.GOLD)
     .setFontFamily(FONT.BODY).setFontSize(9).setFontWeight('bold')
@@ -516,7 +530,7 @@ function chrome_(sheet, tabName, lastColLetter, subLabel) {
   themable_(name, 'mid', band.getA1Notation());
   sheet.setRowHeight(3, 26);
 
-  var rule = sheet.getRange(4, 1, 1, lastCol).merge();
+  var rule = safeMerge_(sheet.getRange(4, 1, 1, lastCol));
   rule.setBackground(BRAND.GOLD);
   themable_(name, 'accent', rule.getA1Notation());
   sheet.setRowHeight(4, 3);
@@ -527,7 +541,7 @@ function chrome_(sheet, tabName, lastColLetter, subLabel) {
 
 function footer_(sheet, row, lastColLetter) {
   var lastCol = columnLetterToNumber_(lastColLetter);
-  var bar = sheet.getRange(row, 1, 1, lastCol).merge();
+  var bar = safeMerge_(sheet.getRange(row, 1, 1, lastCol));
   bar.setBackground(BRAND.FOREST).setFontColor(BRAND.PARCHMENT_60)
     .setFontFamily(FONT.BODY).setFontSize(10)
     .setHorizontalAlignment('center').setVerticalAlignment('middle')
@@ -1174,6 +1188,10 @@ function writeEngineBlock_(sheet, blockIdx) {
 // The visual tabs use a narrow-cell CANVAS so the monument can be painted
 // as a colonnade of small squares; content blocks merge across the cells.
 var CANVAS = { COLS: 30, LAST: 'AD', CELL_W: 19, TEMPLE_H: 11 };
+// Progress contributions ledger lives at FIXED rows so the SAVED line and
+// the Log-a-contribution menu action always target it (the temple above is
+// a fixed height — debts are columns, not rows — so it never reaches here).
+var PROG_LEDGER_TOP = 42, PROG_LEDGER_ROWS = 24;
 function canvasSetup_(sheet, tabName, subLabel, endRow) {
   ensureGrid_(sheet, endRow, CANVAS.COLS);
   chrome_(sheet, tabName, CANVAS.LAST, subLabel);
@@ -1375,11 +1393,11 @@ function logContribution() {
   var resp = ui.prompt('Log a Stylobate contribution', 'Amount to lay in stone (negative to draw down):', ui.ButtonSet.OK_CANCEL);
   if (resp.getSelectedButton() !== ui.Button.OK) return;
   var amt = cleanNum_(resp.getResponseText()); if (amt == null) { ui.alert('Type a number.'); return; }
-  var LEDGER_TOP = 30, row = findFirstEmptyRow_(prog, 2, LEDGER_TOP, 50);
+  var row = findFirstEmptyRow_(prog, 2, PROG_LEDGER_TOP, PROG_LEDGER_ROWS);
   prog.getRange(row, 2).setValue(new Date());
   prog.getRange(row, 6).setValue(amt);
   var goal = Number(prog.getRange('C12').getValue()) || STYLOBATE_GOAL_DEFAULT;
-  var saved = 0, vals = prog.getRange(LEDGER_TOP, 6, 50, 1).getValues();
+  var saved = 0, vals = prog.getRange(PROG_LEDGER_TOP, 6, PROG_LEDGER_ROWS, 1).getValues();
   vals.forEach(function (v) { saved += Number(v[0]) || 0; });
   var pct = Math.min(100, Math.round(saved / goal * 100));
   ss.toast(saved >= goal ? '✦ The Stylobate is complete — solid stone under your temple.'
@@ -1423,7 +1441,7 @@ function gridText_(sheet, row, col, w, val, opts) {
   opts = opts || {};
   var a1 = columnToLetter_(col) + row, b1 = columnToLetter_(col + w - 1) + row;
   var rng = sheet.getRange(a1 + ':' + b1);
-  if (w > 1) rng.merge();
+  if (w > 1) safeMerge_(rng);
   if (opts.formula != null) rng.setFormula(opts.formula); else if (val != null) rng.setValue(val);
   rng.setFontFamily(opts.font || FONT.BODY).setFontSize(opts.size || 11)
     .setFontColor(opts.color || BRAND.BODY).setHorizontalAlignment(opts.h || 'left')
@@ -1491,13 +1509,13 @@ function paintTemple_(sheet, top, debts, opts) {
     for (var s = 0; s < 3; s++) {
       var stepW = Math.min(winW, TW + (2 - s) * 4), stepLeft = Math.max(winL, left - Math.floor((stepW - TW) / 2));
       if (stepLeft + stepW - 1 > winR) stepW = winR - stepLeft + 1;
-      var rr = rBase + 1 + s + 1;          // below the labels
+      var rr = rBase + 3 + s;              // below BOTH label rows (name + %)
       sheet.getRange(rr, stepLeft, 1, stepW).setBackground(sf > 0 ? STONE.BEAM : STONE.SAND);
       var goldW = Math.round(stepW * sf);
       if (goldW > 0) sheet.getRange(rr, stepLeft, 1, Math.min(stepW, goldW)).setBackground(GOLD_ACHIEVE);
       sheet.setRowHeight(rr, 9);
     }
-    bottom = rBase + 4;
+    bottom = rBase + 5;
   }
   sheet.setRowHeight(rPed, 13); sheet.setRowHeight(rEnt, 7); sheet.setRowHeight(rCap, 6);
   for (var rh = rCol0; rh < rCol0 + H; rh++) sheet.setRowHeight(rh, 14);
@@ -1554,7 +1572,7 @@ function buildPlanBody_(sheet, mode) {
   gridText_(sheet, 15, 3, 9, null, { formula: '=\'_Engine\'!$P$' + sr, font: FONT.DISPLAY, bold: true, size: 30, color: BRAND.PARCHMENT });
   var stat = function (col, valF, cap) {
     gridText_(sheet, 15, col, 5, null, { formula: valF, font: FONT.DISPLAY, bold: true, size: 18, color: BRAND.PARCHMENT });
-    gridText_(sheet, 16, col, 6, cap, { size: 9, color: '#C9D6CE' });
+    gridText_(sheet, 16, col, 5, cap, { size: 9, color: '#C9D6CE' });
   };
   stat(13, '=\'_Engine\'!$B$' + sr + '&" mo"', 'left on this plan');
   stat(18, '=TEXT(\'_Engine\'!$C$' + sr + ',"$#,##0")', 'interest on this plan');
@@ -1624,47 +1642,44 @@ function buildCompareBody_(sheet, mode) {
 function buildProgressBody_(sheet, mode) {
   titleRow_(sheet, CANVAS.LAST, 'Progress',
     'Build the stone you stand on, and keep your streaks alive — the habits that keep you out of debt for good.');
-  // the stylobate (buffer) — goal cell + computed SAVED + temple base
-  gridText_(sheet, 9, 2, 1, 'STYLOBATE GOAL', { size: 9, bold: true, color: BRAND.CANOPY });
+  var contribs = (mode === 'mock') ? generateMockContributions_() : [];
+  var saved = contribs.reduce(function (a, c) { return a + c[1]; }, 0);
+  var sumF = 'SUM(F' + PROG_LEDGER_TOP + ':F' + (PROG_LEDGER_TOP + PROG_LEDGER_ROWS - 1) + ')';
+
+  // SAVED (live, sums the ledger) + the editable goal
+  gridText_(sheet, 9, 2, 16, null, { formula: '="SAVED  "&TEXT(' + sumF + ',"$#,##0")&"  of  "&TEXT(C12,"$#,##0")&" in stone"', font: FONT.DISPLAY, bold: true, size: 16, color: '#7a5a1e' });
+  gridText_(sheet, 12, 2, 1, 'GOAL', { size: 9, bold: true, color: BRAND.CANOPY });
   setCell_(sheet, 'C12', { value: STYLOBATE_GOAL_DEFAULT, bg: BRAND.YELLOW, font: FONT.BODY, size: 11, bold: true, color: BRAND.FOREST, format: '$#,##0', h: 'center' })
     .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
-  gridText_(sheet, 9, 4, 1, '', {});
-  // contributions ledger (rows 28+) so SAVED can SUM it live
-  var ledgerTop = 30, contribs = (mode === 'mock') ? generateMockContributions_() : [];
-  gridText_(sheet, 9, 7, 1, 'SAVED', { size: 9, bold: true, color: BRAND.CANOPY });
-  gridText_(sheet, 9, 8, 4, null, { formula: '=TEXT(SUM(C' + ledgerTop + ':C' + (ledgerTop + 49) + '),"$#,##0")&" of "&TEXT(C12,"$#,##0")', font: FONT.DISPLAY, bold: true, size: 14, color: '#7a5a1e' });
 
+  // the stylobate temple (fixed height: rows 16-32)
   zlabel_(sheet, 14, 'THE STYLOBATE · YOUR BUFFER, THE TEMPLE\'S BASE');
-  var savedFracF = 0;
-  if (mode === 'mock') {
-    var saved = contribs.reduce(function (a, c) { return a + c[1]; }, 0);
-    savedFracF = saved / STYLOBATE_GOAL_DEFAULT;
-    paintTemple_(sheet, 16, mockTempleDebts_(0, 'snowball'), { H: 9, showStylobate: true, savedFrac: savedFracF });
-  } else { paintTemple_(sheet, 16, [], { showStylobate: true, savedFrac: 0 }); }
+  if (mode === 'mock') paintTemple_(sheet, 16, mockTempleDebts_(0, 'snowball'), { H: 8, showStylobate: true, savedFrac: saved / STYLOBATE_GOAL_DEFAULT });
+  else paintTemple_(sheet, 16, [], { H: 8, showStylobate: true, savedFrac: 0 });
 
-  // contributions ledger
-  zlabel_(sheet, 28, 'CONTRIBUTIONS · EACH ONE LAID IN STONE');
-  gridText_(sheet, 29, 2, 4, 'Date', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
-  gridText_(sheet, 29, 6, 4, 'Amount', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: 'right' });
-  sheet.getRange(ledgerTop, 2, 50, 4).setBackground(BRAND.YELLOW);
-  sheet.getRange(ledgerTop, 6, 50, 4).setBackground(BRAND.YELLOW);
-  sheet.getRange(ledgerTop, 2, 50, 1).setNumberFormat('mmm d, yyyy');
-  sheet.getRange(ledgerTop, 6, 50, 1).setNumberFormat('$#,##0');
-  if (mode === 'mock' && contribs.length) {
-    sheet.getRange(ledgerTop, 2, contribs.length, 1).setValues(contribs.map(function (c) { return [c[0]]; }));
-    sheet.getRange(ledgerTop, 6, contribs.length, 1).setValues(contribs.map(function (c) { return [c[1]]; }));
-  }
-
-  // streaks (data-derived) — three record cards
-  zlabel_(sheet, 24, 'YOUR STREAKS · THE HABITS THAT KEEP YOU FREE');
-  var streak = function (col, icon, label, val, sub) {
-    kpiCard_(sheet, columnToLetter_(col) + '25', 8, icon + '  ' + label, val, sub, BRAND.GOLD);
-  };
+  // streaks (three record cards) — below the temple
+  zlabel_(sheet, 34, 'YOUR STREAKS · THE HABITS THAT KEEP YOU FREE');
   var sv = (mode === 'mock') ? '14 mo' : '—', wk = (mode === 'mock') ? '9 wks' : '—';
-  streak(2, '🔥', 'BEAT THE MINIMUM', sv, 'months you paid more than required');
-  streak(11, '🛡️', 'NO NEW DEBT', sv, 'no balance has risen since you started');
-  streak(20, '✓', 'WEEKLY CHECK-IN', wk, 'the habit that predicts finishing');
-  footer_(sheet, ledgerTop + 22, CANVAS.LAST);
+  kpiCard_(sheet, 'B35', 8, '🔥  BEAT THE MINIMUM', sv, 'months you paid more than required', BRAND.GOLD);
+  kpiCard_(sheet, 'L35', 8, '🛡️  NO NEW DEBT', sv, 'no balance has risen since you started', BRAND.GOLD);
+  kpiCard_(sheet, 'V35', 8, '✓  WEEKLY CHECK-IN', wk, 'the habit that predicts finishing', BRAND.GOLD);
+
+  // contributions ledger at the FIXED PROG_LEDGER_TOP (rows 41+)
+  zlabel_(sheet, 40, 'CONTRIBUTIONS · EACH ONE LAID IN STONE');
+  gridText_(sheet, 41, 2, 4, 'Date', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
+  gridText_(sheet, 41, 6, 4, 'Amount', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: 'right' });
+  sheet.getRange(PROG_LEDGER_TOP, 2, PROG_LEDGER_ROWS, 4).setBackground(BRAND.YELLOW);
+  sheet.getRange(PROG_LEDGER_TOP, 6, PROG_LEDGER_ROWS, 4).setBackground(BRAND.YELLOW);
+  sheet.getRange(PROG_LEDGER_TOP, 2, PROG_LEDGER_ROWS, 1).setNumberFormat('mmm d, yyyy');
+  sheet.getRange(PROG_LEDGER_TOP, 6, PROG_LEDGER_ROWS, 1).setNumberFormat('$#,##0');
+  if (mode === 'mock' && contribs.length) {
+    sheet.getRange(PROG_LEDGER_TOP, 2, contribs.length, 1).setValues(contribs.map(function (c) { return [c[0]]; }));
+    sheet.getRange(PROG_LEDGER_TOP, 6, contribs.length, 1).setValues(contribs.map(function (c) { return [c[1]]; }));
+  }
+  setCell_(sheet, 'A' + (PROG_LEDGER_TOP + PROG_LEDGER_ROWS + 1), {
+    value: 'SAVED is the running sum of your contributions — never typed. A drawdown is a negative entry; the stylobate honestly cracks back toward sand. Streaks are illustrative in the demo.',
+    merge: CANVAS.LAST + (PROG_LEDGER_TOP + PROG_LEDGER_ROWS + 1), font: FONT.BODY, size: 9, italic: true, color: BRAND.CAPTION, wrap: true });
+  footer_(sheet, PROG_LEDGER_TOP + PROG_LEDGER_ROWS + 3, CANVAS.LAST);
 }
 
 function buildDashboardBody_(sheet, mode) {
@@ -1742,45 +1757,42 @@ function buildHallBody_(sheet, mode) {
   }
 
   gridText_(sheet, 19, 2, CANVAS.COLS - 2, '◆ RECORDS ◆', { h: 'center', size: 9, bold: true, color: '#C9B07A', bg: STONE.HALL_BG });
-  var trophy = function (col, w, icon, val, label, locked) {
-    sheet.getRange(21, col, 3, w).setBackground(STONE.HALL_BG)
+  var trophy = function (top, col, w, icon, val, label, locked, valFormula) {
+    sheet.getRange(top, col, 3, w).setBackground(STONE.HALL_BG)
       .setBorder(true, true, true, true, false, false, locked ? '#3A5446' : GOLD_ACHIEVE, SpreadsheetApp.BorderStyle.SOLID);
-    gridText_(sheet, 21, col, w, icon, { h: 'center', size: 16, bg: STONE.HALL_BG });
-    gridText_(sheet, 22, col, w, val, { h: 'center', font: FONT.DISPLAY, bold: true, size: 13, color: locked ? '#7C8C81' : GOLD_ACHIEVE, bg: STONE.HALL_BG });
-    gridText_(sheet, 23, col, w, label, { h: 'center', size: 8, color: '#A9BBAE', bg: STONE.HALL_BG });
+    gridText_(sheet, top, col, w, icon, { h: 'center', size: 16, bg: STONE.HALL_BG });
+    if (valFormula) gridText_(sheet, top + 1, col, w, null, { formula: valFormula, h: 'center', font: FONT.DISPLAY, bold: true, size: 13, color: GOLD_ACHIEVE, bg: STONE.HALL_BG });
+    else gridText_(sheet, top + 1, col, w, val, { h: 'center', font: FONT.DISPLAY, bold: true, size: 13, color: locked ? '#7C8C81' : GOLD_ACHIEVE, bg: STONE.HALL_BG });
+    gridText_(sheet, top + 2, col, w, label, { h: 'center', size: 8, color: '#A9BBAE', bg: STONE.HALL_BG });
   };
   if (mode === 'mock') {
-    trophy(3, 6, '🏆', '14 mo', 'longest streak', false);
-    trophy(9, 6, '🛡️', '14 mo', 'no new debt', false);
-    trophy(15, 6, '⚡', '5 mo', 'fastest kill', false);
-    trophy(21, 8, '🏛️', null, 'total slain', false);
-    gridText_(sheet, 22, 21, 8, null, { formula: '=TEXT(\'_Engine\'!$N$' + ENG.ROW_SCALARS + ',"$#,##0")', h: 'center', font: FONT.DISPLAY, bold: true, size: 13, color: GOLD_ACHIEVE, bg: STONE.HALL_BG });
-    trophy(3, 12, '½', 'Halfway', 'unlocks at half your starting debt', true);
-    sheet.getRange(25, 3, 3, 12).setBackground(STONE.HALL_BG);   // re-home the locked row
-    trophy(3, 6, '½', 'halfway', 'half your debt slain', true);
-    trophy(9, 6, '★', 'debt-free', 'the golden temple', true);
+    trophy(21, 3, 6, '🏆', '14 mo', 'longest streak', false);
+    trophy(21, 10, 6, '🛡️', '14 mo', 'no new debt', false);
+    trophy(21, 17, 6, '⚡', '5 mo', 'fastest kill', false);
+    trophy(21, 24, 6, '🏛️', null, 'total slain', false, '=TEXT(\'_Engine\'!$N$' + ENG.ROW_SCALARS + ',"$#,##0")');
+    trophy(25, 3, 8, '½', 'halfway', 'unlocks at half your debt slain', true);
+    trophy(25, 12, 8, '★', 'debt-free', 'the golden temple', true);
   } else {
-    trophy(3, 8, '🏆', '—', 'longest streak', true);
-    trophy(12, 8, '⚡', '—', 'fastest kill', true);
-    trophy(21, 8, '★', 'debt-free', 'the golden temple', true);
+    trophy(21, 3, 8, '🏆', '—', 'longest streak', true);
+    trophy(21, 12, 8, '⚡', '—', 'fastest kill', true);
+    trophy(21, 21, 8, '★', 'debt-free', 'the golden temple', true);
   }
 
   // Letters — pre-written, zero-setup, sealed until you cross each rank.
-  gridText_(sheet, 26, 2, CANVAS.COLS - 2, '◆ SEALED LETTERS ◆', { h: 'center', size: 9, bold: true, color: '#C9B07A', bg: STONE.HALL_BG });
+  gridText_(sheet, 29, 2, CANVAS.COLS - 2, '◆ SEALED LETTERS ◆', { h: 'center', size: 9, bold: true, color: '#C9B07A', bg: STONE.HALL_BG });
   var letter = function (col, w, title, body, unsealed) {
-    sheet.getRange(28, col, 5, w).setBackground(unsealed ? STONE.PARCHMENT : STONE.HALL_BG2)
+    var bg = unsealed ? STONE.PARCHMENT : STONE.HALL_BG2;
+    sheet.getRange(31, col, 4, w).setBackground(bg)
       .setBorder(true, true, true, true, false, false, unsealed ? GOLD_ACHIEVE : '#3A5446', SpreadsheetApp.BorderStyle.SOLID);
-    gridText_(sheet, 28, col, w, (unsealed ? '✉ ' : '🔒 ') + title, { h: 'center', font: FONT.DISPLAY, bold: true, italic: true, size: 11, color: unsealed ? BRAND.FOREST : '#9DB0A2', bg: unsealed ? STONE.PARCHMENT : STONE.HALL_BG2 });
-    gridText_(sheet, 29, col, w, unsealed ? body : null, { h: 'center', size: 9, italic: true, color: unsealed ? BRAND.BODY : '#7C8C81', bg: unsealed ? STONE.PARCHMENT : STONE.HALL_BG2, wrap: true });
-    if (!unsealed) gridText_(sheet, 30, col, w, 'sealed', { h: 'center', size: 8, color: '#7C8C81', bg: STONE.HALL_BG2 });
-    sheet.getRange(29, col, 3, w).setBackground(unsealed ? STONE.PARCHMENT : STONE.HALL_BG2);
+    gridText_(sheet, 31, col, w, (unsealed ? '✉ ' : '🔒 ') + title, { h: 'center', font: FONT.DISPLAY, bold: true, italic: true, size: 11, color: unsealed ? BRAND.FOREST : '#9DB0A2', bg: bg });
+    gridText_(sheet, 32, col, w, unsealed ? body : 'sealed', { h: 'center', size: 9, italic: true, color: unsealed ? BRAND.BODY : '#7C8C81', bg: bg, wrap: true });
   };
   var first = (mode === 'mock');
   letter(3, 8, 'First Blood', 'You did the hardest thing — you started, and you finished. One column stands; the rest fall in behind it.', first);
   letter(12, 8, 'Halfway', 'Unseals when half your debt is slain.', false);
   letter(21, 8, 'Debt-Free', 'Unseals when the temple is whole and you owe no one.', false);
 
-  footer_(sheet, 50, CANVAS.LAST);
+  footer_(sheet, 37, CANVAS.LAST);
 }
 
 function buildStartBody_(sheet, mode) {

@@ -159,11 +159,26 @@ Hard-won build lessons (apply to every product's .gs):
   harness models filter semantics and rebuilds over a stale workbook
   (layer g). Mock data generators must never produce future dates —
   staleness math goes negative.
-- Land huge mutations in slabs with flushes (`forEachSlab_`); toast
-  per-tab progress so failures name their tab.
+- Land huge mutations in slabs (`forEachSlab_`) but flush SPARINGLY — one
+  flush per slab group, not per slab. Every `flush()` forces a recalc, and
+  a big live-formula engine (The Payoff is 6 blocks × 120 × 25) makes
+  per-slab flushes the difference between a 1-minute and a timed-out build.
+- **Overlapping merges silently kill the whole build.** A `.merge()` (or
+  `.breakApart()`) over a range that PARTIALLY covers an existing merge
+  throws "You must select all cells in a merged range to merge or unmerge
+  them" — uncaught, it aborts the build mid-way and the error only flashes
+  as a toast (The Payoff v1 live-QA failure; also bit an earlier product).
+  Route every merge through a `safeMerge_` that swallows the throw (a stray
+  overlap becomes a no-op cell, never a fatal exception), AND model merge
+  geometry in the harness so overlaps FAIL static verification before they
+  ship (verify_payoff.js layer i). On canvas/painted tabs, lay blocks below
+  a painted element's RETURNED bottom row, and remember the temple is a
+  fixed height (debts are columns, not rows) so fixed-row blocks below it
+  are safe at any debt count.
 - Static-verification harnesses live in `tools/` (verify_workbench.js,
-  verify_ledger.js): stub SpreadsheetApp with grid enforcement + value
-  store. Keep them green; update their contracts with the design.
+  verify_ledger.js, verify_payoff.js): stub SpreadsheetApp with grid
+  enforcement + value store + filter AND merge-overlap semantics. Keep
+  them green; update their contracts with the design.
 - Mock the UX in `design/ui_kits/<product>/` and get Dan's visual
   approval BEFORE writing tab builders — layout changes that skip the
   mockup gate get rejected in live QA (see the Workbench checklist v2).
