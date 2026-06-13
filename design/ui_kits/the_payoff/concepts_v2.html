@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Payoff — gamification v2 · needle-movers</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Jost:wght@300;400;500;600;700&display=swap');
+  body { margin: 0; background: #FAF8F2; font-family: Jost, sans-serif; color: #1C3D2E; padding: 26px; }
+  h1 { font-family: 'Playfair Display', serif; font-size: 26px; margin: 0 0 2px; }
+  .sub { font-weight: 300; font-size: 12.5px; color: rgba(28,61,46,0.7); margin-bottom: 20px; }
+  .board { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .panel { background: #fffdf8; border: 1px solid rgba(28,61,46,0.12); border-radius: 6px; overflow: hidden; }
+  .panel.wide { grid-column: 1 / -1; }
+  .panel h2 { background: #1C3D2E; color: #FAF8F2; font-size: 11px; font-weight: 600; letter-spacing: 0.18em; margin: 0; padding: 9px 14px; }
+  .panel h2 .n { color: #C5A95A; margin-right: 8px; }
+  .panel .body { padding: 16px 18px 14px; }
+  .cap { font-size: 11px; font-weight: 300; color: rgba(28,61,46,0.65); margin-top: 10px; line-height: 1.55; }
+  .cap b { font-weight: 600; color: #1C3D2E; }
+  .big { font-family: 'Playfair Display', serif; font-weight: 700; }
+  .why { display: inline-block; background: rgba(197,169,90,0.18); border-radius: 3px; padding: 2px 8px; font-size: 9.5px; font-weight: 600; letter-spacing: 0.08em; color: #7d6420; margin-top: 8px; }
+
+  /* shared cells */
+  .cell { width: 9px; height: 9px; border-radius: 1px; background: #EFEAE0; border: 1px solid rgba(28,61,46,0.10); }
+  .cell.f { background: #1C3D2E; border-color: #1C3D2E; }
+  .cell.now { background: #C5A95A; border-color: #C5A95A; }
+  .column { display: flex; flex-direction: column-reverse; gap: 1.5px; align-items: center; }
+  .crow { display: flex; gap: 1.5px; }
+
+  /* 1 · replay */
+  .frames { display: flex; gap: 18px; align-items: flex-end; }
+  .frame { text-align: center; }
+  .frame .t { font-size: 9px; color: rgba(28,61,46,0.55); margin-top: 6px; }
+  .note { background: #FFFDE7; border: 1px solid #C5A95A; border-radius: 3px; padding: 6px 9px; font-size: 10px; max-width: 150px; box-shadow: 2px 2px 0 rgba(28,61,46,0.08); }
+  .playbtn { display: inline-block; background: #1C3D2E; color: #FAF8F2; border-radius: 3px; padding: 7px 13px; font-size: 11px; font-weight: 600; }
+
+  /* 2 · demolition */
+  .wall2 { display: flex; flex-direction: column; gap: 3px; width: max-content; }
+  .brow { display: flex; gap: 3px; }
+  .brow.off { margin-left: 14px; }
+  .brick { width: 26px; height: 12px; border-radius: 1px; background: #2D5C45; border: 1px solid #2D5C45; }
+  .brick.gone { background: transparent; border: 1px dashed rgba(28,61,46,0.18); }
+  .brick.gold { background: #C5A95A; border-color: #C5A95A; }
+  .keystone { background: #FFFDE7; border: 1px solid #C5A95A; border-radius: 3px; padding: 5px 10px; font-family: 'Playfair Display', serif; font-style: italic; font-size: 12px; }
+
+  /* 3 · plaque share */
+  .shareplaque { border: 2px solid #C5A95A; border-radius: 8px; background: linear-gradient(180deg, #1C3D2E, #16301f); color: #FAF8F2; padding: 18px 22px; text-align: center; position: relative; width: 300px; }
+  .shareplaque .seal { width: 40px; height: 40px; border-radius: 999px; background: #C5A95A; color: #1C3D2E; font-size: 20px; line-height: 40px; margin: 0 auto 8px; font-family: 'Playfair Display', serif; font-weight: 700; }
+  .crop { position: absolute; width: 12px; height: 12px; border: 2px solid rgba(28,61,46,0.4); }
+  .crop.tl { top: -7px; left: -7px; border-right: 0; border-bottom: 0; }
+  .crop.tr { top: -7px; right: -7px; border-left: 0; border-bottom: 0; }
+  .crop.bl { bottom: -7px; left: -7px; border-right: 0; border-top: 0; }
+  .crop.br { bottom: -7px; right: -7px; border-left: 0; border-top: 0; }
+  .receipt { background: #fffdf8; border: 1px dashed rgba(28,61,46,0.35); border-radius: 2px; padding: 10px 14px; font-size: 11px; width: 240px; font-variant-numeric: tabular-nums; }
+  .receipt .rl { display: flex; justify-content: space-between; padding: 2px 0; }
+  .receipt .rl b { font-weight: 600; }
+  .receipt .hd { font-weight: 700; letter-spacing: 0.14em; font-size: 9px; text-align: center; color: rgba(28,61,46,0.55); padding-bottom: 6px; }
+
+  /* 4 · letters */
+  .letters { display: flex; gap: 14px; }
+  .envelope { flex: 1; border: 1.5px solid rgba(28,61,46,0.25); border-radius: 6px; padding: 14px; background: #F7F2E4; position: relative; }
+  .envelope.sealed { opacity: 0.65; }
+  .envelope .seal2 { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #C5A95A; color: #1C3D2E; border-radius: 999px; font-size: 10px; font-weight: 700; padding: 3px 10px; letter-spacing: 0.1em; }
+  .envelope .from { font-size: 9px; letter-spacing: 0.12em; color: rgba(28,61,46,0.5); margin-bottom: 6px; }
+  .envelope .txt { font-family: 'Playfair Display', serif; font-style: italic; font-size: 12.5px; line-height: 1.5; }
+  .tokens { display: flex; gap: 6px; align-items: center; margin-top: 12px; font-size: 11px; }
+  .tok { width: 18px; height: 18px; border-radius: 999px; background: #C5A95A; display: inline-block; }
+  .tok.used { background: #EFEAE0; border: 1px dashed rgba(28,61,46,0.3); }
+
+  /* 5 · time machine */
+  .tm { display: flex; gap: 20px; align-items: stretch; }
+  .tmcard { flex: 1; border: 1px solid rgba(28,61,46,0.14); border-radius: 6px; padding: 14px 16px; background: #fffdf8; }
+  .tmcard.future { background: #1C3D2E; color: #FAF8F2; border-color: #1C3D2E; }
+  .tmcard .lbl { font-size: 9px; font-weight: 700; letter-spacing: 0.16em; color: #C5A95A; }
+  .tmcard .date { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 22px; margin: 2px 0 8px; }
+  .tmrow { display: flex; justify-content: space-between; font-size: 11.5px; padding: 3px 0; border-bottom: 1px solid rgba(127,127,127,0.12); font-variant-numeric: tabular-nums; }
+  .gone { text-decoration: line-through; opacity: 0.55; }
+  .arrow { align-self: center; font-size: 22px; color: #C5A95A; }
+</style>
+</head>
+<body>
+<h1>The Payoff · gamification v2 — the needle-movers</h1>
+<div class="sub">One behavioral upgrade per concept, plus the new idea. Still all real Sheets: painted grids, conditional formatting, cell notes, script-driven reveals, and one deliberate animation.</div>
+
+<div class="board">
+  <div class="panel">
+    <h2><span class="n">1</span>THE COLUMN → THE REPLAY — IT REBUILDS ITSELF BEFORE YOUR EYES</h2>
+    <div class="body">
+      <div class="frames">
+        <div class="frame"><div class="column" id="c1"></div><div class="t">month 3</div></div>
+        <div class="frame"><div class="column" id="c2"></div><div class="t">month 9</div></div>
+        <div class="frame"><div class="column" id="c3"></div><div class="t">today · month 14</div></div>
+        <div style="display:flex;flex-direction:column;gap:10px;justify-content:flex-end">
+          <div class="note">hover any course →<br><b>Mar 2026 · $933 paid</b><br>Medical bill died here</div>
+          <div class="playbtn">▶ &nbsp;Watch the build · 💳 menu</div>
+        </div>
+      </div>
+      <div class="cap">Two upgrades. <b>Courses are real months</b> — every row of the column is one month from your Payments Log, and hovering it tells that month's story (cell notes). And <b>💳 → Watch the build</b> replays your whole climb: the script re-lays the column course by course over ~10 seconds, toasting each kill as it lands. Run it after every payment; that's the ritual.</div>
+      <div class="why">WHY IT MOVES THE NEEDLE · progress you can re-watch is progress you protect — the replay turns history into a streak you won't break</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="n">2</span>THE WALLS → DEMOLITION — TEAR DEBT DOWN, BUILD THE COLUMN FROM IT</h2>
+    <div class="body">
+      <div style="display:flex;gap:22px;align-items:flex-start">
+        <div>
+          <div style="font-weight:600;font-size:12px;margin-bottom:6px">Auto loan · 19 bricks left of 34</div>
+          <div class="wall2" id="wall"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:24px;color:#C5A95A">⟶</div>
+          <div class="column" id="cmini"></div>
+          <div style="font-size:9.5px;color:rgba(28,61,46,0.6);max-width:130px">every brick torn off a debt gets laid into your column</div>
+        </div>
+        <div>
+          <div style="font-size:10px;letter-spacing:0.1em;color:rgba(28,61,46,0.55);margin-bottom:5px">FINISHED WALLS GET A KEYSTONE — YOU SIGN IT</div>
+          <div class="keystone">"Never again. — C.A., Sep 2025"</div>
+        </div>
+      </div>
+      <div class="cap">The metaphor flips to match the emotion: a debt is a wall you <b>demolish</b> — bricks vanish top-down as principal dies, the gold brick is the one your next payment tears off. And the rubble isn't wasted: <b>the same bricks build The Column</b> — one continuous story across the whole product. When a wall falls, a yellow <b>keystone cell</b> appears and you inscribe it yourself.</div>
+      <div class="why">WHY IT MOVES THE NEEDLE · demolition is the truthful fantasy, and a monument you signed is one you come back to</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="n">3</span>THE TROPHY CASE → THE SHAREABLE KILL + THE RECEIPT</h2>
+    <div class="body">
+      <div style="display:flex;gap:20px;align-items:flex-start">
+        <div class="shareplaque">
+          <div class="crop tl"></div><div class="crop tr"></div><div class="crop bl"></div><div class="crop br"></div>
+          <div class="seal">✦</div>
+          <div style="font-size:9px;letter-spacing:0.2em;color:#C5A95A">DEBT, SLAIN</div>
+          <div class="big" style="font-size:20px;margin:4px 0 2px">Medical bill</div>
+          <div style="font-size:10.5px;color:rgba(250,248,242,0.7)">$3,400 · fourteen months · Apr 2026</div>
+          <div style="font-size:9px;color:rgba(250,248,242,0.45);margin-top:8px">The Payoff · columnandco.com</div>
+        </div>
+        <div class="receipt">
+          <div class="hd">PAYMENT RECEIPT · JUN 12</div>
+          <div class="rl"><span>Payment · Auto loan</span><b>$647</b></div>
+          <div class="rl"><span>Date moved closer</span><b>12 days</b></div>
+          <div class="rl"><span>Interest you'll never pay</span><b>$71</b></div>
+          <div class="rl"><span>Bricks torn down</span><b>2 ▓▓</b></div>
+          <div class="rl"><span>Streak</span><b>🔥 14 months</b></div>
+        </div>
+      </div>
+      <div class="cap">Kills mint a <b>share-ready plaque</b>: a framed block sized for a clean screenshot, no balances you didn't choose to show — buyers post their kills, and every post sells the product. And every payment prints a <b>receipt</b> (sidebar + toast): days bought, bricks torn, and the compounding truth — the interest that chunk would have cost you under the plan, now never owed.</div>
+      <div class="why">WHY IT MOVES THE NEEDLE · public wins compound compliance — and the receipt makes every single payment feel like winning, not paying</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="n">4</span>LEVELS → LETTERS FROM YOUR PAST SELF — UNLOCKED BY PROGRESS</h2>
+    <div class="body">
+      <div class="letters">
+        <div class="envelope">
+          <div class="seal2">OPENED · FIRST KILL</div>
+          <div class="from">WRITTEN APR 2025 · OPENED SEP 2025</div>
+          <div class="txt">"If you're reading this, the store card is dead. Remember how that felt at 2am. Keep going."</div>
+        </div>
+        <div class="envelope sealed">
+          <div class="seal2">SEALED</div>
+          <div class="from">OPENS AT HALFWAY · $20,475 · ~JUL 2027</div>
+          <div class="txt" style="filter: blur(3px)">You wrote this on day one. It waits.</div>
+        </div>
+      </div>
+      <div class="tokens">
+        <span style="font-weight:600">Streak protection</span>
+        <span class="tok"></span><span class="tok"></span><span class="tok used"></span>
+        <span style="color:rgba(28,61,46,0.6)">2 grace months left this year — a hard month spends a token, not your streak</span>
+      </div>
+      <div class="cap">At setup you write <b>letters to your future self</b> — day-one you, talking to halfway you. They hide (script-hidden rows) and <b>unseal automatically</b> when you cross each rank. No app does this; a spreadsheet can. Plus <b>grace tokens</b>: two per year, so one brutal month dents the streak instead of killing it — broken streaks are where trackers get abandoned.</div>
+      <div class="why">WHY IT MOVES THE NEEDLE · the strongest motivator at month 20 isn't a chart — it's the person who started this thing talking to you</div>
+    </div>
+  </div>
+
+  <div class="panel wide">
+    <h2><span class="n">5</span>NEW · THE TIME MACHINE — VISIT ANY MONTH OF YOUR FUTURE</h2>
+    <div class="body">
+      <div class="tm">
+        <div class="tmcard">
+          <div class="lbl" style="color:#7d6420">TODAY</div>
+          <div class="date">June 2026</div>
+          <div class="tmrow"><span>Visa ····4417</span><b>$9,930</b></div>
+          <div class="tmrow"><span>Auto loan</span><b>$5,148</b></div>
+          <div class="tmrow"><span>Student loan</span><b>$16,663</b></div>
+          <div class="tmrow"><span>The meter · interest this month</span><b>$292</b></div>
+        </div>
+        <div class="arrow">⟶&nbsp; <span style="font-size:11px;font-family:Jost;color:#1C3D2E;background:#FFFDE7;border:1px solid #C5A95A;padding:5px 10px;border-radius:3px">Visit:&nbsp; October 2027 ▾</span> &nbsp;⟶</div>
+        <div class="tmcard future">
+          <div class="lbl">SIXTEEN MONTHS FROM NOW · ON YOUR PLAN</div>
+          <div class="date">October 2027</div>
+          <div class="tmrow"><span class="gone">Visa ····4417</span><b style="color:#C5A95A">gone · Jan 2027*</b></div>
+          <div class="tmrow"><span class="gone">Auto loan</span><b style="color:#C5A95A">gone · Jun 2027</b></div>
+          <div class="tmrow"><span>Student loan</span><b>$9,418</b></div>
+          <div class="tmrow"><span>The meter that month</span><b>$44 · down from $292</b></div>
+          <div style="font-size:11px;margin-top:8px;color:rgba(250,248,242,0.75)">You are <b style="color:#C5A95A">$22,323 lighter</b> than today. Two walls down, one to go.</div>
+        </div>
+      </div>
+      <div class="cap">One yellow dropdown — pick any month — and the panel renders <b>that month of your future, on your current plan</b>: which debts are already gone, what's left, what the interest meter has fallen to, how much lighter you are. It's a straight INDEX into the engine schedule we already compute, so it costs nothing — and nobody has seen a spreadsheet do it. The default visit is your <b>debt-free month</b>: three zeros and a quiet line — "this is the month the meter stops." <i>(*illustrative dates; the engine supplies the real ones)</i></div>
+      <div class="why">WHY IT MOVES THE NEEDLE · pre-living the outcome is the strongest adherence tool in behavior research — you protect a future you've already stood in</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function buildColumn(el, pct, scale) {
+    const widths = [];
+    widths.push(14, 12, 9);
+    for (let i = 0; i < 16; i++) widths.push(6);
+    widths.push(8, 10, 12, 14);
+    const total = widths.reduce((a, b) => a + b, 0);
+    const fill = Math.round(total * pct);
+    let made = 0;
+    const col = document.getElementById(el);
+    for (const w of widths) {
+      const row = document.createElement('div'); row.className = 'crow';
+      let rf = 0;
+      for (let i = 0; i < w; i++) {
+        const c = document.createElement('div');
+        c.className = 'cell' + (made + i < fill ? ' f' : '');
+        if (scale) { c.style.width = c.style.height = scale + 'px'; }
+        row.appendChild(c);
+        if (made + i < fill) rf++;
+      }
+      if (rf > 0 && rf < w) [...row.children].forEach((c, i) => { if (i < rf) c.className = 'cell now'; });
+      made += w;
+      col.appendChild(row);
+    }
+  }
+  buildColumn('c1', 0.05); buildColumn('c2', 0.14); buildColumn('c3', 0.225);
+  buildColumn('cmini', 0.225, 6);
+  // demolition wall: 34 bricks, 15 torn (from the top), next gold
+  const wall = document.getElementById('wall');
+  let b = 0;
+  for (let r = 0; r < 5; r++) {
+    const row = document.createElement('div'); row.className = 'brow' + (r % 2 ? ' off' : '');
+    for (let i = 0; i < 7 && b < 34; i++, b++) {
+      const br = document.createElement('div');
+      br.className = 'brick' + (b < 15 ? ' gone' : b === 15 ? ' gold' : '');
+      row.appendChild(br);
+    }
+    wall.appendChild(row);
+  }
+</script>
+</body>
+</html>
