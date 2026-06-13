@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>The Payoff v1 — Column &amp; Co.</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="../../assets/logo-icon.svg">
+  <link rel="stylesheet" href="../../colors_and_type.css">
+
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      background: #1C3D2E;
+      font-family: 'Jost', sans-serif;
+      color: #1C3D2E;
+      -webkit-font-smoothing: antialiased;
+    }
+    .stage { height: 100vh; display: flex; flex-direction: column; background: #1C3D2E; }
+    .browser-bar {
+      background: #2D5C45; color: #FAF8F2; padding: 9px 16px;
+      display: flex; align-items: center; gap: 12px; font-size: 12px;
+    }
+    .browser-bar .traffic { display: flex; gap: 7px; }
+    .browser-bar .traffic span { width: 11px; height: 11px; border-radius: 999px; display: block; background: rgba(250,248,242,0.25); }
+    .browser-bar .url {
+      flex: 1; background: rgba(28,61,46,0.45); border-radius: 4px; padding: 5px 14px;
+      color: rgba(250,248,242,0.85); font-size: 12px; max-width: 720px;
+    }
+    .browser-bar .badge {
+      background: #C5A95A; color: #1C3D2E; padding: 3px 9px; border-radius: 2px;
+      font-weight: 600; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    }
+    .app { flex: 1; overflow: hidden; }
+    .sheet-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+    .sheet-scroll::-webkit-scrollbar-thumb { background: rgba(28,61,46,0.20); border-radius: 999px; }
+    .sheet-scroll::-webkit-scrollbar-track { background: transparent; }
+    @media (max-width: 1280px) { .stage { font-size: 14px; } }
+  </style>
+
+  <!-- React + Babel pinned per design-system rules -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root" class="stage" data-screen-label="The Payoff v1"></div>
+
+  <!-- Data first, then components, then chrome, then tabs, then app -->
+  <script src="data.js"></script>
+  <script type="text/babel" src="components.jsx" data-presets="env,react"></script>
+  <script type="text/babel" src="chrome.jsx"     data-presets="env,react"></script>
+  <script type="text/babel" src="tabs-plan.jsx"     data-presets="env,react"></script>
+  <script type="text/babel" src="tabs-overview.jsx" data-presets="env,react"></script>
+
+  <script type="text/babel" data-presets="env,react">
+    const { useState } = React;
+
+    function App() {
+      const [tab, setTab] = useState('plan');   // land on the hero
+      const [paletteId, setPaletteId] = useState('light');
+      const [paletteOpen, setPaletteOpen] = useState(false);
+      const [menuOpen, setMenuOpen] = useState(false);
+
+      React.useEffect(() => {
+        function onDoc(e) {
+          if (!e.target.closest || (!e.target.closest('[data-popover]') && !e.target.closest('[data-popover-trigger]'))) {
+            setPaletteOpen(false);
+            setMenuOpen(false);
+          }
+        }
+        document.addEventListener('mousedown', onDoc);
+        return () => document.removeEventListener('mousedown', onDoc);
+      }, []);
+
+      const renderTab = () => {
+        switch (tab) {
+          case 'plan':      return <PlanTab />;
+          case 'compare':   return <CompareTab />;
+          case 'dashboard': return <DashboardTab />;
+          case 'debts':     return <DebtsTab />;
+          case 'start':     return <StubTab tab="Start Here"   copy="Six setup steps, the 24-palette picker, and the LLM teaser. First open lands here." />;
+          case 'payments':  return <StubTab tab="Payments Log" copy="One row per payment: date, debt, amount, optional interest portion. 5,000 rows, prewired — the only typing that grows with use." />;
+          case 'progress':  return <StubTab tab="Progress"     copy="Actual balance against the plan line, paid-by-month columns, your streak, and the milestone table." />;
+          case 'import':    return <StubTab tab="Bank Import"  copy="Paste a bank CSV — header sniffing, dedupe, keyword rules mapping descriptions to debts. The Foundation's proven importer." />;
+          case 'engine':    return <StubTab tab="_Engine"      copy="System tab. Five full payoff schedules (snowball, avalanche, custom, +$50, +$100) at 25 debts × 120 months. You should never need to edit it." />;
+          default:          return <PlanTab />;
+        }
+      };
+
+      const tabLabel = (window.CC_DATA.tabs.find(t => t.id === tab) || {}).label || '';
+
+      return (
+        <>
+          <div className="browser-bar">
+            <div className="traffic"><span></span><span></span><span></span></div>
+            <div className="url">docs.google.com / spreadsheets / d / 1PyFmQwRz... / The Payoff v1 — Casey Alvarez</div>
+            <span className="badge">PROTOTYPE</span>
+          </div>
+          <div className="app sheet-scroll" data-cc-palette={paletteId} data-screen-label={'01 ' + tabLabel} style={{ position: 'relative' }}>
+            <SheetsChrome
+              activeTab={tab}
+              onTabChange={setTab}
+              paletteId={paletteId}
+              onPaletteChange={setPaletteId}
+              paletteOpen={paletteOpen}
+              setPaletteOpen={setPaletteOpen}
+              menuOpen={menuOpen}
+              setMenuOpen={setMenuOpen}
+              onMenuAction={() => {}}
+            >
+              {renderTab()}
+            </SheetsChrome>
+          </div>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

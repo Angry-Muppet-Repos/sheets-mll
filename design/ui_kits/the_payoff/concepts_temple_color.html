@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Payoff — temple color solutions</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Jost:wght@300;400;500;600;700&display=swap');
+*{box-sizing:border-box;} body{margin:0;background:#1C3D2E;font-family:Jost,sans-serif;color:#1C3D2E;}
+.wrap{max-width:1080px;margin:0 auto;padding:22px;}
+h1{font-family:'Playfair Display',serif;font-weight:700;font-size:23px;color:#FAF8F2;margin:0 0 2px;}
+.sub{color:rgba(250,248,242,.65);font-size:12px;font-weight:300;margin-bottom:16px;}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+.chip{background:#16301f;border:1px solid rgba(250,248,242,.18);border-radius:999px;padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;color:#FAF8F2;font-size:11px;}
+.chip.on{border-color:#C5A95A;background:#23472f;}
+.chip .sw{display:flex;gap:2px;}.chip .sw i{width:11px;height:11px;border-radius:2px;display:block;}
+.chip .warn{color:#E8C07A;font-size:9px;font-weight:600;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.sol{background:#FAF8F2;border-radius:8px;overflow:hidden;}
+.solh{padding:11px 16px;color:#FAF8F2;}
+.solh .t{font-size:11px;font-weight:700;letter-spacing:.1em;}
+.solh .d{font-size:10px;font-weight:300;opacity:.75;margin-top:2px;}
+.chromebar{height:26px;display:flex;align-items:center;padding:0 14px;font-family:'Playfair Display',serif;font-weight:700;font-size:12px;color:#FAF8F2;justify-content:space-between;}
+.chromebar .tag{font-size:8px;letter-spacing:.16em;font-weight:600;}
+.body{padding:16px;text-align:center;}
+.temple{position:relative;display:inline-block;padding-top:34px;}
+.entab{position:absolute;top:18px;left:-5px;right:-5px;height:8px;border-radius:1px;}
+.pediment{position:absolute;top:0;left:0;right:0;height:18px;clip-path:polygon(50% 0,100% 100%,0 100%);}
+.banner{position:absolute;top:3px;left:50%;transform:translateX(-50%);font-family:'Playfair Display',serif;font-weight:700;font-size:9px;letter-spacing:.08em;white-space:nowrap;}
+.cols{display:flex;gap:6px;align-items:flex-end;}
+.col{display:flex;flex-direction:column;align-items:center;}
+.capital{height:5px;border-radius:2px 2px 0 0;margin-bottom:2px;}
+.stack{display:flex;flex-direction:column-reverse;gap:1.5px;}.srow{display:flex;gap:1.5px;}
+.pcell{width:8px;height:8px;border-radius:1px;}
+.styl{display:flex;flex-direction:column;align-items:center;margin-top:3px;}
+.step{height:9px;border-radius:1px;}
+.clabs{display:flex;gap:6px;margin-top:5px;}.clab{text-align:center;font-size:8px;line-height:1.2;}.clab .pc{font-weight:700;font-size:9px;}
+.verdict{margin-top:12px;font-size:11px;font-weight:500;padding:8px 12px;border-radius:4px;}
+.verdict.ok{background:rgba(22,163,74,.12);color:#0F7A37;}
+.verdict.bad{background:rgba(131,47,48,.12);color:#7a2e2e;}
+.legend{margin-top:10px;font-size:9.5px;color:rgba(28,61,46,.6);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>The Payoff · temple color solutions</h1>
+  <div class="sub">Click a palette. Watch both temples react. The chrome themes either way — the question is whether the <b style="color:#C5A95A">monument</b> should theme too. Same debt state in both (Casey, today).</div>
+  <div class="chips" id="chips"></div>
+  <div class="grid">
+    <div class="sol">
+      <div class="solh" id="hA"><div class="t">SOLUTION A · STONE &amp; GOLD (fixed)</div><div class="d">the monument never recolors — carved stone, gold leaf, fixed debt hues</div></div>
+      <div class="chromebar" id="cbA"><span>Column &amp; Co.</span><span class="tag" id="cbAtag">CHROME THEMES →</span></div>
+      <div class="body"><div id="tA"></div><div class="verdict ok" id="vA">Gold always reads as a win · five debts always distinct.</div></div>
+    </div>
+    <div class="sol">
+      <div class="solh" id="hB"><div class="t">SOLUTION B · RECOLOR (derived from palette)</div><div class="d">debt hues + the achievement color come from the active palette</div></div>
+      <div class="chromebar" id="cbB"><span>Column &amp; Co.</span><span class="tag">CHROME THEMES →</span></div>
+      <div class="body"><div id="tB"></div><div class="verdict ok" id="vB"></div></div>
+    </div>
+  </div>
+  <div class="legend" id="legend"></div>
+</div>
+<script>
+var debts=[
+  {short:'Store',start:1150,cur:0,w:2},
+  {short:'Medical',start:3400,cur:0,w:3},
+  {short:'Auto',start:8400,cur:5148,w:6},
+  {short:'Visa',start:9800,cur:9930,w:8},
+  {short:'Student',start:18200,cur:16663,w:14}
+];
+var H=16;
+var FIXED=['#93B27E','#6E9560','#3E7E5C','#2D5C45','#1C3D2E']; // Store..Student fixed ramp
+var FIXED_GOLD='#C5A95A', FIXED_STONE='#EAE4D6';
+var PALS=[
+  {id:'light',name:'Light',p:'#1C3D2E',m:'#2D5C45',a:'#C5A95A',bg:'#FAF8F2',z:'#EEF2EC'},
+  {id:'sage',name:'Sage',p:'#2D4A3E',m:'#3D6455',a:'#8FAF7E',bg:'#F4F9F1',z:'#EAF4E3'},
+  {id:'purple',name:'Purple & Gold',p:'#4A1C7C',m:'#5E2499',a:'#FFC72C',bg:'#FAF5FF',z:'#F3E8FF'},
+  {id:'slate',name:'Cool Slate',p:'#1E3A5F',m:'#2D5282',a:'#64748B',bg:'#F8FAFC',z:'#EFF6FF'},
+  {id:'forestwhite',name:'Forest & White',p:'#154733',m:'#1E6048',a:'#FFFFFF',bg:'#F4FBF6',z:'#E8F5EC'},
+  {id:'silver',name:'Silver & Black',p:'#1A1A1A',m:'#2D2D2D',a:'#A8A9AD',bg:'#F5F5F5',z:'#EBEBEB'}
+];
+var pal=PALS[0];
+
+function hx(h){h=h.replace('#','');return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)];}
+function rgb(a){return '#'+a.map(function(v){var s=Math.max(0,Math.min(255,Math.round(v))).toString(16);return s.length<2?'0'+s:s;}).join('');}
+function mix(a,b,t){var x=hx(a),y=hx(b);return rgb([x[0]+(y[0]-x[0])*t,x[1]+(y[1]-x[1])*t,x[2]+(y[2]-x[2])*t]);}
+function lum(h){var c=hx(h);return (0.299*c[0]+0.587*c[1]+0.114*c[2])/255;}
+function sat(h){var c=hx(h);return (Math.max.apply(0,c)-Math.min.apply(0,c));}
+// derived ramp for solution B: 5 shades primary -> toward bg, gold = accent
+function derivedRamp(){return [mix(pal.m,pal.bg,.45),mix(pal.m,pal.bg,.28),mix(pal.p,pal.m,.5),mix(pal.p,pal.m,.15),pal.p];}
+
+function templeHTML(scheme){
+  var colors=scheme.debt, gold=scheme.gold, stone=scheme.stone;
+  var done=debts.every(function(d){return d.cur<=0;});
+  var h='<div class="temple">';
+  h+='<div class="entab" style="background:'+(done?gold:stone)+'"></div>';
+  h+='<div class="pediment" style="background:'+(done?gold:stone)+'"></div>';
+  h+='<div class="banner" style="color:'+scheme.bannerText+';opacity:'+(done?1:0)+'">DEBT FREE</div>';
+  h+='<div class="cols">';
+  debts.forEach(function(d,i){
+    var pct=Math.max(0,(d.start-d.cur)/d.start), filled=Math.min(H,Math.round(pct*H)), full=d.cur<=0;
+    var capW=d.w*8+(d.w-1)*1.5+4;
+    h+='<div class="col"><div class="capital" style="width:'+capW+'px;background:'+(full?gold:'transparent')+'"></div><div class="stack">';
+    for(var r=0;r<H;r++){h+='<div class="srow">';for(var j=0;j<d.w;j++){h+='<div class="pcell" style="background:'+(r<filled?colors[i]:stone)+'"></div>';}h+='</div>';}
+    h+='</div></div>';
+  });
+  h+='</div>';
+  // stylobate (60% funded)
+  var tw=debts.reduce(function(a,d){return a+(d.w*8+(d.w-1)*1.5);},0)+(debts.length-1)*6, ws=[tw+8,tw+24,tw+40];
+  h+='<div class="styl">';
+  for(var s=2;s>=0;s--){var ft=Math.max(0,Math.min(1,(0.6-s/3)/(1/3)));h+='<div class="step" style="width:'+ws[s]+'px;background:'+(ft>0?gold:stone)+';opacity:'+(ft>0?(0.5+ft*0.5):1)+'"></div>';}
+  h+='</div>';
+  h+='<div class="clabs">';
+  debts.forEach(function(d,i){var pct=Math.max(0,(d.start-d.cur)/d.start),full=d.cur<=0,capW=d.w*8+(d.w-1)*1.5+4;
+    h+='<div class="clab" style="width:'+capW+'px;color:'+scheme.labelText+'"><div>'+d.short+'</div><div class="pc" style="color:'+(full?gold:scheme.labelText)+'">'+(full?'✦':Math.round(pct*100)+'%')+'</div></div>';});
+  h+='</div></div>';
+  return h;
+}
+
+function render(){
+  // chips
+  document.getElementById('chips').innerHTML=PALS.map(function(P){
+    var breaker=lum(P.a)>0.7||sat(P.a)<32;
+    return '<span class="chip'+(P.id===pal.id?' on':'')+'" data-p="'+P.id+'"><span class="sw"><i style="background:'+P.p+'"></i><i style="background:'+P.m+'"></i><i style="background:'+P.a+'"></i></span>'+P.name+(breaker?' <span class="warn">⚠</span>':'')+'</span>';
+  }).join('');
+  document.querySelectorAll('.chip[data-p]').forEach(function(e){e.onclick=function(){pal=PALS.filter(function(P){return P.id===e.dataset.p;})[0];render();};});
+  // chrome bars themed by palette (both solutions)
+  ['cbA','cbB'].forEach(function(id){var el=document.getElementById(id);el.style.background=pal.p;});
+  document.getElementById('hA').style.background=pal.p; document.getElementById('hB').style.background=pal.p;
+  // Solution A: fixed scheme
+  document.getElementById('tA').innerHTML=templeHTML({debt:FIXED,gold:FIXED_GOLD,stone:FIXED_STONE,bannerText:'#1C3D2E',labelText:'rgba(28,61,46,.7)'});
+  // Solution B: derived scheme
+  var dgold=pal.a, dstone=mix(pal.z,'#FAF8F2',0.3);
+  document.getElementById('tB').innerHTML=templeHTML({debt:derivedRamp(),gold:dgold,stone:dstone,bannerText:lum(dgold)>0.7?'#888':'#1C3D2E',labelText:'rgba(28,61,46,.7)'});
+  // verdicts
+  var breaker=lum(pal.a)>0.7||sat(pal.a)<32;
+  var distinct=true; var ramp=derivedRamp();
+  // crude distinguishability: adjacent ramp colors too close?
+  for(var i=0;i<ramp.length-1;i++){var x=hx(ramp[i]),y=hx(ramp[i+1]);if(Math.abs(x[0]-y[0])+Math.abs(x[1]-y[1])+Math.abs(x[2]-y[2])<28)distinct=false;}
+  var vB=document.getElementById('vB');
+  if(breaker){vB.className='verdict bad';vB.innerHTML='⚠ the achievement color became <b>'+pal.a+'</b> — a finished pediment, gold capital, and laid stylobate no longer read as a win.';}
+  else if(!distinct){vB.className='verdict bad';vB.innerHTML='⚠ on this palette the five debt shades sit too close to tell apart.';}
+  else {vB.className='verdict ok';vB.innerHTML='Holds on this palette — vivid accent, distinct debt shades.';}
+  document.getElementById('legend').innerHTML='Palettes marked ⚠ have a white or gray accent. In Solution B that becomes the “you won” color — which is why the monument is risky to theme. '+PALS.filter(function(P){return lum(P.a)>0.7||sat(P.a)<32;}).length+' of the shop’s 24 palettes have this problem.';
+}
+render();
+</script>
+</body>
+</html>

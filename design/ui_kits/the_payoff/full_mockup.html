@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Payoff v1 — full mockup · Column &amp; Co.</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Jost:wght@300;400;500;600;700&display=swap');
+*{box-sizing:border-box;}
+body{margin:0;background:#1C3D2E;font-family:Jost,sans-serif;color:#1C3D2E;}
+.app{--p:#1C3D2E;--m:#2D5C45;--a:#C5A95A;--bg:#FAF8F2;--z:#EEF2EC;}
+/* google chrome */
+.gbar{background:#fff;border-bottom:1px solid #E8EAED;padding:7px 14px;display:flex;align-items:center;gap:10px;}
+.gbar .ico{width:26px;height:26px;background:#1C3D2E;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#C5A95A;font-family:'Playfair Display',serif;font-weight:700;font-size:15px;}
+.gbar .fn{font-size:14px;font-weight:500;color:#202124;}
+.gbar .menu{display:flex;gap:11px;margin-top:1px;font-size:11.5px;color:#5F6368;}
+.gbar .menu .cc{color:#1C3D2E;font-weight:600;cursor:pointer;position:relative;}
+.gbar .share{margin-left:auto;background:#1A73E8;color:#fff;border:0;border-radius:4px;padding:7px 15px;font-size:12.5px;font-weight:500;}
+.toolbar{background:#fff;border-bottom:1px solid #E8EAED;padding:5px 14px;display:flex;gap:5px;font-size:12px;color:#5F6368;align-items:center;}
+.pill{margin-left:auto;background:var(--bg);border:1px solid rgba(28,61,46,.2);border-radius:4px;padding:6px 11px;font-size:10.5px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:#1C3D2E;display:flex;gap:8px;align-items:center;cursor:pointer;}
+.pill .sw{display:flex;gap:2px;} .pill .sw i{width:11px;height:11px;border-radius:2px;display:block;}
+.menupop{position:absolute;top:100%;left:0;margin-top:6px;background:#FAF8F2;border:1px solid rgba(28,61,46,.18);border-radius:4px;min-width:230px;box-shadow:0 4px 14px rgba(28,61,46,.2);z-index:60;overflow:hidden;}
+.menupop div{padding:9px 15px;font-size:12.5px;color:#1C3D2E;cursor:pointer;} .menupop div:hover{background:rgba(197,169,90,.15);}
+.menupop .sep{height:1px;background:rgba(28,61,46,.1);padding:0;}
+/* sheet area */
+.sheetwrap{height:560px;overflow:auto;background:var(--bg);}
+.sheet{min-height:100%;}
+/* brand chrome inside sheet */
+.bhead{background:var(--p);color:#FAF8F2;padding:13px 24px;display:flex;align-items:center;justify-content:space-between;}
+.bhead .lock{display:flex;align-items:center;gap:13px;}
+.bhead .mark{font-family:'Playfair Display',serif;font-weight:700;font-size:16px;}
+.bhead .tag{font-size:9px;letter-spacing:.2em;color:var(--a);margin-top:2px;}
+.bhead .crumb{font-size:11px;font-weight:300;opacity:.8;}
+.bband{background:var(--m);height:20px;display:flex;align-items:center;justify-content:flex-end;padding:0 24px;}
+.bband span{font-size:9px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--a);}
+.brule{background:var(--a);height:3px;}
+.tcontent{padding:22px 26px;}
+.ttitle{font-family:'Playfair Display',serif;font-weight:700;font-size:26px;color:var(--p);}
+.tdesc{font-weight:300;font-size:12.5px;color:rgba(28,61,46,.72);margin:3px 0 18px;}
+.foot{background:var(--p);color:#FAF8F2;text-align:center;padding:10px;font-size:10px;font-weight:300;opacity:.92;margin-top:24px;}
+/* atoms */
+.zl{font-size:9.5px;font-weight:700;letter-spacing:.18em;color:rgba(28,61,46,.5);margin:18px 0 9px;}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.kpi{background:#fff;border:1px solid rgba(28,61,46,.1);border-top:3px solid var(--a);border-radius:3px;padding:11px 13px;}
+.kpi .k{font-size:9px;font-weight:600;letter-spacing:.14em;color:rgba(28,61,46,.55);}
+.kpi .v{font-family:'Playfair Display',serif;font-weight:700;font-size:23px;color:var(--p);margin-top:3px;}
+.kpi .s{font-size:9.5px;color:rgba(28,61,46,.6);margin-top:4px;line-height:1.35;}
+.row{display:flex;gap:7px;align-items:flex-end;}
+.yin{background:#FFFDE7;border:1px solid var(--a);border-radius:2px;padding:4px 8px;font-weight:600;color:#1C3D2E;}
+.chip{border-radius:999px;padding:3px 10px;font-size:10px;font-weight:500;display:inline-flex;gap:5px;align-items:center;}
+.chip.on{background:rgba(22,163,74,.14);color:#0F7A37;} .chip.fair{background:rgba(197,169,90,.22);color:#7d6420;}
+.chip.over{background:rgba(131,47,48,.14);color:#5e1f1f;} .chip.ahead{background:rgba(28,61,46,.08);color:rgba(28,61,46,.55);}
+.tbl{background:#fff;border:1px solid rgba(28,61,46,.1);border-radius:3px;overflow:hidden;}
+.th,.tr{display:grid;align-items:center;}
+.th{background:var(--p);color:#FAF8F2;font-size:9.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;}
+.th div,.tr div{padding:8px 11px;}
+.tr{font-size:12px;border-bottom:1px solid rgba(28,61,46,.06);} .tr.z{background:var(--z);}
+.rt{text-align:right;} .mut{color:rgba(28,61,46,.5);}
+/* temple */
+.temple{position:relative;display:inline-block;padding-top:38px;}
+.entab{position:absolute;top:21px;left:-5px;right:-5px;height:8px;background:#D8D0BE;border-radius:1px;}
+.pediment{position:absolute;top:0;left:0;right:0;height:21px;clip-path:polygon(50% 0,100% 100%,0 100%);background:#D8D0BE;}
+.temple.done .entab,.temple.done .pediment{background:var(--a);}
+.banner{position:absolute;top:5px;left:50%;transform:translateX(-50%);font-family:'Playfair Display',serif;font-weight:700;font-size:11px;color:#1C3D2E;letter-spacing:.1em;opacity:0;}.temple.done .banner{opacity:1;}
+.cols{display:flex;gap:7px;align-items:flex-end;}
+.col{display:flex;flex-direction:column;align-items:center;}
+.capital{height:5px;border-radius:2px 2px 0 0;background:transparent;margin-bottom:2px;}.col.full .capital{background:var(--a);}
+.stack{display:flex;flex-direction:column-reverse;gap:1.5px;}.srow{display:flex;gap:1.5px;}
+.pcell{width:9px;height:9px;border-radius:1px;background:#EAE4D6;border:1px solid rgba(28,61,46,.07);}
+.pcell.moving{background:var(--a)!important;border-color:#b9962f!important;}
+.styl{display:flex;flex-direction:column;align-items:center;margin-top:3px;}
+.step{height:10px;border-radius:1px;display:flex;}.step.stone{background:#D8D0BE;}.step.sand{border:1px dashed rgba(28,61,46,.3);background:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(28,61,46,.05) 4px,rgba(28,61,46,.05) 8px);}
+.step .sl{height:100%;background:var(--a);border-radius:1px;}
+.clabs{display:flex;gap:7px;margin-top:5px;}.clab{text-align:center;font-size:8px;line-height:1.2;}.clab .pc{font-weight:700;font-size:9.5px;}.clab .dn{color:var(--a);}
+.wall{display:flex;gap:3px;height:42px;margin-bottom:6px;}.wseg{display:flex;flex-direction:column;justify-content:flex-end;padding:2px;border-radius:2px;}.wseg .wf{border-radius:2px;}.wseg .wl{font-size:8px;text-align:center;font-weight:600;}
+/* hall */
+.hall{background:linear-gradient(180deg,#16301f,#0E2418);border-radius:6px;padding:16px 18px;color:#FAF8F2;}
+.hall .he{text-align:center;font-family:'Playfair Display',serif;font-style:italic;font-size:12px;color:rgba(197,169,90,.85);}
+.hall .ht{text-align:center;font-family:'Playfair Display',serif;font-weight:700;font-size:20px;margin:2px 0 12px;}
+.hall .hz{text-align:center;font-size:9px;letter-spacing:.2em;color:rgba(197,169,90,.8);margin:14px 0 10px;}
+.plaqs{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;}
+.plaq{width:150px;background:linear-gradient(180deg,#F4EFE3,#E4DCC8);color:#1C3D2E;border:1px solid var(--a);border-radius:5px;padding:12px 10px;text-align:center;}
+.plaq .sl2{width:30px;height:30px;border-radius:999px;background:var(--a);color:#1C3D2E;font-family:'Playfair Display',serif;font-weight:700;font-size:15px;line-height:30px;margin:0 auto 6px;}
+.plaq .pn{font-family:'Playfair Display',serif;font-weight:700;font-size:13px;}.plaq .pa{font-size:10px;color:#7a5a1e;font-weight:600;}.plaq .pd{font-size:8.5px;color:rgba(28,61,46,.6);margin-top:4px;}
+.plaq.dim{background:transparent;border:1px dashed rgba(250,248,242,.22);color:rgba(250,248,242,.4);}.plaq.dim .sl2{background:rgba(250,248,242,.08);color:rgba(250,248,242,.3);}
+.peds{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;}
+.ped{text-align:center;width:120px;}.ped .cup{font-size:22px;}.ped .base{background:rgba(197,169,90,.16);border:1px solid rgba(197,169,90,.4);border-radius:4px;padding:9px 8px;margin-top:5px;}
+.ped .rv{font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:var(--a);}.ped .rk{font-size:8.5px;letter-spacing:.1em;color:rgba(250,248,242,.6);text-transform:uppercase;}
+.ped.lock .cup{filter:grayscale(1);opacity:.35;}.ped.lock .base{border-style:dashed;background:transparent;}.ped.lock .rv{color:rgba(250,248,242,.4);font-size:12px;font-style:italic;}
+/* controls + tabs */
+.ctrls{background:#16301f;padding:11px 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-radius:5px;margin-top:14px;}
+.btn{background:var(--a);color:#1C3D2E;border:0;border-radius:3px;padding:8px 13px;font-weight:600;font-size:11.5px;cursor:pointer;}
+.btn.g{background:transparent;color:#FAF8F2;border:1px solid rgba(250,248,242,.3);}
+.ci{color:#FAF8F2;font-size:11px;}.ci b{color:var(--a);}
+.cin{width:54px;background:#FFFDE7;border:1px solid var(--a);border-radius:2px;padding:3px 6px;font-weight:600;color:#1C3D2E;font-size:12px;text-align:right;font-family:Jost,sans-serif;}
+.tabstrip{background:#fff;border-top:1px solid #E8EAED;display:flex;height:34px;overflow-x:auto;align-items:stretch;}
+.tabstrip .t{padding:0 13px;display:flex;align-items:center;font-size:12px;color:#3C4043;cursor:pointer;white-space:nowrap;border-right:1px solid #F1F3F4;font-family:Arial,sans-serif;}
+.tabstrip .t.sys{color:#9AA0A6;}
+.tabstrip .t.on{font-weight:600;color:#1C3D2E;border-bottom:3px solid var(--p);background:#fff;}
+.toast{position:fixed;right:20px;bottom:20px;max-width:290px;background:#1C3D2E;color:#FAF8F2;border-left:3px solid var(--a);border-radius:4px;padding:12px 15px;font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,.35);opacity:0;transform:translateY(10px);transition:.24s;z-index:80;line-height:1.5;}
+.toast.show{opacity:1;transform:translateY(0);} .toast b{color:var(--a);}
+.note{font-weight:300;font-size:11px;color:rgba(28,61,46,.6);line-height:1.6;}
+.led{font-size:10px;color:rgba(28,61,46,.6);} .led .pill2{background:rgba(197,169,90,.18);border-radius:999px;padding:2px 8px;margin-left:5px;}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="gbar">
+    <div class="ico">P</div>
+    <div>
+      <div class="fn">The Payoff v1 — Casey Alvarez</div>
+      <div class="menu"><span>File</span><span>Edit</span><span>View</span><span>Insert</span><span>Format</span><span>Data</span>
+        <span class="cc" id="ccmenu">💳 Column &amp; Co. ▾</span><span>Help</span></div>
+    </div>
+    <button class="share">Share</button>
+  </div>
+  <div class="toolbar">
+    <span>Search the menus</span><span>↩</span><span>↪</span><span>$</span><span>%</span><span>123 ▾</span>
+    <span class="pill" id="pill"><span class="sw"><i style="background:var(--p)"></i><i style="background:var(--m)"></i><i style="background:var(--a)"></i></span><span id="palname">Light</span> ▾</span>
+  </div>
+  <div class="sheetwrap" id="sheetwrap"><div class="sheet" id="sheet"></div></div>
+  <div class="tabstrip" id="tabstrip"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== consolidated mock data (every figure from the engine sim) ===== */
+const R = {"hist":14,"total":40950,"debts":[{"name":"Store card","short":"Store","start":1150,"apr":0.2799},{"name":"Medical bill","short":"Medical","start":3400,"apr":0},{"name":"Auto loan","short":"Auto","start":8400,"apr":0.069},{"name":"Visa ····4417","short":"Visa","start":9800,"apr":0.2499},{"name":"Student loan","short":"Student","start":18200,"apr":0.055}],"snowball":{"months":51,"interest":10381,"bal":[[1150,892,628,357,81,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[3400,3250,3100,2950,2800,2650,2215,1780,1345,910,475,40,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[8400,8236,8072,7906,7740,7572,7404,7234,7064,6892,6720,6547,6372,5762,5148,4531,3910,3285,2657,2025,1390,751,108,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[9800,9808,9816,9825,9833,9842,9851,9860,9870,9879,9889,9899,9909,9919,9930,9941,9952,9963,9974,9986,9998,10010,10023,10035,9401,8754,8094,7419,6731,6028,5310,4578,3830,3067,2288,1492,681,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[18200,18093,17986,17879,17771,17662,17553,17444,17334,17223,17112,17000,16888,16776,16663,16549,16435,16320,16205,16089,15973,15856,15739,15621,15503,15384,15264,15144,15023,14902,14781,14658,14536,14412,14288,14164,14039,13913,12944,11970,10992,10009,9022,8031,7034,6034,5028,4018,3004,1984,961,0]],"kills":[5,12,23,37,51]},"avalanche":{"months":49,"interest":8230,"bal":[[1150,892,628,357,81,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[3400,3250,3100,2950,2800,2650,2500,2350,2200,2050,1900,1750,1600,1450,1300,1150,1000,850,700,550,400,250,100,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[8400,8236,8072,7906,7740,7572,7404,7234,7064,6892,6720,6547,6372,6197,6021,5843,5665,5485,5305,5123,4941,4757,4573,4387,4200,4012,3823,3633,3442,3250,3057,2231,1401,566,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[9800,9808,9816,9825,9833,9842,9566,9284,8997,8703,8403,8097,7785,7466,7140,6808,6469,6123,5769,5408,5040,4664,4280,3888,3338,2777,2203,1618,1021,411,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[18200,18093,17986,17879,17771,17662,17553,17444,17334,17223,17112,17000,16888,16776,16663,16549,16435,16320,16205,16089,15973,15856,15739,15621,15503,15384,15264,15144,15023,14902,14781,14658,14536,14412,14288,13321,12349,11372,10391,9406,8416,7422,6423,5419,4411,3398,2381,1359,332,0]],"kills":[5,23,34,30,49]},"totalNow":31741,"paidToDate":9209,"monthsLeft":37,"freeDate":"Jul 2029","planInterest":5726,"savedWindow":28533,"stillOweMin":15559};
+const COLOR={'Store card':'#93B27E','Medical bill':'#6E9560','Auto loan':'#3E7E5C','Visa ····4417':'#2D5C45','Student loan':'#1C3D2E'};
+const ORDER=['Store card','Medical bill','Auto loan','Visa ····4417','Student loan'];
+const SHORT={'Store card':'Store','Medical bill':'Medical','Auto loan':'Auto','Visa ····4417':'Visa','Student loan':'Student'};
+const debts=ORDER.map(n=>{const d=R.debts.find(x=>x.name===n);return{...d,color:COLOR[n],short:SHORT[n],w:Math.max(2,Math.round(d.start/1300))};});
+const H=16, HIST=R.hist;
+const balOf=(strat,i,m)=>R[strat].bal[i][Math.min(m,R[strat].bal[i].length-1)];
+const fmt=n=>'$'+Math.round(n).toLocaleString();
+function monthName(m){const b=['Apr 25','May 25','Jun 25','Jul 25','Aug 25','Sep 25','Oct 25','Nov 25','Dec 25','Jan 26','Feb 26','Mar 26','Apr 26','May 26','Jun 26'];if(m<b.length)return b[m];const d=new Date(2026,5+(m-14),1);return d.toLocaleDateString('en-US',{month:'short',year:'2-digit'});}
+
+const PALETTES={
+  light:{name:'Light',p:'#1C3D2E',m:'#2D5C45',a:'#C5A95A',bg:'#FAF8F2',z:'#EEF2EC'},
+  sage:{name:'Sage',p:'#2D4A3E',m:'#3D6455',a:'#8FAF7E',bg:'#F4F9F1',z:'#EAF4E3'},
+  slate:{name:'Cool Slate',p:'#1E3A5F',m:'#2D5282',a:'#64748B',bg:'#F8FAFC',z:'#EFF6FF'},
+  burg:{name:'Burgundy',p:'#5C0A1A',m:'#7A0E22',a:'#C8873A',bg:'#FAF5F0',z:'#F0E6DA'},
+};
+let palette='light';
+
+/* buffer state (Stylobate) */
+let contributions=[{amt:200,when:'Apr'},{amt:150,when:'May'},{amt:250,when:'Jun'}];
+let GOAL=1000; const saved=()=>contributions.reduce((a,c)=>a+c.amt,0);
+
+let toastT;function toast(h,ms=4000){const t=document.getElementById('toast');t.innerHTML=h;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),ms);}
+
+/* ---------- temple renderer (shared) ---------- */
+function templeHTML(strat,m,opts){
+  opts=opts||{}; const cell=opts.cell||9;
+  const done=debts.every((d,i)=>balOf(strat,i,m)<=0);
+  let h='<div class="temple'+(done?' done':'')+'"><div class="entab"></div><div class="pediment"></div><div class="banner">DEBT FREE · '+R.freeDate+'</div><div class="cols">';
+  debts.forEach((d,i)=>{
+    const pct=Math.max(0,(d.start-balOf(strat,i,m))/d.start), filled=Math.min(H,Math.round(pct*H)), full=balOf(strat,i,m)<=0;
+    const capW=d.w*cell+(d.w-1)*1.5+4;
+    h+='<div class="col'+(full?' full':'')+'"><div class="capital" style="width:'+capW+'px"></div><div class="stack">';
+    for(let r=0;r<H;r++){h+='<div class="srow">';for(let j=0;j<d.w;j++){h+='<div class="pcell" style="width:'+cell+'px;height:'+cell+'px'+(r<filled?(';background:'+d.color+';border-color:'+d.color):'')+'"></div>';}h+='</div>';}
+    h+='</div></div>';
+  });
+  h+='</div>';
+  if(opts.stylobate){ const tw=debts.reduce((a,d)=>a+(d.w*cell+(d.w-1)*1.5),0)+(debts.length-1)*7; const pctF=saved()/GOAL, ws=[tw+8,tw+24,tw+42];
+    h+='<div class="styl">';
+    for(let s=2;s>=0;s--){const ft=Math.max(0,Math.min(1,(saved()-s*GOAL/3)/(GOAL/3)));h+='<div class="step '+(ft>0?'stone':'sand')+'" style="width:'+ws[s]+'px"><div class="sl" style="width:'+(ft*100)+'%"></div></div>';}
+    h+='</div>';
+  }
+  h+='<div class="clabs">';
+  debts.forEach((d,i)=>{const pct=Math.max(0,(d.start-balOf(strat,i,m))/d.start),full=balOf(strat,i,m)<=0,capW=d.w*cell+(d.w-1)*1.5+4;
+    h+='<div class="clab" style="width:'+capW+'px"><div>'+d.short+'</div><div class="pc'+(full?' dn':'')+'">'+(full?'✦':Math.round(pct*100)+'%')+'</div></div>';});
+  h+='</div>';
+  return h;
+}
+function wallHTML(strat,m){
+  const owed=debts.reduce((a,d,i)=>a+balOf(strat,i,m),0); if(owed<=0) return '<div style="font-family:\'Playfair Display\',serif;font-style:italic;color:rgba(28,61,46,.5);font-size:12px">The wall is gone — every block is now your temple.</div>';
+  let h='<div class="wall">';
+  debts.forEach((d,i)=>{const b=balOf(strat,i,m);if(b<=0)return;h+='<div class="wseg" style="width:'+Math.max(34,b/R.total*560)+'px;background:rgba(28,61,46,.05)"><div class="wf" style="height:'+Math.max(20,b/R.total*100)+'%;background:'+d.color+';opacity:.4"></div><div class="wl" style="color:'+d.color+'">$'+(b/1000).toFixed(1)+'k</div></div>';});
+  return h+'</div>';
+}
+
+/* ---------- TABS ---------- */
+const TABS=[
+  {id:'start',label:'Start Here'},{id:'dashboard',label:'Dashboard'},{id:'plan',label:'The Plan'},
+  {id:'compare',label:'Compare'},{id:'debts',label:'Debts'},{id:'payments',label:'Payments Log'},
+  {id:'progress',label:'Progress'},{id:'hall',label:'The Hall'},{id:'import',label:'Bank Import'},
+  {id:'engine',label:'_Engine',sys:true},
+];
+let active='dashboard'; let scrubM=HIST; let raceM=23;
+
+function chrome(tab,sub){return '<div class="bhead"><div class="lock"><div><div class="mark">Column &amp; Co.</div><div class="tag">LIFE, ORGANIZED.</div></div></div><div class="crumb">The Payoff v1 &nbsp;·&nbsp; '+tab+'</div></div><div class="bband"><span>'+(sub||'')+'</span></div><div class="brule"></div>';}
+function foot(){return '<div class="foot">The Payoff v1.0 &nbsp;·&nbsp; columnandco.com &nbsp;·&nbsp; Do not distribute without license</div>';}
+function title(n,d){return '<div class="ttitle">'+n+'</div><div class="tdesc">'+d+'</div>';}
+
+function tStart(){return chrome('Start Here','SETUP')+'<div class="tcontent">'+title('Every debt. One date.','A plan you own — list your debts, pick a strategy, and watch your temple rise as you pay.')
+  +'<div class="zl">THE ANATOMY · THE VOCABULARY OF THE PRODUCT</div>'
+  +'<div class="row" style="gap:14px;flex-wrap:wrap">'
+  +['STYLOBATE · the stone you stand on (your buffer)','COLUMN · one debt, rising as you pay','CAPITAL · a debt paid in full','ENTABLATURE · the roofline goal','PEDIMENT · debt-free'].map(s=>'<span class="chip ahead" style="font-size:10.5px">'+s+'</span>').join('')+'</div>'
+  +'<div class="zl">SETUP · 6 STEPS</div><div class="tbl"><div class="th" style="grid-template-columns:30px 1.2fr 2fr"><div>#</div><div>Step</div><div>What you do</div></div>'
+  +[['1','Install the script','Extensions → Apps Script → paste the file. A 💳 menu appears.'],['2','List your debts','Debts tab — name, balance, APR, minimum. One row each.'],['3','Pick a strategy','The Plan — Snowball, Avalanche, or your own order.'],['4','Set your extra','One cell. Watch the debt-free date jump closer.'],['5','Log payments','Payments Log as money lands — or paste a bank CSV.'],['6','Watch it rise','The Dashboard temple builds itself from your payments.']].map((s,i)=>'<div class="tr'+(i%2?' z':'')+'" style="grid-template-columns:30px 1.2fr 2fr"><div class="mut">'+s[0]+'</div><div style="font-weight:600">'+s[1]+'</div><div class="note" style="margin:0">'+s[2]+'</div></div>').join('')+'</div>'
+  +'<div class="ctrls"><span class="ci">Ask Claude or ChatGPT: <b>"Which payoff order saves me the most, and what does +$75/month buy me?"</b> — the hidden _Schema tab explains your sheet.</span></div>'
+  +foot()+'</div>';}
+
+function tDash(){return chrome('Dashboard','YOUR TEMPLE TODAY')+'<div class="tcontent">'+title('Dashboard','Where you stand. Your debts are becoming a temple — '+Math.round(R.paidToDate/R.total*100)+'% built.')
+  +'<div style="text-align:center">'+'<div class="zl" style="text-align:left">THE WALL · WHAT YOU STILL OWE · '+fmt(R.totalNow)+'</div>'
+  +'<div style="display:flex;justify-content:center">'+wallHTML('snowball',HIST)+'</div>'
+  +'<div class="zl" style="text-align:left">THE TEMPLE · WHAT YOU HAVE MADE PERMANENT</div>'
+  +'<div style="display:flex;justify-content:center">'+templeHTML('snowball',HIST,{cell:10,stylobate:true})+'</div></div>'
+  +'<div class="ctrls"><button class="btn" id="watch">▶ Watch the build</button><span class="ci">replays your climb, course by course — past into projection</span></div>'
+  +'<div class="zl">THE NUMBERS</div><div class="kpis">'
+  +kpi('TOTAL DEBT NOW',fmt(R.totalNow),'of '+fmt(R.total)+' at the start')
+  +kpi('PAID OFF TO DATE',fmt(R.paidToDate),'14 months of work')
+  +kpi('DEBT-FREE DATE',R.freeDate,R.monthsLeft+' months · snowball + $250')
+  +kpi('SAVED vs MINIMUMS',fmt(R.savedWindow),'minimums never finish — still '+fmt(R.stillOweMin)+' owed at 10 yrs')+'</div>'
+  +'<div class="zl">THIS MONTH</div><div class="tbl"><div class="th" style="grid-template-columns:1.4fr .8fr .8fr 1.6fr"><div>Debt</div><div>Due</div><div class="rt">Min</div><div>Status</div></div>'
+  +[['Auto loan','the 3rd','$212','on','covered — gets the pool'],['Visa ····4417','the 17th','$196','on','minimum while Auto dies'],['Student loan','the 21st','$190','fair','due in 8 days'],['Mortgage','the 1st','$1,055','ahead','tracked · not in plan']].map((r,i)=>'<div class="tr'+(i%2?' z':'')+'" style="grid-template-columns:1.4fr .8fr .8fr 1.6fr"><div style="font-weight:500">'+r[0]+'</div><div class="mut">'+r[1]+'</div><div class="rt">'+r[2]+'</div><div><span class="chip '+r[3]+'">'+r[4]+'</span></div></div>').join('')+'</div>'
+  +foot()+'</div>';}
+function kpi(k,v,s){return '<div class="kpi"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="s">'+s+'</div></div>';}
+
+function tPlan(){const m=scrubM;const owed=debts.reduce((a,d,i)=>a+balOf('snowball',i,m),0);
+  return chrome('The Plan','SNOWBALL · 47 MONTHS LEFT')+'<div class="tcontent">'+title('The Plan','Pick a strategy, set your extra — then drag the Time Machine to stand in any month of your future.')
+  +'<div class="row" style="gap:18px;margin-bottom:16px"><div><div class="k" style="font-size:9px;font-weight:600;letter-spacing:.14em;color:var(--m)">STRATEGY</div><span class="yin" style="margin-top:4px;display:inline-block">Snowball — smallest first ▾</span></div>'
+  +'<div><div class="k" style="font-size:9px;font-weight:600;letter-spacing:.14em;color:var(--m)">EXTRA · MONTHLY</div><span class="yin" style="margin-top:4px;display:inline-block">$250</span></div>'
+  +'<div style="margin-left:auto;display:flex;gap:9px"><span class="chip ahead" style="border:1px dashed var(--a)">+$50 → 2 mo sooner</span><span class="chip ahead" style="border:1px dashed var(--a)">+$100 → 6 mo sooner</span></div></div>'
+  +'<div style="background:var(--p);border-radius:4px;padding:18px 22px;display:flex;gap:24px;align-items:baseline;color:#FAF8F2;margin-bottom:14px"><div><div style="font-size:9px;letter-spacing:.2em;color:var(--a)">DEBT-FREE</div><div style="font-family:\'Playfair Display\',serif;font-weight:700;font-size:40px;line-height:1">'+R.freeDate+'</div></div>'
+  +'<div><div style="font-family:\'Playfair Display\',serif;font-weight:700;font-size:20px">'+R.monthsLeft+' mo</div><div style="font-size:9.5px;opacity:.65">left on this plan</div></div>'
+  +'<div><div style="font-family:\'Playfair Display\',serif;font-weight:700;font-size:20px">'+fmt(R.planInterest)+'</div><div style="font-size:9.5px;opacity:.65">interest on this plan</div></div>'
+  +'<div><div style="font-family:\'Playfair Display\',serif;font-weight:700;font-size:20px">'+fmt(R.savedWindow)+'</div><div style="font-size:9.5px;opacity:.65">saved vs minimums</div></div></div>'
+  +'<div class="zl">THE TIME MACHINE · STAND IN ANY MONTH OF YOUR PLAN</div>'
+  +'<div style="text-align:center"><div style="display:flex;justify-content:center">'+templeHTML('snowball',m,{cell:9})+'</div></div>'
+  +'<div class="ctrls"><span class="ci">⟵ past</span><input type="range" id="scrub" min="0" max="51" value="'+m+'" style="flex:1;accent-color:var(--a)"><span class="ci">future ⟶</span><span class="ci" id="scrubLab"><b>'+monthName(m)+'</b> · '+(owed<=0?'debt-free':fmt(owed)+' to go')+'</span></div>'
+  +foot()+'</div>';}
+
+function tCompare(){const m=raceM;
+  return chrome('Compare','SAME MONEY · TWO ROADS')+'<div class="tcontent">'+title('Compare','Snowball against avalanche, computed in full. Same debts, same extra — watch them fill different columns.')
+  +'<div style="background:var(--a);border-radius:5px;padding:10px 16px;font-size:12px;font-weight:500;color:#1C3D2E;margin-bottom:16px">Avalanche saves '+fmt(R.snowball.interest-R.avalanche.interest)+' over the snowball · the snowball\'s first win lands 15 months sooner.</div>'
+  +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">'
+  +lane('Snowball','smallest balance first','snowball',m)+lane('Avalanche','highest APR first','avalanche',m)+'</div>'
+  +'<div class="ctrls"><button class="btn" id="race">▶ Run the race</button><input type="range" id="raceScrub" min="0" max="51" value="'+m+'" style="flex:1;accent-color:var(--a)"><span class="ci">Month <b id="raceMl">'+m+'</b></span></div>'
+  +foot()+'</div>';}
+function lane(nm,sub,strat,m){return '<div style="border:1px solid rgba(28,61,46,.12);border-radius:6px;padding:12px 14px;background:#fff"><div style="font-size:11px;font-weight:700">'+nm+' <span class="note">· '+sub+'</span></div>'
+  +'<div class="row" style="gap:18px;margin:7px 0"><div><div style="font-family:\'Playfair Display\',serif;font-weight:700;font-size:18px;color:var(--p)">'+R[strat].months+' mo</div><div style="font-size:8.5px;color:rgba(28,61,46,.6)">DEBT-FREE</div></div><div><div style="font-family:\'Playfair Display\',serif;font-weight:700;font-size:18px;color:var(--p)">'+fmt(R[strat].interest)+'</div><div style="font-size:8.5px;color:rgba(28,61,46,.6)">INTEREST</div></div></div>'
+  +'<div style="display:flex;justify-content:center">'+templeHTML(strat,m,{cell:6})+'</div></div>';}
+
+function tDebts(){const rows=debts.map((d,i)=>{const pct=Math.max(0,(d.start-d.cur)/d.start),full=d.cur<=0;
+  const st=full?'<span class="chip on">PAID ✓</span>':(d.name==='Visa ····4417'?'<span class="chip fair">Underwater min</span>':'<span class="chip fair">ACTIVE</span>');
+  return '<div class="tr'+(i%2?' z':'')+'" style="grid-template-columns:1.4fr .8fr .9fr .5fr .6fr .6fr 1fr .9fr"><div><span class="yin" style="font-size:11px">'+d.name+'</span></div><div class="mut" style="font-size:11px">'+d.type+'</div><div class="rt"><span class="yin" style="font-size:11px">'+fmt(d.cur<=0?d.start:d.cur)+'</span></div><div class="rt"><span class="yin" style="font-size:11px">'+d.apr+'%</span></div><div class="rt"><span class="yin" style="font-size:11px">$'+d.min+'</span></div><div class="mut" style="font-size:10px">Yes</div><div class="rt" style="font-weight:600">'+(d.cur<=0?'—':fmt(d.cur))+'</div><div>'+st+'</div></div>';}).join('')
+  +'<div class="tr" style="grid-template-columns:1.4fr .8fr .9fr .5fr .6fr .6fr 1fr .9fr;opacity:.55"><div>Mortgage</div><div class="mut" style="font-size:11px">Mortgage</div><div class="rt">$142,840</div><div class="rt">6.1%</div><div class="rt">$1,055</div><div class="mut" style="font-size:10px">No</div><div class="rt">$142,840</div><div><span class="chip ahead">TRACKED</span></div></div>';
+  return chrome('Debts','6 LISTED · 2 PAID · 25 SLOTS')+'<div class="tcontent">'+title('Debts','List each debt once. Type your current statement balance, the APR, and the minimum — yellow is yours; everything else computes.')
+  +'<div class="tbl"><div class="th" style="grid-template-columns:1.4fr .8fr .9fr .5fr .6fr .6fr 1fr .9fr"><div>Debt</div><div>Type</div><div class="rt">Statement bal</div><div class="rt">APR</div><div class="rt">Min</div><div>In plan?</div><div class="rt">Balance now</div><div>Status</div></div>'+rows+'</div>'
+  +'<div class="note" style="margin-top:10px"><b>Statement balance is the one number every bill shows.</b> Type it at setup and re-type it each month when your statement arrives — that is the check-in, and it absorbs interest, promo rates, fees, or new charges. Between check-ins, logged payments nudge "Balance now" by the estimated principal. In plan? = No keeps the mortgage tracked without driving the date. Underwater min = the minimum does not cover a month of interest (the Visa grew until the snowball arrived).</div>'
+  +foot()+'</div>';}
+
+function tPayments(){const rows=[['Jun 12','Auto loan','$647','$30','$617','target — gets the pool'],['Jun 11','Visa ····4417','$196','$207','−$11','underwater — the min barely treads water'],['Jun 10','Student loan','$190','$76','$114',''],['May 12','Auto loan','$612','$32','$580',''],['May 10','Visa ····4417','$196','$206','−$10',''],['May 9','Student loan','$190','$77','$113','']];
+  const gc='grid-template-columns:.8fr 1.5fr .8fr .9fr .9fr 1.5fr';
+  return chrome('Payments Log','YOU TYPE ONLY THE AMOUNT')+'<div class="tcontent">'+title('Payments Log','One row when money goes out. You type date, debt, and amount — the sheet estimates the interest and principal from the APR, so you never need the split your bill hides.')
+  +'<div class="tbl"><div class="th" style="'+gc+'"><div>Date</div><div>Debt</div><div class="rt">Amount</div><div class="rt">Est. interest</div><div class="rt">Est. principal</div><div>Note</div></div>'
+  +rows.map((r,i)=>'<div class="tr'+(i%2?' z':'')+'" style="'+gc+'"><div><span class="yin" style="font-size:11px">'+r[0]+'</span></div><div>'+r[1]+'</div><div class="rt"><span class="yin" style="font-size:11px">'+r[2]+'</span></div><div class="rt mut">'+r[3]+'</div><div class="rt" style="color:'+(r[4][0]==='−'?'#832f30':'rgba(28,61,46,.7)')+'">'+r[4]+'</div><div class="note" style="margin:0">'+r[5]+'</div></div>').join('')+'</div>'
+  +'<div class="note" style="margin-top:10px"><b>Yellow is the only thing you type.</b> Est. interest = balance × APR ÷ 12 (the same math behind your projections); est. principal = amount − that. The estimate moves your temple now; your monthly statement balance on the Debts tab trues it up — and absorbs promo rates, fees, or new charges. The Visa shows the trap: its minimum is almost all interest.</div>'
+  +foot()+'</div>';}
+
+function tProgress(){const sv=saved(),pct=Math.min(100,Math.round(sv/GOAL*100)),funded=sv>=GOAL;
+  const tw=debts.reduce((a,d)=>a+(d.w*9+(d.w-1)*1.5),0)+(debts.length-1)*7;
+  return chrome('Progress','THE STYLOBATE + YOUR STREAKS')+'<div class="tcontent">'+title('Progress','Build the stone you stand on, and keep your streaks alive — the habits that keep you out of debt for good.')
+  +'<div class="zl">THE STYLOBATE · YOUR BUFFER, THE TEMPLE\'S BASE</div>'
+  +'<div style="text-align:center"><div style="display:flex;justify-content:center">'+templeHTML('snowball',HIST,{cell:9,stylobate:true})+'</div>'
+  +'<div style="font-family:\'Playfair Display\',serif;font-style:italic;font-size:12px;color:'+(funded?'#7a5a1e':'rgba(28,61,46,.7)')+';margin-top:8px" id="stylolab">'+(funded?'✦ The Stylobate is laid — your temple stands on solid stone.':'THE STYLOBATE · '+fmt(sv)+' of '+fmt(GOAL)+' in stone — keep laying it')+'</div>'
+  +'<div class="led" id="led" style="margin-top:6px">CONTRIBUTIONS'+contributions.map(c=>'<span class="pill2">'+c.when+' · +$'+c.amt+'</span>').join('')+'</div></div>'
+  +'<div class="ctrls"><span class="ci" id="svinfo">SAVED <b>'+fmt(sv)+'</b> of '+fmt(GOAL)+'</span><span style="width:1px;height:16px;background:rgba(250,248,242,.2)"></span><span class="ci">Goal $<input class="cin" id="goal" value="1000"></span><span class="ci">Contribution $<input class="cin" id="amt" value="50"></span><button class="btn" id="contrib">＋ Log it in stone</button></div>'
+  +'<div class="zl">YOUR STREAKS · THE HABITS THAT KEEP YOU FREE</div><div class="kpis" style="grid-template-columns:repeat(3,1fr)">'
+  +kpi('🔥 BEAT THE MINIMUM','14 mo','every month you paid more than required')
+  +kpi('🛡️ NO NEW DEBT','14 mo','no balance has risen since you started')
+  +kpi('✓ WEEKLY CHECK-IN','9 wks','you reviewed your plan — the habit that predicts finishing')+'</div>'
+  +foot()+'</div>';}
+
+function tHall(){return chrome('The Hall','STEP INSIDE THE TEMPLE')+'<div class="tcontent">'+title('The Hall','A room you enter. Every debt you slay mounts a plaque; every record takes a pedestal. The empty places are waiting.')
+  +'<div class="hall"><div class="he">— you have entered the temple —</div><div class="ht">The Hall of the Paid</div>'
+  +'<div class="hz">◆ DEBTS SLAIN ◆</div><div class="plaqs">'
+  +'<div class="plaq"><div class="sl2">✦</div><div class="pn">Store card</div><div class="pa">$1,150 slain</div><div class="pd">SEP 2025 · 5 MONTHS · FIRST BLOOD</div></div>'
+  +'<div class="plaq"><div class="sl2">✦</div><div class="pn">Medical bill</div><div class="pa">$3,400 slain</div><div class="pd">APR 2026 · 12 MONTHS</div></div>'
+  +'<div class="plaq dim"><div class="sl2">3</div><div class="pn">Auto loan</div><div class="pd">NEXT TO FALL · EST JUN 2027</div></div></div>'
+  +'<div class="hz">◆ RECORDS ◆</div><div class="peds">'
+  +'<div class="ped"><div class="cup">🏆</div><div class="base"><div class="rv">14 mo</div><div class="rk">longest streak</div></div></div>'
+  +'<div class="ped"><div class="cup">🛡️</div><div class="base"><div class="rv">14 mo</div><div class="rk">no new debt</div></div></div>'
+  +'<div class="ped"><div class="cup">⚡</div><div class="base"><div class="rv">5 mo</div><div class="rk">fastest kill</div></div></div>'
+  +'<div class="ped"><div class="cup">🏛️</div><div class="base"><div class="rv">$9,210</div><div class="rk">total slain</div></div></div>'
+  +'<div class="ped lock"><div class="cup">½</div><div class="base"><div class="rv">halfway</div><div class="rk">at $20,475</div></div></div>'
+  +'<div class="ped lock"><div class="cup">★</div><div class="base"><div class="rv">debt-free</div><div class="rk">the golden temple</div></div></div></div></div>'
+  +foot()+'</div>';}
+
+function tImport(){return chrome('Bank Import','PASTE · MAP · APPEND')+'<div class="tcontent">'+title('Bank Import','Paste your bank export. The Payoff sniffs the columns, maps descriptions to your debts, dedupes, and appends to the Payments Log.')
+  +'<div class="zl">1 · PASTE YOUR CSV</div><div style="background:#fff;border:1px dashed var(--a);border-radius:4px;padding:14px;font-family:monospace;font-size:11px;color:rgba(28,61,46,.7)">06/12/2026,ACH PYMT CHASE CARD,-196.00<br>06/12/2026,AUTOPAY TOYOTA FIN,-647.00<br>06/10/2026,SALLIE MAE EDU,-190.00</div>'
+  +'<div class="zl">2 · MAPPED (keyword rules → your debts)</div><div class="tbl"><div class="th" style="grid-template-columns:1.6fr 1.3fr .8fr .9fr"><div>Description</div><div>Matched debt</div><div class="rt">Amount</div><div>Status</div></div>'
+  +[['ACH PYMT CHASE CARD','Visa ····4417','$196','new'],['AUTOPAY TOYOTA FIN','Auto loan','$647','new'],['SALLIE MAE EDU','Student loan','$190','duplicate — skip']].map((r,i)=>'<div class="tr'+(i%2?' z':'')+'" style="grid-template-columns:1.6fr 1.3fr .8fr .9fr"><div class="note" style="margin:0;font-family:monospace">'+r[0]+'</div><div style="font-weight:500">'+r[1]+'</div><div class="rt">'+r[2]+'</div><div><span class="chip '+(r[3][0]==='d'?'ahead':'on')+'">'+r[3]+'</span></div></div>').join('')+'</div>'
+  +'<div class="ctrls"><button class="btn">Append 2 new payments</button><span class="ci">keyword rules live on the Debts tab · inherited from the Foundation importer</span></div>'
+  +foot()+'</div>';}
+
+function tEngine(){return chrome('_Engine','SYSTEM · HIDDEN')+'<div class="tcontent">'+title('_Engine','The projection math. Five full payoff schedules (snowball, avalanche, your order, +$50, +$100) at 25 debts × 120 months. You never edit it.')
+  +'<div class="note">Hidden in the shipped workbook. Holds the registry mirror, the five schedule blocks, the actuals block, and the minimums-only baseline — everything the Dashboard, Plan, Compare, and Progress tabs read. Capacity dials (25 debts · 120-month horizon) live in section 00 of the script.</div>'+foot()+'</div>';}
+
+const RENDER={start:tStart,dashboard:tDash,plan:tPlan,compare:tCompare,debts:tDebts,payments:tPayments,progress:tProgress,hall:tHall,import:tImport,engine:tEngine};
+
+function applyPalette(){const p=PALETTES[palette];const a=document.getElementById('app');a.style.setProperty('--p',p.p);a.style.setProperty('--m',p.m);a.style.setProperty('--a',p.a);a.style.setProperty('--bg',p.bg);a.style.setProperty('--z',p.z);document.getElementById('palname').textContent=p.name;}
+function renderTabs(){document.getElementById('tabstrip').innerHTML='<span class="t" style="color:#5F6368">＋</span>'+TABS.map(t=>'<span class="t'+(t.sys?' sys':'')+(active===t.id?' on':'')+'" data-t="'+t.id+'">'+t.label+'</span>').join('');
+  document.querySelectorAll('.tabstrip .t[data-t]').forEach(e=>e.onclick=()=>{active=e.dataset.t;draw();});}
+function draw(){document.getElementById('sheet').innerHTML=RENDER[active]();document.getElementById('sheetwrap').scrollTop=0;renderTabs();wire();}
+function wire(){
+  if(active==='plan'){const s=document.getElementById('scrub');if(s)s.oninput=e=>{scrubM=+e.target.value;draw();};}
+  if(active==='compare'){const s=document.getElementById('raceScrub');if(s)s.oninput=e=>{raceM=+e.target.value;draw();};
+    const r=document.getElementById('race');if(r)r.onclick=()=>{raceM=0;draw();const iv=setInterval(()=>{if(raceM>=51){clearInterval(iv);return;}raceM++;draw();},220);};}
+  if(active==='dashboard'){const w=document.getElementById('watch');if(w)w.onclick=()=>toast('<b>Watch the build</b><br>In the workbook this replays your climb course by course, toasting each kill — Store card (Sep 2025), Medical bill (Apr 2026) — up to today and on into your projection.');}
+  if(active==='progress'){const c=document.getElementById('contrib');if(c)c.onclick=()=>{const amt=parseInt(String(document.getElementById('amt').value).replace(/[^0-9]/g,''))||0;if(amt<=0)return;contributions.push({amt:amt,when:'now'});const now=saved(),funded=now>=GOAL,pct=Math.min(100,Math.round(now/GOAL*100));toast(funded?'<b>✦ The Stylobate is complete.</b><br>Your temple stands on solid stone — '+fmt(now)+' set aside.':'<b>+$'+amt+' laid in stone.</b><br>The Stylobate is '+pct+'% solid · '+fmt(GOAL-now)+' to go.');draw();};
+    const g=document.getElementById('goal');if(g)g.oninput=e=>{GOAL=Math.max(1,parseInt(String(e.target.value).replace(/[^0-9]/g,''))||0);draw();};}
+}
+document.getElementById('pill').onclick=()=>{const ids=Object.keys(PALETTES);palette=ids[(ids.indexOf(palette)+1)%ids.length];applyPalette();};
+document.getElementById('ccmenu').onclick=function(){const ex=document.getElementById('mp');if(ex){ex.remove();return;}const d=document.createElement('div');d.className='menupop';d.id='mp';d.innerHTML=['Add a debt…','Log a payment…','Log a Stylobate contribution…','— sep','Watch the build','Frame a win for sharing…','— sep','Apply Theme','Import Bank CSV…'].map(x=>x==='— sep'?'<div class="sep"></div>':'<div>'+x+'</div>').join('');this.appendChild(d);};
+applyPalette();draw();
+</script>
+</body>
+</html>

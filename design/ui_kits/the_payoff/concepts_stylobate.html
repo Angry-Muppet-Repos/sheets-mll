@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Payoff — The Stylobate · the stone you stand on</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Jost:wght@300;400;500;600;700&display=swap');
+  *{box-sizing:border-box;} body{margin:0;background:#1C3D2E;font-family:Jost,sans-serif;color:#1C3D2E;}
+  .wrap{max-width:1100px;margin:0 auto;padding:22px;}
+  .top{display:flex;align-items:baseline;gap:12px;color:#FAF8F2;}
+  .top h1{font-family:'Playfair Display',serif;font-weight:700;font-size:22px;margin:0;}
+  .top .badge{background:#C5A95A;color:#1C3D2E;font-size:9px;font-weight:700;letter-spacing:.16em;padding:3px 9px;border-radius:2px;}
+  .top .who{margin-left:auto;font-size:11px;color:rgba(250,248,242,.6);}
+  .sub{color:rgba(250,248,242,.65);font-size:12px;font-weight:300;margin:4px 0 16px;}
+  .stage{background:#FAF8F2;border-radius:8px;overflow:hidden;}
+  .hd{background:#1C3D2E;color:#FAF8F2;font-size:10.5px;font-weight:600;letter-spacing:.18em;padding:9px 16px;display:flex;justify-content:space-between;}
+  .hd .g{color:#C5A95A;}
+  .body{padding:18px 22px;display:flex;gap:26px;}
+
+  .scene{flex:1;display:flex;flex-direction:column;align-items:center;}
+  .temple{position:relative;display:inline-block;padding-top:40px;}
+  .pediment{position:absolute;top:0;left:0;right:0;height:22px;clip-path:polygon(50% 0,100% 100%,0 100%);background:#EAE4D6;}
+  .entab{position:absolute;top:22px;left:-6px;right:-6px;height:9px;background:#D8D0BE;border-radius:1px;}
+  .cols{display:flex;gap:7px;align-items:flex-end;}
+  .col{display:flex;flex-direction:column;align-items:center;}
+  .capital{height:6px;border-radius:2px 2px 0 0;background:transparent;margin-bottom:2px;}
+  .col.full .capital{background:#C5A95A;}
+  .stack{display:flex;flex-direction:column-reverse;gap:1.5px;}
+  .srow{display:flex;gap:1.5px;}
+  .pcell{width:9px;height:9px;border-radius:1px;background:#EAE4D6;border:1px solid rgba(28,61,46,.07);}
+
+  /* the stylobate — a stepped stone base the whole temple stands on */
+  .stylobate{margin-top:4px;display:flex;flex-direction:column;align-items:center;}
+  .step{height:11px;border-radius:1px;transition:background .4s,border-color .4s;display:flex;align-items:center;justify-content:center;}
+  .step .slab{height:100%;border-radius:1px;transition:width .5s;}
+  .step.sand{border:1px dashed rgba(28,61,46,.3);background:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(28,61,46,.05) 4px,rgba(28,61,46,.05) 8px);}
+  .step.stone{background:#D8D0BE;border:1px solid rgba(28,61,46,.15);}
+  .step .slab.gold{background:#C5A95A;}
+  .stylolab{margin-top:8px;font-family:'Playfair Display',serif;font-style:italic;font-size:12px;color:rgba(28,61,46,.7);text-align:center;}
+  .collabs{display:flex;gap:7px;margin-top:6px;}
+  .clab{text-align:center;font-size:8px;line-height:1.2;}
+  .clab .pct{font-weight:700;font-size:9.5px;} .clab .done{color:#C5A95A;}
+
+  /* anatomy key */
+  .anatomy{width:280px;flex:none;border-left:1px solid rgba(28,61,46,.1);padding-left:22px;}
+  .anatomy h3{font-family:'Playfair Display',serif;font-weight:700;font-size:15px;margin:0 0 3px;}
+  .anatomy .intro{font-size:11px;color:rgba(28,61,46,.65);font-weight:300;margin-bottom:14px;line-height:1.5;}
+  .part{display:flex;gap:11px;margin-bottom:11px;align-items:flex-start;}
+  .part .gly{width:26px;height:26px;flex:none;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:13px;background:#1C3D2E;color:#C5A95A;}
+  .part .nm{font-weight:700;font-size:11.5px;letter-spacing:.04em;}
+  .part .de{font-size:10.5px;color:rgba(28,61,46,.65);font-weight:300;line-height:1.4;}
+  .part.key .gly{background:#C5A95A;color:#1C3D2E;}
+  .part.key{background:rgba(197,169,90,.1);border-radius:5px;padding:8px;margin-left:-8px;margin-right:-8px;}
+
+  .controls{background:#16301f;padding:13px 22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .btn{background:#C5A95A;color:#1C3D2E;border:0;border-radius:3px;padding:8px 14px;font-weight:600;font-size:11.5px;cursor:pointer;}
+  .btn.ghost{background:transparent;color:#FAF8F2;border:1px solid rgba(250,248,242,.3);}
+  .stylinfo{color:#FAF8F2;font-size:11px;} .stylinfo b{color:#C5A95A;font-family:'Playfair Display',serif;font-size:13px;}
+  .hint{margin-left:auto;color:rgba(250,248,242,.5);font-size:10px;}
+  .warn{color:#E8C07A;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>The Payoff · The Stylobate</h1><span class="badge">WORKING MOCKUP</span><span class="who">the stone your temple stands on</span></div>
+  <div class="sub">Greek temples rise from a <i>stylobate</i> — the dressed stone step the columns stand on. Here it is your starter buffer: set your goal (the box below — $1,000 is the classic), fund it, and your whole temple rests on solid stone, so a surprise expense never sends your blocks back to the wall. Until then, you are building on sand.</div>
+
+  <div class="stage">
+    <div class="hd"><span>THE TEMPLE · NAMED, STONE TO CROWN</span><span class="g" id="state">BUILDING ON SAND</span></div>
+    <div class="body">
+      <div class="scene">
+        <div class="temple">
+          <div class="pediment"></div>
+          <div class="entab"></div>
+          <div class="cols" id="cols"></div>
+        </div>
+        <div class="stylobate" id="stylobate"></div>
+        <div class="stylolab" id="stylolab"></div>
+        <div class="ledger" id="ledger" style="margin-top:8px;text-align:center"></div>
+        <div class="collabs" id="collabs"></div>
+      </div>
+      <div class="anatomy">
+        <h3>The anatomy</h3>
+        <div class="intro">One temple, named end to end — the vocabulary the whole product speaks.</div>
+        <div class="part"><div class="gly">▲</div><div><div class="nm">PEDIMENT</div><div class="de">your debt-free crown — it goes gold the day the last column tops out.</div></div></div>
+        <div class="part"><div class="gly">▬</div><div><div class="nm">ENTABLATURE</div><div class="de">the beam your columns carry — the roofline they all rise toward.</div></div></div>
+        <div class="part"><div class="gly">◳</div><div><div class="nm">CAPITAL</div><div class="de">a column topped out — a debt paid in full. It crowns in gold.</div></div></div>
+        <div class="part"><div class="gly">█</div><div><div class="nm">COLUMN</div><div class="de">one debt, rising from the stone as you pay it down.</div></div></div>
+        <div class="part key"><div class="gly">⬓</div><div><div class="nm">STYLOBATE</div><div class="de">the stone you stand on — your starter buffer, goal you set. Fund it and new debt cannot crack what is underneath you.</div></div></div>
+      </div>
+    </div>
+    <div class="controls">
+      <span class="stylinfo" id="info"></span>
+      <span style="width:1px;height:18px;background:rgba(250,248,242,.18)"></span>
+      <span class="stylinfo">Goal $<input id="goal" value="1000" style="width:58px;background:#FFFDE7;border:1px solid #C5A95A;color:#1C3D2E;font-family:Jost,sans-serif;font-weight:600;font-size:12px;padding:3px 6px;border-radius:2px;text-align:right"></span>
+      <span class="stylinfo">Contribution $<input id="amt" value="50" style="width:50px;background:#FFFDE7;border:1px solid #C5A95A;color:#1C3D2E;font-family:Jost,sans-serif;font-weight:600;font-size:12px;padding:3px 6px;border-radius:2px;text-align:right"></span>
+      <button class="btn" id="contrib">＋ Log it in stone</button>
+      <button class="btn ghost" id="width">Show a 2-debt temple</button>
+      <span class="hint">Saved is the sum of what you log — earned, not typed. Only the goal and each contribution are inputs.</span>
+    </div>
+  </div>
+</div>
+<script>
+const debts = [
+  {short:'Store',  start:1150,  cur:0,    w:2},
+  {short:'Medical',start:3400,  cur:0,    w:3},
+  {short:'Auto',   start:8400,  cur:5148, w:6},
+  {short:'Visa',   start:9800,  cur:9930, w:8},
+  {short:'Student',start:18200, cur:16663,w:14},
+];
+const COLORS=['#93B27E','#6E9560','#3E7E5C','#2D5C45','#1C3D2E'];
+const H=16, CELL=9, GAP=1.5;
+let GOAL=1000;
+// Saved is EARNED, not typed: the running sum of contributions you log
+// (mirrors how debt balances come from the Payments Log). Seeded history.
+let contributions=[{amt:200,when:'Apr'},{amt:150,when:'May'},{amt:250,when:'Jun'}];
+function saved(){ return contributions.reduce((a,c)=>a+c.amt,0); }
+let narrow=false;   // demo: toggle a slimmer temple to prove the base stays centered
+
+function colWidthPx(w){ return w*CELL + (w-1)*GAP; }
+function view(){ return narrow ? debts.slice(2,4) : debts; }   // narrow = Auto + Visa only
+function templeWidthPx(){ const v=view(); return v.reduce((a,d)=>a+colWidthPx(d.w),0) + (v.length-1)*7; }
+
+function renderTemple(){
+  const cols=document.getElementById('cols'); cols.innerHTML='';
+  const labs=document.getElementById('collabs'); labs.innerHTML='';
+  view().forEach((d,vi)=>{
+    const i=debts.indexOf(d);
+    const pct=Math.max(0,(d.start-d.cur)/d.start); const filled=Math.min(H,Math.round(pct*H)); const full=d.cur<=0;
+    const col=document.createElement('div'); col.className='col'+(full?' full':'');
+    const cap=document.createElement('div'); cap.className='capital'; cap.style.width=(colWidthPx(d.w)+4)+'px'; col.appendChild(cap);
+    const stack=document.createElement('div'); stack.className='stack';
+    for(let r=0;r<H;r++){ const row=document.createElement('div'); row.className='srow';
+      for(let j=0;j<d.w;j++){ const c=document.createElement('div'); c.className='pcell'; if(r<filled){ c.style.background=COLORS[i]; c.style.borderColor=COLORS[i]; } row.appendChild(c);} stack.appendChild(row);}
+    col.appendChild(stack); cols.appendChild(col);
+    const lab=document.createElement('div'); lab.className='clab'; lab.style.width=(colWidthPx(d.w)+4)+'px';
+    lab.innerHTML='<div>'+d.short+'</div><div class="pct'+(full?' done':'')+'">'+(full?'✦':Math.round(pct*100)+'%')+'</div>'; labs.appendChild(lab);
+  });
+}
+
+function renderStylobate(){
+  const host=document.getElementById('stylobate'); host.innerHTML='';
+  const buffer=saved();
+  const pctFund=buffer/GOAL;
+  const funded = buffer>=GOAL;
+  // 3 stone steps, each wider than the temple, fill bottom-up step by step.
+  // Centered on the temple's axis (.scene centers all children) at any width.
+  const tw=templeWidthPx();
+  const widths=[tw+10, tw+30, tw+52];
+  const perStep=GOAL/3;
+  for(let s=2;s>=0;s--){ // render top step first (narrowest), down to widest
+    const step=document.createElement('div');
+    const filledThis=Math.max(0,Math.min(1,(buffer - s*perStep)/perStep));
+    const anyStone=filledThis>0;
+    step.className='step '+(anyStone?'stone':'sand'); step.style.width=widths[s]+'px';
+    const slab=document.createElement('div'); slab.className='slab gold'; slab.style.width=(filledThis*100)+'%';
+    step.appendChild(slab); host.appendChild(step);
+  }
+  const lab=document.getElementById('stylolab');
+  document.getElementById('state').textContent = funded? 'STANDING ON SOLID STONE' : (buffer>0? 'LAYING THE STYLOBATE' : 'BUILDING ON SAND');
+  document.getElementById('state').className = funded? 'g' : 'warn';
+  lab.innerHTML = funded
+    ? '✦ The Stylobate is laid — your temple stands on solid stone. New debt cannot crack what is underneath you.'
+    : (buffer>0? 'THE STYLOBATE · $'+buffer+' of $'+GOAL+' in stone — keep laying it' : 'No buffer yet — every column rises straight from sand. One surprise and blocks fall back to the wall.');
+  lab.className='stylolab'+(funded?'':' '); lab.style.color = funded? '#7a5a1e' : 'rgba(28,61,46,.7)';
+  document.getElementById('info').innerHTML = 'SAVED <b>$'+buffer+'</b> of $'+GOAL+(funded?' · complete':'');
+  renderLedger();
+}
+
+function renderLedger(){
+  const host=document.getElementById('ledger'); if(!host) return;
+  const recent=contributions.slice(-4);
+  host.innerHTML = '<span style="font-size:9px;letter-spacing:.14em;color:rgba(28,61,46,.5)">CONTRIBUTIONS</span> '
+    + recent.map(c=>'<span style="background:rgba(197,169,90,.18);border-radius:999px;padding:2px 9px;font-size:10px;margin-left:5px">'+(c.when?c.when+' · ':'')+'+$'+c.amt+'</span>').join('');
+}
+
+let toastT; function toast(html,ms=4200){ const t=document.getElementById('toast'); t.innerHTML=html; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),ms); }
+
+document.getElementById('goal').oninput=(e)=>{ GOAL=Math.max(1,parseInt(String(e.target.value).replace(/[^0-9]/g,''))||0); renderStylobate(); };
+document.getElementById('contrib').onclick=()=>{
+  const amt=parseInt(String(document.getElementById('amt').value).replace(/[^0-9]/g,''))||0;
+  if(amt<=0) return;
+  const before=saved();
+  contributions.push({amt:amt, when:'now'});
+  const now=saved();
+  renderStylobate();
+  const funded=now>=GOAL;
+  const pct=Math.min(100,Math.round(now/GOAL*100));
+  toast(funded
+    ? '<b>✦ The Stylobate is complete.</b><br>Your temple stands on solid stone — $'+now+' set aside. New debt cannot crack what is underneath you.'
+    : '<b>+$'+amt+' laid in stone.</b><br>The Stylobate is '+pct+'% solid · $'+(GOAL-now)+' to go. Keep building the ground you stand on.');
+};
+document.getElementById('width').onclick=()=>{ narrow=!narrow; document.getElementById('width').textContent = narrow?'Show the full temple':'Show a 2-debt temple'; renderTemple(); renderStylobate(); };
+renderTemple(); renderStylobate();
+</script>
+<div class="toast" id="toast" style="position:fixed;right:24px;bottom:24px;max-width:300px;background:#1C3D2E;color:#FAF8F2;border-left:3px solid #C5A95A;border-radius:4px;padding:13px 16px;font-size:12px;box-shadow:0 8px 26px rgba(0,0,0,.35);opacity:0;transform:translateY(12px);transition:opacity .24s, transform .24s;z-index:50;line-height:1.5"></div>
+<style>.toast.show{opacity:1 !important;transform:translateY(0) !important;} #toast b{color:#C5A95A;}</style>
+</body>
+</html>
