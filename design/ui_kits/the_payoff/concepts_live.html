@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Payoff — The Column &amp; The Demolition · working mockup</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Jost:wght@300;400;500;600;700&display=swap');
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #1C3D2E; font-family: Jost, sans-serif; color: #1C3D2E; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 22px; }
+  .topbar { display: flex; align-items: baseline; gap: 14px; color: #FAF8F2; margin-bottom: 4px; }
+  .topbar h1 { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 22px; margin: 0; }
+  .topbar .badge { background: #C5A95A; color: #1C3D2E; font-size: 9px; font-weight: 700; letter-spacing: 0.16em; padding: 3px 9px; border-radius: 2px; }
+  .topbar .who { margin-left: auto; font-size: 11px; color: rgba(250,248,242,0.6); }
+  .sub { color: rgba(250,248,242,0.65); font-size: 12px; font-weight: 300; margin-bottom: 16px; }
+
+  .stage { background: #FAF8F2; border-radius: 8px; overflow: hidden; }
+  .grid { display: grid; grid-template-columns: 1.05fr 1.35fr; }
+  .col-pane { border-right: 1px solid rgba(28,61,46,0.10); }
+  .pane-h { background: #1C3D2E; color: #FAF8F2; font-size: 10.5px; font-weight: 600; letter-spacing: 0.18em; padding: 9px 16px; display: flex; justify-content: space-between; align-items: center; }
+  .pane-h .gold { color: #C5A95A; }
+  .pane-b { padding: 18px 20px; }
+
+  /* the column */
+  .colhost { display: flex; gap: 20px; align-items: flex-end; min-height: 340px; }
+  .column { display: flex; flex-direction: column-reverse; gap: 1.5px; align-items: center; }
+  .crow { display: flex; gap: 1.5px; }
+  .cell { width: 10px; height: 10px; border-radius: 1px; background: #EAE4D6; border: 1px solid rgba(28,61,46,0.08); transition: background 140ms, border-color 140ms; }
+  .cell.f { background: #1C3D2E; border-color: #1C3D2E; }
+  .cell.now { background: #C5A95A; border-color: #C5A95A; }
+  .cell.f:hover, .cell.now:hover { outline: 2px solid #C5A95A; outline-offset: 1px; cursor: help; }
+  .readout .big { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 34px; line-height: 1; }
+  .readout .lab { font-size: 11px; color: rgba(28,61,46,0.6); margin-top: 3px; }
+  .readout .line { font-size: 11.5px; margin-top: 12px; line-height: 1.5; }
+  .readout b { font-weight: 600; }
+  .free { margin-top: 14px; font-size: 11px; color: rgba(28,61,46,0.6); }
+  .free .big { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 14px; color: #1C3D2E; }
+
+  /* demolition */
+  .walls { display: flex; flex-direction: column; gap: 16px; }
+  .wall { }
+  .wall .wh { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; font-weight: 600; margin-bottom: 7px; }
+  .wall .wh .meta { font-weight: 300; font-size: 10.5px; color: rgba(28,61,46,0.6); }
+  .bricks { display: flex; flex-direction: column; gap: 3px; }
+  .brow { display: flex; gap: 3px; }
+  .brow.off { padding-left: 14px; }
+  .brick { width: 24px; height: 11px; border-radius: 1px; background: #2D5C45; border: 1px solid #24503b; transition: opacity 200ms, transform 200ms, background 200ms; }
+  .brick.gone { background: transparent; border: 1px dashed rgba(28,61,46,0.20); }
+  .brick.gold { background: #C5A95A; border-color: #b9962f; box-shadow: 0 0 0 1px rgba(197,169,90,0.4); }
+  .brick.falling { opacity: 0; transform: translateY(-10px) scale(0.6); }
+  .wall.dead .bricks { opacity: 0.5; }
+  .keystone { margin-top: 8px; background: #FFFDE7; border: 1px solid #C5A95A; border-radius: 3px; padding: 7px 11px; font-family: 'Playfair Display', serif; font-style: italic; font-size: 12px; display: none; }
+  .keystone.show { display: block; }
+  .keystone input { font-family: 'Playfair Display', serif; font-style: italic; font-size: 12px; border: 0; border-bottom: 1px dashed #C5A95A; background: transparent; width: 180px; color: #1C3D2E; outline: none; }
+
+  /* controls + toast */
+  .controls { background: #16301f; padding: 14px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .btn { background: #C5A95A; color: #1C3D2E; border: 0; border-radius: 3px; padding: 9px 16px; font-family: Jost, sans-serif; font-weight: 600; font-size: 12px; letter-spacing: 0.04em; cursor: pointer; }
+  .btn.ghost { background: transparent; color: #FAF8F2; border: 1px solid rgba(250,248,242,0.3); }
+  .btn:disabled { opacity: 0.4; cursor: default; }
+  .slider { display: flex; align-items: center; gap: 8px; color: #FAF8F2; font-size: 11px; }
+  .slider input { width: 130px; }
+  .hint { color: rgba(250,248,242,0.5); font-size: 10.5px; margin-left: auto; }
+
+  .toast { position: fixed; right: 24px; bottom: 24px; max-width: 320px; background: #1C3D2E; color: #FAF8F2; border-left: 3px solid #C5A95A; border-radius: 4px; padding: 13px 16px; font-size: 12px; box-shadow: 0 8px 26px rgba(0,0,0,0.35); opacity: 0; transform: translateY(12px); transition: opacity 240ms, transform 240ms; z-index: 50; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast b { color: #C5A95A; font-weight: 600; }
+  .toast .rl { display: flex; justify-content: space-between; padding: 2px 0; font-variant-numeric: tabular-nums; }
+  .toast .hd { font-size: 9px; letter-spacing: 0.16em; color: rgba(250,248,242,0.55); margin-bottom: 5px; }
+
+  .tip { position: fixed; background: #FFFDE7; border: 1px solid #C5A95A; border-radius: 3px; padding: 6px 9px; font-size: 10.5px; color: #1C3D2E; pointer-events: none; box-shadow: 2px 2px 0 rgba(28,61,46,0.10); opacity: 0; transition: opacity 120ms; z-index: 60; max-width: 200px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <h1>The Payoff</h1>
+    <span class="badge">WORKING MOCKUP</span>
+    <span class="who">Casey Alvarez · 14 months in · real numbers from the engine</span>
+  </div>
+  <div class="sub">Concepts 1 + 2, clickable. Press <b style="color:#C5A95A">Watch the build</b>, then <b style="color:#C5A95A">Log a payment</b> — bricks tear off the wall and lay into the column. Hover any filled cell for that month's story. Everything here maps to real Sheets behavior (notes, conditional formatting, a scripted repaint loop).</div>
+
+  <div class="stage">
+    <div class="grid">
+      <div class="col-pane">
+        <div class="pane-h"><span>① THE COLUMN · BUILT FROM EVERY DOLLAR KILLED</span><span class="gold" id="colpct">22%</span></div>
+        <div class="pane-b">
+          <div class="colhost">
+            <div class="column" id="col"></div>
+            <div class="readout">
+              <div class="big" id="paidBig">$9,210</div>
+              <div class="lab">of $40,950 · principal slain</div>
+              <div class="line">Each cell is <b id="perCell">$146</b> you'll never owe again.</div>
+              <div class="line" style="color:rgba(28,61,46,0.6)">Hover a course — every row is a real month from your log.</div>
+              <div class="free">Capital tops out on <span class="big">May 2030</span>.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="pane-h"><span>② THE DEMOLITION · TEAR DOWN WHAT YOU OWE</span><span class="gold">SNOWBALL TARGET → AUTO LOAN</span></div>
+        <div class="pane-b">
+          <div class="walls" id="walls"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="playBtn">▶ &nbsp;Watch the build</button>
+      <button class="btn" id="payBtn">Log a payment</button>
+      <div class="slider">
+        $<input type="range" id="amt" min="212" max="1500" step="1" value="647">
+        <span id="amtLab" style="font-variant-numeric:tabular-nums">$647</span>
+      </div>
+      <button class="btn ghost" id="resetBtn">Reset</button>
+      <span class="hint">in the real sheet, payments come from the Payments Log — this button stands in for one</span>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="tip" id="tip"></div>
+
+<script>
+const DATA = {
+  startTotal: 40950, paidToDate: 9210,
+  monthly: [670,678,685,693,498,704,705,706,707,709,710,316,713,716],
+  kills: { 5: ['Rooms+ Store Card'], 12: ['Medical bill'] },
+  // the active wall = current snowball target
+  auto: { name: 'Auto loan', start: 8400, current: 5148, perBrick: 250 },
+  freeDate: 'May 2030',
+};
+
+// ---- build the column silhouette (bottom-up fill order) ----
+const widths = [];
+widths.push(18, 16, 14);                  // plinth
+for (let i = 0; i < 22; i++) widths.push(8);  // shaft
+widths.push(10, 12, 16, 18);              // capital
+const TOTAL = widths.reduce((a,b)=>a+b,0);
+const PER_CELL = DATA.startTotal / TOTAL;
+const cells = [];                          // flat, bottom-up fill order
+const colEl = document.getElementById('col');
+for (const w of widths) {
+  const row = document.createElement('div'); row.className = 'crow';
+  for (let i = 0; i < w; i++) { const c = document.createElement('div'); c.className = 'cell'; row.appendChild(c); cells.push(c); }
+  colEl.appendChild(row);
+}
+document.getElementById('perCell').textContent = '$' + Math.round(PER_CELL);
+
+// assign each fill-position to a month band from the real monthly principal
+const monthOf = new Array(TOTAL).fill(null);   // month index (1-based) per cell position
+const monthPaid = {};
+let acc = 0, pos = 0;
+DATA.monthly.forEach((p, mi) => {
+  monthPaid[mi+1] = p;
+  acc += p;
+  const upto = Math.min(TOTAL, Math.round(acc / PER_CELL));
+  for (; pos < upto; pos++) monthOf[pos] = mi + 1;
+});
+const FILLED_NOW = pos;   // cells filled by history
+
+// state
+let filled = 0;           // currently painted
+let extraMonth = 14;      // last real month; payments add to month 15+
+const auto = { ...DATA.auto, current: DATA.auto.current };
+
+function paint(upto, goldBand) {
+  for (let i = 0; i < TOTAL; i++) {
+    const c = cells[i];
+    if (i < upto) {
+      const m = monthOf[i] != null ? monthOf[i] : extraMonth;
+      c.className = 'cell ' + (goldBand && m === goldBand ? 'now' : 'f');
+      c._m = m;
+    } else { c.className = 'cell'; c._m = null; }
+  }
+  const paid = Math.round(upto * PER_CELL);
+  document.getElementById('paidBig').textContent = '$' + paid.toLocaleString();
+  document.getElementById('colpct').textContent = Math.round(upto / TOTAL * 100) + '%';
+}
+
+// ---- walls ----
+function renderWall() {
+  const host = document.getElementById('walls');
+  host.innerHTML = '';
+  const total = Math.round(auto.start / auto.perBrick);
+  const left = Math.max(0, Math.round(auto.current / auto.perBrick));
+  const gone = total - left;
+  const w = document.createElement('div'); w.className = 'wall' + (left === 0 ? ' dead' : '');
+  w.innerHTML = '<div class="wh"><span>' + auto.name + '</span><span class="meta">' + left + ' of ' + total + ' bricks left · $' + auto.perBrick + ' each</span></div>';
+  const grid = document.createElement('div'); grid.className = 'bricks';
+  let b = 0; const perRow = 9; const rows = Math.ceil(total / perRow);
+  // standing bricks at the bottom, gone (torn) at the top — you demolish from the top down
+  for (let r = rows - 1; r >= 0; r--) {
+    const row = document.createElement('div'); row.className = 'brow' + (r % 2 ? ' off' : '');
+    for (let i = 0; i < perRow && b < total; i++, b++) {
+      const idx = b;                       // 0..total-1 from bottom
+      const br = document.createElement('div');
+      const standing = idx < left;
+      const isGold = idx === left - 1;     // next to fall = top standing brick
+      br.className = 'brick' + (standing ? (isGold ? ' gold' : '') : ' gone');
+      row.appendChild(br);
+    }
+    grid.appendChild(row);
+  }
+  w.appendChild(grid);
+  const ks = document.createElement('div'); ks.className = 'keystone' + (left === 0 ? ' show' : '');
+  ks.innerHTML = left === 0
+    ? '✦ &nbsp;<input value="Never again. — C.A." spellcheck="false"> <span style="font-size:10px;color:rgba(28,61,46,0.55)">· sign your keystone</span>'
+    : '';
+  w.appendChild(ks);
+  host.appendChild(w);
+}
+
+// ---- toast ----
+let toastT;
+function toast(html, ms = 4200) {
+  const t = document.getElementById('toast');
+  t.innerHTML = html; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), ms);
+}
+
+// ---- replay ----
+let playing = false;
+function replay() {
+  if (playing) return; playing = true;
+  document.getElementById('playBtn').disabled = true;
+  paint(0);
+  let m = 1;
+  const bands = [];
+  // precompute cumulative cell count at end of each month
+  let a = 0;
+  for (let mi = 1; mi <= 14; mi++) { a += monthPaid[mi]; bands.push(Math.min(FILLED_NOW, Math.round(a / PER_CELL))); }
+  const step = () => {
+    if (m > 14) {
+      playing = false; document.getElementById('playBtn').disabled = false;
+      paint(FILLED_NOW);
+      toast('<div class="hd">14 MONTHS, REPLAYED</div>You\'ve laid <b>' + FILLED_NOW + ' courses</b> — $' + Math.round(FILLED_NOW*PER_CELL).toLocaleString() + ' of principal, gone for good. Two debts slain. Keep building.');
+      return;
+    }
+    paint(bands[m-1], m);
+    if (DATA.kills[m]) toast('<div class="hd">MONTH ' + m + '</div>💥 <b>' + DATA.kills[m].join(', ') + '</b> — slain. Its bricks are now part of your column.', 1400);
+    m++;
+    setTimeout(step, 680);
+  };
+  step();
+}
+
+// ---- log a payment ----
+function logPayment(amount) {
+  if (playing) return;
+  // principal this payment (auto loan @ 6.9%: interest on current balance)
+  const interest = auto.current * auto.apr0 / 12;
+  const principal = Math.max(0, amount - interest);
+  const before = auto.current;
+  auto.current = Math.max(0, auto.current - principal);
+  const bricksTorn = Math.round(before/auto.perBrick) - Math.round(auto.current/auto.perBrick);
+  // grow the column by the same principal
+  extraMonth++;
+  const add = Math.round(principal / PER_CELL);
+  filled = Math.min(TOTAL, FILLED_NOW_DYN() + add);
+  FILLED_EXTRA += add;
+  paint(FILLED_NOW + FILLED_EXTRA);
+  renderWall();
+  const daysBought = Math.round(principal / 30);   // illustrative: ~$30/day of future freedom
+  const killed = auto.current <= 0;
+  toast(
+    '<div class="hd">PAYMENT RECEIPT</div>' +
+    '<div class="rl"><span>Payment · Auto loan</span><b>$' + amount.toLocaleString() + '</b></div>' +
+    '<div class="rl"><span>Principal slain</span><b>$' + Math.round(principal).toLocaleString() + '</b></div>' +
+    '<div class="rl"><span>Bricks torn down</span><b>' + bricksTorn + ' ▓</b></div>' +
+    '<div class="rl"><span>Date moved closer</span><b>~' + daysBought + ' days</b></div>' +
+    (killed ? '<div style="margin-top:7px;color:#C5A95A;font-weight:600">✦ Auto loan demolished — sign your keystone.</div>'
+            : '<div class="rl"><span>Bricks left on this wall</span><b>' + Math.round(auto.current/auto.perBrick) + '</b></div>')
+  , 5200);
+}
+auto.apr0 = 0.069;
+let FILLED_EXTRA = 0;
+function FILLED_NOW_DYN(){ return FILLED_NOW; }
+
+// ---- tooltip (cell notes) ----
+const tip = document.getElementById('tip');
+colEl.addEventListener('mousemove', (e) => {
+  const c = e.target.closest('.cell');
+  if (!c || !c._m) { tip.style.opacity = 0; return; }
+  const m = c._m;
+  const isExtra = m > 14;
+  const paid = isExtra ? null : monthPaid[m];
+  let txt = isExtra ? '<b>This month</b> · the course you just laid' : '<b>Month ' + m + '</b> · $' + paid + ' principal';
+  if (DATA.kills[m]) txt += '<br>💥 ' + DATA.kills[m].join(', ') + ' died here';
+  tip.innerHTML = txt;
+  tip.style.left = (e.clientX + 14) + 'px';
+  tip.style.top = (e.clientY + 14) + 'px';
+  tip.style.opacity = 1;
+});
+colEl.addEventListener('mouseleave', () => tip.style.opacity = 0);
+
+// ---- wire controls ----
+document.getElementById('amt').addEventListener('input', e => document.getElementById('amtLab').textContent = '$' + (+e.target.value).toLocaleString());
+document.getElementById('playBtn').addEventListener('click', replay);
+document.getElementById('payBtn').addEventListener('click', () => logPayment(+document.getElementById('amt').value));
+document.getElementById('resetBtn').addEventListener('click', () => { FILLED_EXTRA = 0; extraMonth = 14; auto.current = DATA.auto.current; paint(FILLED_NOW); renderWall(); document.getElementById('toast').classList.remove('show'); });
+
+// init
+paint(FILLED_NOW);
+renderWall();
+</script>
+</body>
+</html>
