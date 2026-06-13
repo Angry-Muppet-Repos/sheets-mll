@@ -89,13 +89,17 @@ sales screenshot).
 ## 5 · Debts — [NEW] (the registry — the only setup typing)
 Rows 10–34 (25 slots):
 - Editable (yellow): `Debt name · Type (dropdown: Card / Auto /
-  Student / Personal / Medical / Mortgage / Other) · Starting balance ·
+  Student / Personal / Medical / Mortgage / Other) · Statement balance ·
   APR · Min payment · Due day (1–28) · In plan? (Yes/No) · My order
-  (rank, used by My Order strategy) · Balance override`
-- **Balance override** is the statement true-up: leave blank and
-  current balance computes from Starting − principal logged; type the
-  statement figure and it wins (caption: "check in monthly — your
-  statement is the truth").
+  (rank, used by My Order strategy)`
+- **Statement balance** is the anchor + the monthly check-in: type your
+  current balance at setup, and re-type it when each statement arrives.
+  It is the one number every bill shows clearly. Between check-ins,
+  logged payments adjust the current balance by the engine's estimated
+  principal (03); re-entering the statement balance re-anchors to truth
+  and absorbs interest drift, promo rates, fees, and new charges.
+  Caption: "check in monthly — your statement is the truth; we estimate
+  the interest for you."
 - Computed (locked): Current balance · Status chip (ACTIVE · PAID ✓ ·
   TRACKED when out of plan · **UNDERWATER** when the minimum doesn't
   cover one month's interest — the warning every card statement hides)
@@ -104,13 +108,15 @@ Rows 10–34 (25 slots):
 - "In plan? = No" guidance caption names the mortgage case explicitly.
 
 ## 6 · Payments Log — [ADAPT of the sibling logs]
-`Date · Debt (dropdown) · Amount · Interest portion (optional, from the
-statement) · Note · Month (hidden helper)`
+`Date · Debt (dropdown) · Amount · Est. interest (computed) · Est.
+principal (computed) · Note · Month (hidden helper)`
+- You type **Date · Debt · Amount only.** The sheet estimates the
+  interest from the debt's APR (`balance × APR/12`) and shows it +
+  principal — you never have to know the split your bill hides (03).
 - Capacity **5,000 rows**; prewired validations + Month formula; filter
   + frozen header; Renumber Payments menu item (Sales Log pattern).
-- Principal applied = Amount − Interest portion (blank portion ⇒ the
-  whole payment counts as principal; the override column on Debts is
-  the monthly truth-up for the difference).
+- The estimate moves the temple immediately; the monthly **statement
+  balance** on Debts trues it up (03). Logging also feeds the streaks.
 
 ## 7 · Progress — [NEW] (the Stylobate + streaks — the saving tab, 05)
 - **The Stylobate**: the buffer as the temple's stone base. SAVED

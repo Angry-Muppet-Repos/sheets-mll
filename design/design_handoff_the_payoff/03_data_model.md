@@ -22,23 +22,29 @@ neighbors and the registry mirror). Slab-written with per-tab toasts.
 | A | # | auto |
 | B | Debt name | yellow, required |
 | C | Type | dropdown: Card · Auto · Student · Personal · Medical · Mortgage · Other |
-| D | Starting balance | yellow, number |
+| D | Statement balance | yellow — your current balance from the latest statement (also the setup anchor). Re-enter monthly to true up. |
 | E | APR | yellow, percent |
 | F | Min payment | yellow, number |
 | G | Due day | yellow, 1–28 |
 | H | In plan? | dropdown Yes/No, default Yes — No = tracked, excluded from strategy + date |
 | I | My order | yellow rank, used only by the My Order strategy (blanks sort last by balance) |
-| J | Balance override | yellow — statement true-up; when set it IS the current balance |
-| K | Current balance | computed: `=IF(J<>"", J, D − principal_logged)` |
-| L | Status | computed chip: ACTIVE · PAID ✓ (current ≤ 0) · TRACKED (H = No) |
+| J | Last checked | computed — the date of the most recent statement-balance entry / payment since |
+| K | Current balance | computed: statement balance (D) − Σ estimated principal of payments logged since it was entered |
+| L | Status | computed chip: ACTIVE · PAID ✓ (current ≤ 0) · TRACKED (H = No) · UNDERWATER (min ≤ bal×APR/12) |
 | M | Payoff date | computed from the active engine block ("beyond horizon · 10+ yrs" past the dial) |
 | N | Projected interest | computed from the active block |
 | O | Share bar | SPARKLINE of K ÷ total |
 
-principal_logged = `SUMIFS(Payments!Amount, Debt, name) −
-SUMIFS(Payments!Interest, Debt, name)` (blank interest portions count
-as zero — the whole payment reads as principal; the override column is
-the monthly correction).
+**The owner never enters interest.** Each logged payment's interest is
+**estimated by the engine** from the APR (`running balance × APR/12` —
+the same math the projection uses), and principal = Amount − that
+estimate. Current balance (K) = the **statement balance** (D) minus the
+estimated principal of payments logged since D was last entered — so a
+payment moves the temple immediately (estimate), and re-typing the
+statement balance each month **re-anchors to truth**, silently absorbing
+estimate drift, promo rates, annual fees, or new charges. The one number
+every bill shows clearly is the balance; the interest split (which bills
+often hide) is never required.
 
 Keyword-rule columns for Bank Import sit to the right (Foundation
 pattern: match text → debt name), named `cc_keyword_rules`.
@@ -49,10 +55,15 @@ pattern: match text → debt name), named `cc_keyword_rules`.
 |---|---|---|
 | A | Date | required |
 | B | Debt | dropdown `cc_debts_list` |
-| C | Amount | number |
-| D | Interest portion | optional, from the statement |
-| E | Note | free |
-| F | Month | hidden helper `=TEXT(A,"yyyy-mm")` |
+| C | Amount | number (the only money you type) |
+| D | Est. interest | **computed**, read-only: `running balance × APR/12` at this payment (transparency — where the money went) |
+| E | Est. principal | **computed**, read-only: Amount − Est. interest |
+| F | Note | free |
+| G | Month | hidden helper `=TEXT(A,"yyyy-mm")` |
+
+The owner types Date · Debt · Amount only. D/E are the engine showing its
+work; nothing depends on the owner knowing them. The monthly statement
+check-in on Debts!D is the true-up.
 
 ## The projection engine (the product's heart)
 
