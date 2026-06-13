@@ -300,7 +300,8 @@ const EXPORTS = [
   'MOCK', 'DEBT', 'PAY', 'ENG', 'DEBT_RAMP', 'STONE', 'GOLD_ACHIEVE', 'STRATEGY_DEFAULT',
   'generateMockDebts_', 'generateMockPayments_', 'generateMockContributions_',
   'mockInPlanDebts_', 'rankDebts_', 'simulateSchedule_', 'simulateBaseline_',
-  'paymentEstInterest_'
+  'paymentEstInterest_', 'parseCsvLine_', 'sniffColumns_', 'matchDebt_',
+  'mapBankRows_', 'cleanNum_', 'keyOf_', 'parseAmount_'
 ];
 const factory = new Function('SpreadsheetApp', 'PropertiesService', 'Utilities', 'Logger', 'HtmlService',
   src + '\n;return {' + EXPORTS.map(n => n + ': (typeof ' + n + '!=="undefined")?' + n + ':undefined').join(',') + '};');
@@ -384,7 +385,7 @@ function enclosingFn(lineNo) {
 const byFn = {};
 mockUses.forEach(n => { const f = enclosingFn(n); (byFn[f] = byFn[f] || []).push(n); });
 const gatedFns = ['generateMockDebts_', 'generateMockPayments_', 'generateMockContributions_',
-  'mockInPlanDebts_', 'MOCK', 'mockPaymentDates_'];
+  'mockInPlanDebts_', 'mockTempleDebts_', 'MOCK', 'mockPaymentDates_'];
 let d3 = 0;
 Object.keys(byFn).forEach(fn => {
   if (gatedFns.includes(fn)) { console.log('   ' + fn + ': ' + byFn[fn].length + ' uses — generator/constant (invoked only behind mode gates)'); return; }
@@ -605,6 +606,33 @@ let eFail = 0;
 for (const [n2, ok, got] of eChecks) { if (!ok) { eFail++; console.log('  FAIL got ' + got + '  ' + n2); } }
 section('e. mock integrity', eFail, eChecks.length);
 
+// ───────────── f. functional — Bank CSV import core ─────────────
+ss = new SSStub(); // keyOf_ reads the timezone off the active spreadsheet
+const fChecks = [];
+fChecks.push(['parseCsvLine handles quoted commas', JSON.stringify(api.parseCsvLine_('06/12/2026,"CHASE, CARD",-196.00')) === JSON.stringify(['06/12/2026', 'CHASE, CARD', '-196.00']), '']);
+const sn = api.sniffColumns_(['Posting Date', 'Description', 'Amount']);
+fChecks.push(['sniffColumns finds Date/Description/Amount', sn.date === 0 && sn.desc === 1 && sn.amount === 2, JSON.stringify(sn)]);
+fChecks.push(['cleanNum: -196.00 → -196, (50) → -50, $1,234 → 1234', api.cleanNum_('-196.00') === -196 && api.cleanNum_('(50)') === -50 && api.cleanNum_('$1,234') === 1234, '']);
+fChecks.push(['parseAmount uses Amount column', api.parseAmount_(['x', 'y', '-196'], { amount: 2, debit: -1, credit: -1 }) === -196, '']);
+const rules = [{ keyword: 'CHASE', debt: 'Wrong' }, { keyword: 'CHASE CARD', debt: 'Visa ····4417' }, { keyword: 'TOYOTA FIN', debt: 'Auto loan' }, { keyword: 'SALLIE MAE', debt: 'Student loan' }];
+fChecks.push(['matchDebt longest-keyword-wins', api.matchDebt_('ACH PYMT CHASE CARD', rules) === 'Visa ····4417', api.matchDebt_('ACH PYMT CHASE CARD', rules)]);
+fChecks.push(['matchDebt returns null with no rule', api.matchDebt_('STARBUCKS', rules) === null, '']);
+const parsed = [
+  { date: new Date(2026, 5, 12), desc: 'ACH PYMT CHASE CARD', amount: 196 },
+  { date: new Date(2026, 5, 12), desc: 'AUTOPAY TOYOTA FIN', amount: 647 },
+  { date: new Date(2026, 5, 10), desc: 'SALLIE MAE EDU', amount: 190 },
+  { date: new Date(2026, 5, 9), desc: 'STARBUCKS COFFEE', amount: 6 }
+];
+const existing = {}; existing[api.keyOf_(new Date(2026, 5, 10), 'Student loan', 190)] = true;
+const res = api.mapBankRows_(parsed, rules, existing);
+fChecks.push(['mapBankRows: 2 new (Chase, Toyota)', res.toAppend.length === 2 && res.toAppend[0][1] === 'Visa ····4417' && res.toAppend[1][1] === 'Auto loan', res.toAppend.length]);
+fChecks.push(['mapBankRows: Sallie Mae deduped against the log', res.dup === 1, res.dup]);
+fChecks.push(['mapBankRows: Starbucks has no rule (unmatched)', res.unmatched.length === 1, res.unmatched.length]);
+fChecks.push(['mapBankRows: re-running appends nothing (all now dup)', api.mapBankRows_(parsed, rules, (function () { const e = {}; res.toAppend.forEach(r => e[api.keyOf_(r[0], r[1], r[2])] = true); e[api.keyOf_(new Date(2026, 5, 10), 'Student loan', 190)] = true; return e; })()).toAppend.length === 0, '']);
+let fFail = 0;
+for (const [n5, ok, got] of fChecks) { if (!ok) { fFail++; console.log('  FAIL got ' + got + '  ' + n5); } }
+section('f. functional (Bank CSV import core)', fFail, fChecks.length);
+
 // ───────────── g. rebuild resilience — building OVER a stale workbook ─────────────
 CURRENT_MODE = 'func';
 ss = new SSStub();
@@ -626,9 +654,11 @@ section('g. rebuild resilience', gFail, gChecks.length);
 // Every cross-sheet column reference must appear in this REVIEWED
 // inventory — a novel reference fails until re-reviewed against 02/03.
 const A1_ALLOWED = {
-  'Debts': ['B', 'B:B', 'D', 'E', 'F', 'H', 'I', 'K', 'S', 'A:O'],
+  'Debts': ['B', 'B:B', 'D', 'E', 'F', 'H', 'I', 'K', 'M', 'N', 'S', 'A:O'],
   'Payments Log': ['A', 'B', 'E'],
-  '_Engine': ['B:Z'],
+  // _Engine scalars (row 18 + block summaries) the views read, plus the
+  // mirror block B:Z and the active-timeline column AE.
+  '_Engine': ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'AE', 'B:Z'],
   '_Config': ['B']
 };
 let hFail = 0;

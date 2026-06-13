@@ -1085,9 +1085,16 @@ function buildEngine_(sheet, mode) {
     M: '=SUMPRODUCT($B$' + ENG.ROW_CONSUMER + ':$Z$' + ENG.ROW_CONSUMER + ',$B$' + ENG.ROW_BAL0 + ':$Z$' + ENG.ROW_BAL0 + ')',
     N: '=SUMPRODUCT($B$' + ENG.ROW_CONSUMER + ':$Z$' + ENG.ROW_CONSUMER + ',$B$' + ENG.ROW_START + ':$Z$' + ENG.ROW_START + '-$B$' + ENG.ROW_BAL0 + ':$Z$' + ENG.ROW_BAL0 + ')',
     O: '=SUMPRODUCT($B$' + ENG.ROW_CONSUMER + ':$Z$' + ENG.ROW_CONSUMER + ',$B$' + ENG.ROW_START + ':$Z$' + ENG.ROW_START + ')',
-    P: '=IF($B$' + sr + '>=' + PAYOFF_HORIZON_MONTHS + ',"beyond horizon",TEXT(EDATE(cc_engine_anchor,$B$' + sr + '),"mmm yyyy"))'
+    P: '=IF(SUMPRODUCT($B$' + ENG.ROW_INPLAN + ':$Z$' + ENG.ROW_INPLAN + ')=0,"—",IF($B$' + sr + '>=' + PAYOFF_HORIZON_MONTHS + ',"beyond horizon",TEXT(EDATE(cc_engine_anchor,$B$' + sr + '),"mmm yyyy")))'
   };
   Object.keys(scalars).forEach(function (c) { sheet.getRange(c + sr).setFormula(scalars[c]); });
+
+  // active monthly-total timeline (col AE) — the balance line The Plan reads
+  var snowD = ENG_DATA0(engBlockByKey_('snow').top), avalD = ENG_DATA0(engBlockByKey_('aval').top), custD = ENG_DATA0(engBlockByKey_('cust').top);
+  var tl = [];
+  for (var k = 0; k <= PAYOFF_HORIZON_MONTHS; k++) tl.push(['=CHOOSE($B$' + ENG.ROW_ACTIVE_IDX + ',AC' + (snowD + k) + ',AC' + (avalD + k) + ',AC' + (custD + k) + ')']);
+  sheet.getRange(snowD, 31, tl.length, 1).setFormulas(tl);
+  ENG.TIMELINE_FIRST = snowD; ENG.TIMELINE_LAST = snowD + PAYOFF_HORIZON_MONTHS;
 
   SpreadsheetApp.flush();
 }
@@ -1164,37 +1171,23 @@ function writeEngineBlock_(sheet, blockIdx) {
  * reads; the gamified surfaces are painted in section 12.)
  */
 
-// shared: the strategy + extra controls live on The Plan and are named.
-function buildPlan_(sheet, mode) {
-  ensureGrid_(sheet, 60, 16);
-  chrome_(sheet, TABS.PLAN, 'N', '');
-  buildPlanBody_(sheet, mode);     // section 12
+// The visual tabs use a narrow-cell CANVAS so the monument can be painted
+// as a colonnade of small squares; content blocks merge across the cells.
+var CANVAS = { COLS: 30, LAST: 'AD', CELL_W: 19, TEMPLE_H: 11 };
+function canvasSetup_(sheet, tabName, subLabel, endRow) {
+  ensureGrid_(sheet, endRow, CANVAS.COLS);
+  chrome_(sheet, tabName, CANVAS.LAST, subLabel);
+  for (var c = 1; c <= CANVAS.COLS; c++) sheet.setColumnWidth(c, CANVAS.CELL_W);
+  // Parchment backdrop, NOT registered as themable — the fixed stone-and-
+  // gold monument sits on it and must never recolor with the palette (05).
+  sheet.getRange(CONTENT_START_ROW, 1, endRow - CONTENT_START_ROW + 1, CANVAS.COLS).setBackground(BRAND.PARCHMENT);
 }
-function buildCompare_(sheet, mode) {
-  ensureGrid_(sheet, 60, 16);
-  chrome_(sheet, TABS.COMPARE, 'N', 'SAME MONEY · TWO ROADS');
-  buildCompareBody_(sheet, mode);  // section 12
-}
-function buildProgress_(sheet, mode) {
-  ensureGrid_(sheet, 70, 16);
-  chrome_(sheet, TABS.PROGRESS, 'N', 'THE STYLOBATE + YOUR STREAKS');
-  buildProgressBody_(sheet, mode); // section 12
-}
-function buildDashboard_(sheet, mode) {
-  ensureGrid_(sheet, 80, 16);
-  chrome_(sheet, TABS.DASHBOARD, 'N', 'YOUR TEMPLE TODAY');
-  buildDashboardBody_(sheet, mode); // section 12
-}
-function buildHall_(sheet, mode) {
-  ensureGrid_(sheet, 70, 16);
-  chrome_(sheet, TABS.HALL, 'N', 'STEP INSIDE THE TEMPLE');
-  buildHallBody_(sheet, mode);     // section 12
-}
-function buildStartHere_(sheet, mode) {
-  ensureGrid_(sheet, 60, 12);
-  chrome_(sheet, TABS.START, 'J', 'SETUP');
-  buildStartBody_(sheet, mode);    // section 12
-}
+function buildPlan_(sheet, mode)      { canvasSetup_(sheet, TABS.PLAN, '', 80); buildPlanBody_(sheet, mode); }
+function buildCompare_(sheet, mode)   { canvasSetup_(sheet, TABS.COMPARE, 'SAME MONEY · TWO ROADS', 70); buildCompareBody_(sheet, mode); }
+function buildProgress_(sheet, mode)  { canvasSetup_(sheet, TABS.PROGRESS, 'THE STYLOBATE + YOUR STREAKS', 80); buildProgressBody_(sheet, mode); }
+function buildDashboard_(sheet, mode) { canvasSetup_(sheet, TABS.DASHBOARD, 'YOUR TEMPLE TODAY', 90); buildDashboardBody_(sheet, mode); }
+function buildHall_(sheet, mode)      { canvasSetup_(sheet, TABS.HALL, 'STEP INSIDE THE TEMPLE', 70); buildHallBody_(sheet, mode); }
+function buildStartHere_(sheet, mode) { canvasSetup_(sheet, TABS.START, 'SETUP', 60); buildStartBody_(sheet, mode); }
 
 /**
  * Column & Co. — The Payoff v1.0
@@ -1253,6 +1246,20 @@ function onEdit(e) {
       sheet.getRange(row, DEBT.COL_ANCHOR).setValue(new Date());
       if (!sheet.getRange(row, DEBT.COL_START).getValue()) sheet.getRange(row, DEBT.COL_START).setValue(v);
     }
+  }
+
+  // The Plan: scrubbing the Time Machine (C12) re-paints the temple at that
+  // month on the active plan. (Live only; the build paints the default view.)
+  if (name === TABS.PLAN && row === 12 && col === 3) {
+    try { repaintTempleAt_(sheet, 21, liveTempleInfo_(SpreadsheetApp.getActive()), Number(e.range.getValue()) || 0, { H: 10 }); } catch (e3) {}
+  }
+  // Compare: the shared race month (C12) re-paints both lanes.
+  if (name === TABS.COMPARE && row === 12 && col === 3) {
+    try {
+      var ssc = SpreadsheetApp.getActive(), mm = Number(e.range.getValue()) || 0;
+      repaintTempleAt_(sheet, 19, liveTempleInfo_(ssc, 'snowball'), mm, { H: 9, win: [2, 15] });
+      repaintTempleAt_(sheet, 19, liveTempleInfo_(ssc, 'avalanche'), mm, { H: 9, win: [17, 30] });
+    } catch (e4) {}
   }
 }
 
@@ -1324,84 +1331,699 @@ function _applyTheme_charcoal_mint() { applyTheme('charcoal-mint'); }
 function _applyTheme_olive_cream()   { applyTheme('olive-cream'); }
 function _applyTheme_custom()        { applyTheme('custom'); }
 
-// Menu-item handlers (sidebars/prompts in section 13; placeholders toast).
-function addDebt() { _menuTODO_('Add a debt'); }
-function logPayment() { _menuTODO_('Log a payment'); }
-function logContribution() { _menuTODO_('Log a Stylobate contribution'); }
-function watchTheBuild() { _menuTODO_('Watch the build'); }
-function frameAWin() { _menuTODO_('Frame a win'); }
-function openHelpSidebar() { SpreadsheetApp.getActive().toast('Open the Start Here tab for setup help.', CC.BRAND, 4); }
-function _menuTODO_(label) { SpreadsheetApp.getActive().toast(label + ' — use the tab directly for now.', CC.BRAND, 4); }
+// ── Menu-item handlers ────────────────────────────────────────────────
+function addDebt() {
+  var ui = SpreadsheetApp.getUi(), ss = SpreadsheetApp.getActive();
+  var debts = ss.getSheetByName(TABS.DEBTS);
+  var resp = ui.prompt('Add a debt', 'Debt name (e.g. "Visa ····1234"):', ui.ButtonSet.OK_CANCEL);
+  if (resp.getSelectedButton() !== ui.Button.OK) return;
+  var name = String(resp.getResponseText() || '').trim();
+  if (!name) return;
+  var col = debts.getRange(DEBT.FIRST_ROW, DEBT.COL_NAME, DEBT_CAPACITY, 1).getValues();
+  for (var i = 0; i < col.length; i++) {
+    if (String(col[i][0]).trim().toLowerCase() === name.toLowerCase()) { ui.alert('"' + name + '" is already listed.'); return; }
+    if (!col[i][0]) {
+      var row = DEBT.FIRST_ROW + i;
+      debts.getRange(row, DEBT.COL_NAME).setValue(name);
+      debts.getRange(row, DEBT.COL_INPLAN).setValue('Yes');
+      debts.activate(); debts.getRange(row, DEBT.COL_STMT).activate();
+      ss.toast('Added "' + name + '" — fill in the statement balance, APR, and minimum →', CC.BRAND, 5);
+      return;
+    }
+  }
+  ui.alert('The registry is full (' + DEBT_CAPACITY + ' slots). Raise DEBT_CAPACITY and rebuild.');
+}
+
+function logPayment() {
+  var ui = SpreadsheetApp.getUi(), ss = SpreadsheetApp.getActive();
+  var r1 = ui.prompt('Log a payment', 'Debt name (exactly as on the Debts tab):', ui.ButtonSet.OK_CANCEL);
+  if (r1.getSelectedButton() !== ui.Button.OK) return;
+  var debt = String(r1.getResponseText() || '').trim(); if (!debt) return;
+  var r2 = ui.prompt('Log a payment', 'Amount paid to "' + debt + '":', ui.ButtonSet.OK_CANCEL);
+  if (r2.getSelectedButton() !== ui.Button.OK) return;
+  var amt = cleanNum_(r2.getResponseText()); if (amt == null) { ui.alert('Type a number.'); return; }
+  var pay = ss.getSheetByName(TABS.PAYMENTS), row = findFirstEmptyRow_(pay, PAY.COL_DATE, PAY.FIRST_ROW, PAYMENTS_CAPACITY);
+  pay.getRange(row, PAY.COL_DATE).setValue(new Date());
+  pay.getRange(row, PAY.COL_DEBT).setValue(debt);
+  pay.getRange(row, PAY.COL_AMOUNT).setValue(Math.abs(amt));
+  ss.toast('Logged ' + money_(Math.abs(amt)) + ' to ' + debt + ' — your temple just moved.', CC.BRAND, 5);
+}
+
+function logContribution() {
+  var ui = SpreadsheetApp.getUi(), ss = SpreadsheetApp.getActive();
+  var prog = ss.getSheetByName(TABS.PROGRESS);
+  var resp = ui.prompt('Log a Stylobate contribution', 'Amount to lay in stone (negative to draw down):', ui.ButtonSet.OK_CANCEL);
+  if (resp.getSelectedButton() !== ui.Button.OK) return;
+  var amt = cleanNum_(resp.getResponseText()); if (amt == null) { ui.alert('Type a number.'); return; }
+  var LEDGER_TOP = 30, row = findFirstEmptyRow_(prog, 2, LEDGER_TOP, 50);
+  prog.getRange(row, 2).setValue(new Date());
+  prog.getRange(row, 6).setValue(amt);
+  var goal = Number(prog.getRange('C12').getValue()) || STYLOBATE_GOAL_DEFAULT;
+  var saved = 0, vals = prog.getRange(LEDGER_TOP, 6, 50, 1).getValues();
+  vals.forEach(function (v) { saved += Number(v[0]) || 0; });
+  var pct = Math.min(100, Math.round(saved / goal * 100));
+  ss.toast(saved >= goal ? '✦ The Stylobate is complete — solid stone under your temple.'
+    : '+' + money_(amt) + ' laid in stone · ' + pct + '% solid · ' + money_(goal - saved) + ' to go.', CC.BRAND, 5);
+}
+
+function watchTheBuild() {
+  var ss = SpreadsheetApp.getActive(), dash = ss.getSheetByName(TABS.DASHBOARD);
+  if (!dash) return;
+  dash.activate();
+  ss.toast('Watch the build — replaying your climb, course by course.', CC.BRAND, 4);
+  // Live replay: re-paint the Dashboard temple at each month, past →
+  // present → projection, flush + a dignified pause per frame (~0.6s).
+  try { replayTemple_(dash); } catch (e) {}
+}
+
+function frameAWin() {
+  SpreadsheetApp.getActive().toast('Frame a win — open The Hall, crop a plaque or trophy card, and share it. ' +
+    'No auto-post; the card + a caption are yours to screenshot.', CC.BRAND, 6);
+}
+function openHelpSidebar() { SpreadsheetApp.getActive().toast('Open the Start Here tab — setup is six steps.', CC.BRAND, 4); }
+
+function findFirstEmptyRow_(sheet, col, first, count) {
+  var vals = sheet.getRange(first, col, count, 1).getValues();
+  for (var i = 0; i < vals.length; i++) if (!vals[i][0]) return first + i;
+  return first + count;
+}
 
 /**
  * Column & Co. — The Payoff v1.0
  * 12 · View bodies + the gamified monument (Temple · Time Machine · Race ·
- * Stylobate · Hall). Painted cell grids + conditional formatting + cell
- * notes; the debt ramp + gold are FIXED constants (05 color rule).
- * (Scaffold versions below; enriched next.)
+ * Stylobate · Hall). Painted cell grids + cell notes; the debt ramp + gold
+ * are FIXED constants (05 color rule), never palette-derived, never
+ * registered as themable.
  */
+function clamp01_(x) { return Math.max(0, Math.min(1, x)); }
+// (view formulas reference the hidden engine as \'_Engine\'!$X$nn — quoted)
+
+// merged text cell across w columns (the building block of canvas tables)
+function gridText_(sheet, row, col, w, val, opts) {
+  opts = opts || {};
+  var a1 = columnToLetter_(col) + row, b1 = columnToLetter_(col + w - 1) + row;
+  var rng = sheet.getRange(a1 + ':' + b1);
+  if (w > 1) rng.merge();
+  if (opts.formula != null) rng.setFormula(opts.formula); else if (val != null) rng.setValue(val);
+  rng.setFontFamily(opts.font || FONT.BODY).setFontSize(opts.size || 11)
+    .setFontColor(opts.color || BRAND.BODY).setHorizontalAlignment(opts.h || 'left')
+    .setVerticalAlignment(opts.v || 'middle');
+  if (opts.bold) rng.setFontWeight('bold');
+  if (opts.italic) rng.setFontStyle('italic');
+  if (opts.bg) rng.setBackground(opts.bg);
+  if (opts.format) rng.setNumberFormat(opts.format);
+  if (opts.wrap) rng.setWrap(true);
+  if (opts.note) rng.setNote(opts.note);
+  return rng;
+}
+function zlabel_(sheet, row, text) {
+  gridText_(sheet, row, 2, CANVAS.COLS - 2, text, { size: 9, bold: true, color: BRAND.GOLD });
+}
+
+// The Temple — Grammar A. Uniform height H, width ∝ starting balance
+// (floor 2), each column fills bottom-up by % of ITS debt paid. The wall
+// of remaining debt sits above; the stylobate base below. FIXED stone +
+// debt-ramp + gold (never themed). debts: [{start, balAt, color, short}].
+function paintTemple_(sheet, top, debts, opts) {
+  opts = opts || {};
+  var H = opts.H || CANVAS.TEMPLE_H;
+  var winL = (opts.win && opts.win[0]) || 2, winR = (opts.win && opts.win[1]) || (CANVAS.COLS - 1);
+  var winW = winR - winL + 1, n = debts.length;
+  if (!n) {
+    gridText_(sheet, top + 2, winL, winW, 'Add your first debt on the Debts tab — your temple rises here.',
+      { font: FONT.DISPLAY, italic: true, size: 12, color: BRAND.CAPTION, h: 'center' });
+    return top + 6;
+  }
+  var sumStart = debts.reduce(function (a, d) { return a + Math.max(1, d.start); }, 0);
+  var avail = winW - 1 - (n - 1);
+  var widths = debts.map(function (d) { return Math.max(2, 2 + Math.round(Math.max(0, avail - n * 2) * Math.max(1, d.start) / sumStart)); });
+  var totalW = function () { return widths.reduce(function (a, w) { return a + w; }, 0) + (n - 1); };
+  while (totalW() > winW) { var mx = 0; for (var q = 1; q < n; q++) if (widths[q] > widths[mx]) mx = q; if (widths[mx] <= 2) break; widths[mx]--; }
+  var TW = totalW(), left = winL + Math.max(0, Math.floor((winW - TW) / 2));
+  var done = debts.every(function (d) { return d.balAt <= 0.005; });
+
+  var rPed = top, rEnt = top + 1, rCap = top + 2, rCol0 = top + 3, rBase = rCol0 + H;
+  var beam = done ? GOLD_ACHIEVE : STONE.BEAM;
+  // pediment (centered) + entablature beam
+  var pedW = Math.max(3, Math.round(TW * 0.5)), pedLeft = left + Math.floor((TW - pedW) / 2);
+  sheet.getRange(rPed, pedLeft, 1, pedW).setBackground(beam);
+  sheet.getRange(rEnt, left, 1, TW).setBackground(beam);
+  if (done) gridText_(sheet, rPed, left, TW, 'DEBT-FREE', { h: 'center', font: FONT.DISPLAY, bold: true, size: 10, color: BRAND.FOREST });
+  // columns
+  var c = left;
+  debts.forEach(function (d, i) {
+    var w = widths[i], pct = clamp01_((d.start - d.balAt) / Math.max(1, d.start));
+    var f = Math.max(0, Math.min(H, Math.round(pct * H))), paid = d.balAt <= 0.005;
+    sheet.getRange(rCap, c, 1, w).setBackground(paid ? GOLD_ACHIEVE : STONE.EMPTY);
+    var grid = [];
+    for (var r = 0; r < H; r++) { var rowArr = []; var filled = r >= (H - f); for (var k = 0; k < w; k++) rowArr.push(filled ? d.color : STONE.EMPTY); grid.push(rowArr); }
+    sheet.getRange(rCol0, c, H, w).setBackgrounds(grid);
+    sheet.getRange(rBase, c, 1, w).setBackground(STONE.BEAM);
+    gridText_(sheet, rBase + 1, c, w, d.short, { h: 'center', size: 8, color: BRAND.BODY });
+    gridText_(sheet, rBase + 2, c, w, paid ? '✦' : Math.round(pct * 100) + '%',
+      { h: 'center', size: 9, bold: true, color: paid ? '#7a5a1e' : BRAND.FOREST });
+    c += w + 1;
+  });
+  var bottom = rBase + 2;
+  // stylobate (the saving base) — three steps widening downward
+  if (opts.showStylobate) {
+    var sf = clamp01_(opts.savedFrac || 0);
+    for (var s = 0; s < 3; s++) {
+      var stepW = Math.min(winW, TW + (2 - s) * 4), stepLeft = Math.max(winL, left - Math.floor((stepW - TW) / 2));
+      if (stepLeft + stepW - 1 > winR) stepW = winR - stepLeft + 1;
+      var rr = rBase + 1 + s + 1;          // below the labels
+      sheet.getRange(rr, stepLeft, 1, stepW).setBackground(sf > 0 ? STONE.BEAM : STONE.SAND);
+      var goldW = Math.round(stepW * sf);
+      if (goldW > 0) sheet.getRange(rr, stepLeft, 1, Math.min(stepW, goldW)).setBackground(GOLD_ACHIEVE);
+      sheet.setRowHeight(rr, 9);
+    }
+    bottom = rBase + 4;
+  }
+  sheet.setRowHeight(rPed, 13); sheet.setRowHeight(rEnt, 7); sheet.setRowHeight(rCap, 6);
+  for (var rh = rCol0; rh < rCol0 + H; rh++) sheet.setRowHeight(rh, 14);
+  sheet.setRowHeight(rBase, 6);
+  return bottom + 1;
+}
+
+// the consumer debts as temple columns at month M on a strategy (mock only)
+function mockTempleDebts_(monthM, strategy) {
+  var inPlan = mockInPlanDebts_(), rank = rankDebts_(inPlan, strategy);
+  var sched = simulateSchedule_(inPlan, rank, MOCK.extra), byName = {};
+  inPlan.forEach(function (d, i) { byName[d.name] = sched.bal[i]; });
+  var SHORT = { 'Rooms+ Store Card': 'Store', 'Medical bill': 'Medical', 'Visa ····4417': 'Visa', 'Auto loan': 'Auto', 'Student loan': 'Student' };
+  var out = [], ci = 0;
+  MOCK.debts.forEach(function (d) {
+    if (!d[6]) return;                               // out-of-plan: not a column
+    var arr = byName[d[0]], balAt = arr ? arr[Math.min(monthM, arr.length - 1)] : 0;
+    out.push({ start: d[2], balAt: balAt, color: debtColor_(ci), short: SHORT[d[0]] || d[0] });
+    ci++;
+  });
+  return out;
+}
+
+// the named yellow controls on The Plan (strategy · extra · time machine)
 function planControls_(sheet, mode) {
-  // strategy (C9) + extra (H9) + time machine (C12) — the named inputs
-  setCell_(sheet, 'B9', { value: 'STRATEGY', font: FONT.BODY, size: 9, bold: true, color: BRAND.CANOPY });
+  gridText_(sheet, 9, 2, 1, 'STRATEGY', { size: 9, bold: true, color: BRAND.CANOPY });
   var strat = SpreadsheetApp.newDataValidation().requireValueInList(STRATEGIES, true).build();
-  setCell_(sheet, 'C9', { value: STRATEGY_DEFAULT, merge: 'F9', bg: BRAND.YELLOW, font: FONT.BODY, size: 11, bold: true, color: BRAND.FOREST })
+  setCell_(sheet, 'C9', { value: STRATEGY_DEFAULT, merge: 'F9', bg: BRAND.YELLOW, font: FONT.BODY, size: 11, bold: true, color: BRAND.FOREST, h: 'left' })
     .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID).setDataValidation(strat);
-  setCell_(sheet, 'G9', { value: 'EXTRA · MONTHLY', font: FONT.BODY, size: 9, bold: true, color: BRAND.CANOPY });
-  setCell_(sheet, 'H9', { value: (mode === 'mock') ? MOCK.extra : 0, bg: BRAND.YELLOW, font: FONT.BODY, size: 11, bold: true, color: BRAND.FOREST, format: '$#,##0' })
+  gridText_(sheet, 9, 7, 1, 'EXTRA', { size: 9, bold: true, color: BRAND.CANOPY });
+  setCell_(sheet, 'H9', { value: (mode === 'mock') ? MOCK.extra : 0, bg: BRAND.YELLOW, font: FONT.BODY, size: 11, bold: true, color: BRAND.FOREST, format: '$#,##0', h: 'left' })
     .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
-  setCell_(sheet, 'B12', { value: 'TIME MACHINE · MONTH', font: FONT.BODY, size: 9, bold: true, color: BRAND.CANOPY });
-  setCell_(sheet, 'C12', { formula: '=IFERROR(MIN(' + PAYOFF_HORIZON_MONTHS + ',_Engine!$B$' + ENG.ROW_SCALARS + '),0)', bg: BRAND.YELLOW, font: FONT.BODY, size: 11, bold: true, color: BRAND.FOREST })
+  // what-if chips (live from the scenario blocks)
+  gridText_(sheet, 9, 10, 5, null, { h: 'center', size: 10, bold: true, color: '#7d6420', bg: BRAND.CHIP_FAIR_BG,
+    formula: '="+$' + SCENARIO_EXTRAS[0] + " → −\"&\'_Engine\'!$K$" + ENG.ROW_SCALARS + '&" mo"' });
+  gridText_(sheet, 9, 16, 5, null, { h: 'center', size: 10, bold: true, color: '#7d6420', bg: BRAND.CHIP_FAIR_BG,
+    formula: '="+$' + SCENARIO_EXTRAS[1] + " → −\"&\'_Engine\'!$L$" + ENG.ROW_SCALARS + '&" mo"' });
+  // time machine (the named scrubber cell)
+  gridText_(sheet, 12, 2, 1, 'TIME MACHINE', { size: 9, bold: true, color: BRAND.CANOPY });
+  setCell_(sheet, 'C12', { formula: '=IFERROR(MIN(' + PAYOFF_HORIZON_MONTHS + ',\'_Engine\'!$B$' + ENG.ROW_SCALARS + '),0)', bg: BRAND.YELLOW, font: FONT.BODY, size: 11, bold: true, color: BRAND.FOREST, h: 'center' })
     .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
+  gridText_(sheet, 12, 4, 10, null, { size: 10, italic: true, color: BRAND.CAPTION,
+    formula: '="month "&C12&" of your plan — type 0 for today, or the debt-free month to see the finished temple"' });
 }
 
 function buildPlanBody_(sheet, mode) {
-  var r = titleRow_(sheet, 'N', 'The Plan',
+  titleRow_(sheet, CANVAS.LAST, 'The Plan',
     'Pick a strategy, set your extra — then drag the Time Machine to stand in any month of your future.');
   planControls_(sheet, mode);
-  footer_(sheet, 40, 'N');
+  var sr = ENG.ROW_SCALARS;
+  // headline forest band (rows 14-17)
+  sheet.getRange(14, 2, 4, CANVAS.COLS - 2).setBackground(BRAND.FOREST);
+  gridText_(sheet, 14, 3, 8, 'DEBT-FREE', { size: 9, bold: true, color: BRAND.GOLD });
+  gridText_(sheet, 15, 3, 9, null, { formula: '=\'_Engine\'!$P$' + sr, font: FONT.DISPLAY, bold: true, size: 30, color: BRAND.PARCHMENT });
+  var stat = function (col, valF, cap) {
+    gridText_(sheet, 15, col, 5, null, { formula: valF, font: FONT.DISPLAY, bold: true, size: 18, color: BRAND.PARCHMENT });
+    gridText_(sheet, 16, col, 6, cap, { size: 9, color: '#C9D6CE' });
+  };
+  stat(13, '=\'_Engine\'!$B$' + sr + '&" mo"', 'left on this plan');
+  stat(18, '=TEXT(\'_Engine\'!$C$' + sr + ',"$#,##0")', 'interest on this plan');
+  stat(23, '=TEXT(\'_Engine\'!$H$' + sr + ',"$#,##0")', 'saved vs minimums');
+  sheet.setRowHeight(15, 34);
+
+  // the Time Machine temple (default = the debt-free month → finished temple)
+  zlabel_(sheet, 19, 'THE TIME MACHINE · STAND IN ANY MONTH OF YOUR PLAN');
+  var endRow = 22;
+  if (mode === 'mock') {
+    var data = mockTempleDebts_(simulateSchedule_(mockInPlanDebts_(), rankDebts_(mockInPlanDebts_(), 'snowball'), MOCK.extra).months, 'snowball');
+    endRow = paintTemple_(sheet, 21, data, { H: 10 });
+  } else { endRow = paintTemple_(sheet, 21, [], {}); }
+
+  // payoff order table (live, from the Debts computed columns)
+  var tr = endRow + 1;
+  zlabel_(sheet, tr, 'PAYOFF ORDER · WHEN EACH DEBT DIES ON THIS PLAN');
+  tr += 1;
+  var cols = [[2, 3, '#'], [5, 8, 'Debt'], [13, 5, 'Balance now'], [18, 3, 'APR'], [21, 5, 'Payoff'], [26, 5, 'Interest']];
+  cols.forEach(function (cc) { gridText_(sheet, tr, cc[0], cc[1], cc[2], { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: cc[0] >= 13 ? 'right' : 'left' }); });
+  for (var i = 0; i < 6; i++) {
+    var R = DEBT.FIRST_ROW + i, row = tr + 1 + i, DB = "'" + TABS.DEBTS + "'";
+    gridText_(sheet, row, 2, 3, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",IFERROR(INDEX(\'_Engine\'!$B$' + ENG.ROW_RANK_ACTIVE + ':$Z$' + ENG.ROW_RANK_ACTIVE + ',1,' + (i + 1) + '),"·"))', h: 'center', size: 10, color: BRAND.CAPTION });
+    gridText_(sheet, row, 5, 8, null, { formula: '=' + DB + '!$B$' + R, size: 11, color: BRAND.FOREST });
+    gridText_(sheet, row, 13, 5, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$K$' + R + ')', h: 'right', size: 11, format: '$#,##0' });
+    gridText_(sheet, row, 18, 3, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$E$' + R + ')', h: 'right', size: 10, color: BRAND.BODY, format: '0.0%' });
+    gridText_(sheet, row, 21, 5, null, { formula: '=' + DB + '!$M$' + R, h: 'right', size: 10, color: BRAND.BODY });
+    gridText_(sheet, row, 26, 5, null, { formula: '=' + DB + '!$N$' + R, h: 'right', size: 10, color: BRAND.BODY });
+  }
+  var afterTable = tr + 1 + 6;
+  // balance timeline + disclaimer
+  zlabel_(sheet, afterTable + 1, 'BALANCE TIMELINE · IN-PLAN TOTAL BY MONTH');
+  gridText_(sheet, afterTable + 2, 2, CANVAS.COLS - 2, null, { formula: sparkCol_('_Engine!$AE$' + ENG.TIMELINE_FIRST + ':$AE$' + ENG.TIMELINE_LAST, BRAND.CANOPY) });
+  sheet.setRowHeight(afterTable + 2, 40);
+  gridText_(sheet, afterTable + 4, 2, CANVAS.COLS - 2, 'Projections are estimates at monthly compounding, not financial advice and not a servicing statement. Your lender\'s figures are the truth — re-type your statement balance monthly on the Debts tab.', { size: 9, italic: true, color: BRAND.CAPTION, wrap: true });
+  footer_(sheet, afterTable + 7, CANVAS.LAST);
 }
+
 function buildCompareBody_(sheet, mode) {
-  titleRow_(sheet, 'N', 'Compare',
+  titleRow_(sheet, CANVAS.LAST, 'Compare',
     'Snowball against avalanche, computed in full. Same debts, same extra — watch them fill different columns.');
-  setCell_(sheet, 'B12', { value: 'RACE · MONTH', font: FONT.BODY, size: 9, bold: true, color: BRAND.CANOPY });
-  setCell_(sheet, 'C12', { value: (mode === 'mock') ? 23 : 0, bg: BRAND.YELLOW, font: FONT.BODY, size: 11, bold: true, color: BRAND.FOREST })
+  // verdict band
+  var snowT = engBlockByKey_('snow').top, avalT = engBlockByKey_('aval').top;
+  gridText_(sheet, 9, 2, CANVAS.COLS - 2, null, { bg: GOLD_ACHIEVE, color: BRAND.FOREST, bold: true, size: 11, h: 'center',
+    formula: '="Avalanche saves "&TEXT(MAX(0,\'_Engine\'!$E$' + snowT + '-\'_Engine\'!$E$' + avalT + '),"$#,##0")&" over the snowball  ·  the snowball\'s first win lands "&MAX(0,\'_Engine\'!$F$' + avalT + '-\'_Engine\'!$F$' + snowT + ')&" months earlier."' });
+  sheet.setRowHeight(9, 24);
+  // race scrubber
+  gridText_(sheet, 11, 2, 1, 'RACE · MONTH', { size: 9, bold: true, color: BRAND.CANOPY });
+  setCell_(sheet, 'C12', { value: (mode === 'mock') ? 23 : 0, bg: BRAND.YELLOW, font: FONT.BODY, size: 11, bold: true, color: BRAND.FOREST, h: 'center' })
     .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
-  footer_(sheet, 40, 'N');
+  gridText_(sheet, 12, 4, 12, 'the extra applies to BOTH lanes — the fair comparison. Type a month to race them.', { size: 10, italic: true, color: BRAND.CAPTION });
+
+  var lane = function (label, sub, blockTop, win, strat) {
+    gridText_(sheet, 14, win[0], win[1] - win[0] + 1, label, { font: FONT.DISPLAY, bold: true, size: 15, color: BRAND.FOREST });
+    gridText_(sheet, 15, win[0], win[1] - win[0] + 1, sub, { size: 9, italic: true, color: BRAND.CAPTION });
+    gridText_(sheet, 16, win[0], 4, null, { formula: '=\'_Engine\'!$D$' + blockTop + '&" mo"', font: FONT.DISPLAY, bold: true, size: 16, color: BRAND.FOREST });
+    gridText_(sheet, 16, win[0] + 4, 6, null, { formula: '=TEXT(\'_Engine\'!$E$' + blockTop + ',"$#,##0")&" interest"', size: 10, color: BRAND.BODY });
+    gridText_(sheet, 17, win[0], win[1] - win[0] + 1, null, { formula: '="first kill: "&\'_Engine\'!$G$' + blockTop + '&" · "&IFERROR(TEXT(EDATE(cc_engine_anchor,\'_Engine\'!$F$' + blockTop + '),"mmm yyyy"),"—")', size: 9, color: BRAND.CANOPY });
+    if (mode === 'mock') paintTemple_(sheet, 19, mockTempleDebts_(23, strat), { H: 9, win: win });
+    else paintTemple_(sheet, 19, [], { win: win });
+  };
+  lane('Snowball', 'smallest balance first', snowT, [2, 15], 'snowball');
+  lane('Avalanche', 'highest APR first', avalT, [17, 30], 'avalanche');
+  footer_(sheet, 48, CANVAS.LAST);
 }
+
 function buildProgressBody_(sheet, mode) {
-  titleRow_(sheet, 'N', 'Progress',
+  titleRow_(sheet, CANVAS.LAST, 'Progress',
     'Build the stone you stand on, and keep your streaks alive — the habits that keep you out of debt for good.');
-  setCell_(sheet, 'B12', { value: 'STYLOBATE GOAL', font: FONT.BODY, size: 9, bold: true, color: BRAND.CANOPY });
-  setCell_(sheet, 'C12', { value: STYLOBATE_GOAL_DEFAULT, bg: BRAND.YELLOW, font: FONT.BODY, size: 11, bold: true, color: BRAND.FOREST, format: '$#,##0' })
+  // the stylobate (buffer) — goal cell + computed SAVED + temple base
+  gridText_(sheet, 9, 2, 1, 'STYLOBATE GOAL', { size: 9, bold: true, color: BRAND.CANOPY });
+  setCell_(sheet, 'C12', { value: STYLOBATE_GOAL_DEFAULT, bg: BRAND.YELLOW, font: FONT.BODY, size: 11, bold: true, color: BRAND.FOREST, format: '$#,##0', h: 'center' })
     .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
-  footer_(sheet, 50, 'N');
+  gridText_(sheet, 9, 4, 1, '', {});
+  // contributions ledger (rows 28+) so SAVED can SUM it live
+  var ledgerTop = 30, contribs = (mode === 'mock') ? generateMockContributions_() : [];
+  gridText_(sheet, 9, 7, 1, 'SAVED', { size: 9, bold: true, color: BRAND.CANOPY });
+  gridText_(sheet, 9, 8, 4, null, { formula: '=TEXT(SUM(C' + ledgerTop + ':C' + (ledgerTop + 49) + '),"$#,##0")&" of "&TEXT(C12,"$#,##0")', font: FONT.DISPLAY, bold: true, size: 14, color: '#7a5a1e' });
+
+  zlabel_(sheet, 14, 'THE STYLOBATE · YOUR BUFFER, THE TEMPLE\'S BASE');
+  var savedFracF = 0;
+  if (mode === 'mock') {
+    var saved = contribs.reduce(function (a, c) { return a + c[1]; }, 0);
+    savedFracF = saved / STYLOBATE_GOAL_DEFAULT;
+    paintTemple_(sheet, 16, mockTempleDebts_(0, 'snowball'), { H: 9, showStylobate: true, savedFrac: savedFracF });
+  } else { paintTemple_(sheet, 16, [], { showStylobate: true, savedFrac: 0 }); }
+
+  // contributions ledger
+  zlabel_(sheet, 28, 'CONTRIBUTIONS · EACH ONE LAID IN STONE');
+  gridText_(sheet, 29, 2, 4, 'Date', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
+  gridText_(sheet, 29, 6, 4, 'Amount', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: 'right' });
+  sheet.getRange(ledgerTop, 2, 50, 4).setBackground(BRAND.YELLOW);
+  sheet.getRange(ledgerTop, 6, 50, 4).setBackground(BRAND.YELLOW);
+  sheet.getRange(ledgerTop, 2, 50, 1).setNumberFormat('mmm d, yyyy');
+  sheet.getRange(ledgerTop, 6, 50, 1).setNumberFormat('$#,##0');
+  if (mode === 'mock' && contribs.length) {
+    sheet.getRange(ledgerTop, 2, contribs.length, 1).setValues(contribs.map(function (c) { return [c[0]]; }));
+    sheet.getRange(ledgerTop, 6, contribs.length, 1).setValues(contribs.map(function (c) { return [c[1]]; }));
+  }
+
+  // streaks (data-derived) — three record cards
+  zlabel_(sheet, 24, 'YOUR STREAKS · THE HABITS THAT KEEP YOU FREE');
+  var streak = function (col, icon, label, val, sub) {
+    kpiCard_(sheet, columnToLetter_(col) + '25', 8, icon + '  ' + label, val, sub, BRAND.GOLD);
+  };
+  var sv = (mode === 'mock') ? '14 mo' : '—', wk = (mode === 'mock') ? '9 wks' : '—';
+  streak(2, '🔥', 'BEAT THE MINIMUM', sv, 'months you paid more than required');
+  streak(11, '🛡️', 'NO NEW DEBT', sv, 'no balance has risen since you started');
+  streak(20, '✓', 'WEEKLY CHECK-IN', wk, 'the habit that predicts finishing');
+  footer_(sheet, ledgerTop + 22, CANVAS.LAST);
 }
+
 function buildDashboardBody_(sheet, mode) {
-  titleRow_(sheet, 'N', 'Dashboard', 'Where you stand. Your debts are becoming a temple.');
-  footer_(sheet, 60, 'N');
+  titleRow_(sheet, CANVAS.LAST, 'Dashboard', 'Where you stand. Your debts are becoming a temple.');
+  var sr = ENG.ROW_SCALARS;
+  // the Temple hero (at TODAY) on its stylobate
+  zlabel_(sheet, 9, 'THE TEMPLE · WHAT YOU HAVE MADE PERMANENT');
+  var endRow = 11;
+  if (mode === 'mock') {
+    var saved = generateMockContributions_().reduce(function (a, c) { return a + c[1]; }, 0);
+    endRow = paintTemple_(sheet, 11, mockTempleDebts_(0, 'snowball'), { H: CANVAS.TEMPLE_H, showStylobate: true, savedFrac: saved / STYLOBATE_GOAL_DEFAULT });
+  } else { endRow = paintTemple_(sheet, 11, [], { showStylobate: true }); }
+
+  // KPI row
+  var kr = endRow + 1;
+  zlabel_(sheet, kr, 'THE NUMBERS');
+  kpiCard_(sheet, 'B' + (kr + 1), 6, 'TOTAL DEBT NOW', '=TEXT(\'_Engine\'!$M$' + sr + ',"$#,##0")', '=" of "&TEXT(\'_Engine\'!$O$' + sr + ',"$#,##0")&" at the start"', BRAND.GOLD);
+  kpiCard_(sheet, 'H' + (kr + 1), 6, 'PAID OFF TO DATE', '=TEXT(\'_Engine\'!$N$' + sr + ',"$#,##0")', 'every block torn from the wall', BRAND.GOLD);
+  kpiCard_(sheet, 'N' + (kr + 1), 7, 'DEBT-FREE DATE', '=\'_Engine\'!$P$' + sr, '=\'_Engine\'!$B$' + sr + '&" months on this plan"', BRAND.GOLD);
+  kpiCard_(sheet, 'U' + (kr + 1), 9, 'SAVED vs MINIMUMS', '=TEXT(\'_Engine\'!$H$' + sr + ',"$#,##0")', '=IF(\'_Engine\'!$G$' + sr + '>0,"minimums never finish — still "&TEXT(\'_Engine\'!$G$' + sr + ',"$#,##0")&" owed at 10 yrs","vs paying only the minimums")', BRAND.GOLD);
+
+  // this month + AI insights (mock-gated)
+  var mr = kr + 5;
+  zlabel_(sheet, mr, 'THIS MONTH · WHAT IS DUE');
+  gridText_(sheet, mr + 1, 2, 6, 'Debt', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
+  gridText_(sheet, mr + 1, 8, 4, 'Due', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
+  gridText_(sheet, mr + 1, 12, 4, 'Min', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: 'right' });
+  gridText_(sheet, mr + 1, 16, CANVAS.COLS - 16, 'Status', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
+  if (mode === 'mock') {
+    var due = [['Auto loan', 'the 3rd', 212, 'target — gets the pool'], ['Visa ····4417', 'the 17th', 196, 'minimum while Auto dies'],
+      ['Student loan', 'the 21st', 190, 'due soon'], ['Mortgage', 'the 1st', 1055, 'tracked · not in plan']];
+    due.forEach(function (d, i) {
+      var row = mr + 2 + i;
+      gridText_(sheet, row, 2, 6, d[0], { size: 11, color: BRAND.FOREST });
+      gridText_(sheet, row, 8, 4, d[1], { size: 10, color: BRAND.CAPTION });
+      gridText_(sheet, row, 12, 4, d[2], { h: 'right', size: 10, format: '$#,##0' });
+      gridText_(sheet, row, 16, CANVAS.COLS - 16, d[3], { size: 10, italic: true, color: BRAND.CANOPY });
+    });
+    var ar = mr + 7;
+    zlabel_(sheet, ar, 'AI INSIGHTS · ATTACH THE SHEET AND ASK');
+    MOCK.ai_insights.forEach(function (ins, i) {
+      gridText_(sheet, ar + 1 + i, 2, 4, ins[0], { bold: true, size: 9, color: BRAND.GOLD, bg: BRAND.CREAM, h: 'center' });
+      gridText_(sheet, ar + 1 + i, 6, CANVAS.COLS - 6, ins[1], { size: 10, color: BRAND.BODY, wrap: true });
+    });
+    footer_(sheet, ar + 6, CANVAS.LAST);
+  } else {
+    gridText_(sheet, mr + 2, 2, CANVAS.COLS - 2, 'Add your debts and the Temple, the date, and this month\'s payments appear here.', { italic: true, size: 11, color: BRAND.CAPTION });
+    footer_(sheet, mr + 5, CANVAS.LAST);
+  }
 }
+
 function buildHallBody_(sheet, mode) {
-  titleRow_(sheet, 'N', 'The Hall',
+  titleRow_(sheet, CANVAS.LAST, 'The Hall',
     'A room you enter. Every debt you slay mounts a plaque; every record takes a pedestal. The empty places are waiting.');
-  footer_(sheet, 50, 'N');
+  // forest interior
+  sheet.getRange(9, 2, 40, CANVAS.COLS - 2).setBackground(STONE.HALL_BG);
+  gridText_(sheet, 9, 2, CANVAS.COLS - 2, '— you have entered the temple —', { h: 'center', italic: true, size: 11, color: '#C9B07A', bg: STONE.HALL_BG });
+  gridText_(sheet, 10, 2, CANVAS.COLS - 2, 'The Hall of the Paid', { h: 'center', font: FONT.DISPLAY, bold: true, size: 18, color: BRAND.PARCHMENT, bg: STONE.HALL_BG });
+
+  gridText_(sheet, 12, 2, CANVAS.COLS - 2, '◆ DEBTS SLAIN ◆', { h: 'center', size: 9, bold: true, color: '#C9B07A', bg: STONE.HALL_BG });
+  var plaque = function (col, w, name, amt, sub, locked) {
+    var rng = sheet.getRange(14, col, 4, w);
+    rng.setBackground(locked ? STONE.HALL_BG2 : STONE.PARCHMENT)
+      .setBorder(true, true, true, true, false, false, GOLD_ACHIEVE, SpreadsheetApp.BorderStyle.SOLID);
+    gridText_(sheet, 14, col, w, locked ? '◇' : '✦', { h: 'center', size: 14, bold: true, color: locked ? '#6B7A6F' : '#7a5a1e', bg: locked ? STONE.HALL_BG2 : STONE.PARCHMENT });
+    gridText_(sheet, 15, col, w, name, { h: 'center', font: FONT.DISPLAY, bold: true, size: 12, color: locked ? '#9DB0A2' : BRAND.FOREST, bg: locked ? STONE.HALL_BG2 : STONE.PARCHMENT });
+    gridText_(sheet, 16, col, w, amt, { h: 'center', size: 10, bold: true, color: locked ? '#9DB0A2' : '#7a5a1e', bg: locked ? STONE.HALL_BG2 : STONE.PARCHMENT });
+    gridText_(sheet, 17, col, w, sub, { h: 'center', size: 8, color: locked ? '#7C8C81' : BRAND.CAPTION, bg: locked ? STONE.HALL_BG2 : STONE.PARCHMENT });
+  };
+  if (mode === 'mock') {
+    plaque(3, 8, 'Store card', '$1,150 slain', 'SEP 2025 · FIRST BLOOD', false);
+    plaque(12, 8, 'Medical bill', '$3,400 slain', 'APR 2026 · SECOND KILL', false);
+    plaque(21, 8, 'Auto loan', 'next to fall', 'IN PROGRESS', true);
+  } else {
+    plaque(11, 10, 'Your first win', 'waiting', 'PAY A DEBT TO FULL TO MOUNT ITS PLAQUE', true);
+  }
+
+  gridText_(sheet, 19, 2, CANVAS.COLS - 2, '◆ RECORDS ◆', { h: 'center', size: 9, bold: true, color: '#C9B07A', bg: STONE.HALL_BG });
+  var trophy = function (col, w, icon, val, label, locked) {
+    sheet.getRange(21, col, 3, w).setBackground(STONE.HALL_BG)
+      .setBorder(true, true, true, true, false, false, locked ? '#3A5446' : GOLD_ACHIEVE, SpreadsheetApp.BorderStyle.SOLID);
+    gridText_(sheet, 21, col, w, icon, { h: 'center', size: 16, bg: STONE.HALL_BG });
+    gridText_(sheet, 22, col, w, val, { h: 'center', font: FONT.DISPLAY, bold: true, size: 13, color: locked ? '#7C8C81' : GOLD_ACHIEVE, bg: STONE.HALL_BG });
+    gridText_(sheet, 23, col, w, label, { h: 'center', size: 8, color: '#A9BBAE', bg: STONE.HALL_BG });
+  };
+  if (mode === 'mock') {
+    trophy(3, 6, '🏆', '14 mo', 'longest streak', false);
+    trophy(9, 6, '🛡️', '14 mo', 'no new debt', false);
+    trophy(15, 6, '⚡', '5 mo', 'fastest kill', false);
+    trophy(21, 8, '🏛️', null, 'total slain', false);
+    gridText_(sheet, 22, 21, 8, null, { formula: '=TEXT(\'_Engine\'!$N$' + ENG.ROW_SCALARS + ',"$#,##0")', h: 'center', font: FONT.DISPLAY, bold: true, size: 13, color: GOLD_ACHIEVE, bg: STONE.HALL_BG });
+    trophy(3, 12, '½', 'Halfway', 'unlocks at half your starting debt', true);
+    sheet.getRange(25, 3, 3, 12).setBackground(STONE.HALL_BG);   // re-home the locked row
+    trophy(3, 6, '½', 'halfway', 'half your debt slain', true);
+    trophy(9, 6, '★', 'debt-free', 'the golden temple', true);
+  } else {
+    trophy(3, 8, '🏆', '—', 'longest streak', true);
+    trophy(12, 8, '⚡', '—', 'fastest kill', true);
+    trophy(21, 8, '★', 'debt-free', 'the golden temple', true);
+  }
+  footer_(sheet, 50, CANVAS.LAST);
 }
+
 function buildStartBody_(sheet, mode) {
-  titleRow_(sheet, 'J', 'Every debt. One date.',
+  titleRow_(sheet, CANVAS.LAST, 'Every debt. One date.',
     'A plan you own — list your debts, pick a strategy, and watch your temple rise as you pay.');
-  footer_(sheet, 40, 'J');
+  zlabel_(sheet, 9, 'THE ANATOMY · THE VOCABULARY OF THE PRODUCT');
+  var anat = [['STYLOBATE', 'the stone you stand on — your buffer'], ['COLUMN', 'one debt, rising as you pay'],
+    ['CAPITAL', 'a debt paid in full — it goes gold'], ['ENTABLATURE', 'the roofline goal'], ['PEDIMENT', 'debt-free']];
+  anat.forEach(function (a, i) {
+    var row = 10 + i;
+    gridText_(sheet, row, 2, 5, a[0], { bold: true, size: 10, color: BRAND.GOLD, bg: BRAND.CREAM, h: 'center' });
+    gridText_(sheet, row, 7, CANVAS.COLS - 7, a[1], { size: 11, color: BRAND.BODY });
+  });
+  zlabel_(sheet, 16, 'SETUP · 6 STEPS');
+  var steps = [
+    ['1', 'Install the script', 'Extensions → Apps Script → paste the file. A 💳 menu appears.'],
+    ['2', 'List your debts', 'Debts tab — name, balance, APR, minimum. One row each.'],
+    ['3', 'Pick a strategy', 'The Plan — Snowball, Avalanche, or your own order.'],
+    ['4', 'Set your extra', 'One cell. Watch the debt-free date jump closer.'],
+    ['5', 'Log payments', 'Payments Log as money lands — or paste a bank CSV.'],
+    ['6', 'Watch it rise', 'The Dashboard temple builds itself from your payments.']];
+  gridText_(sheet, 17, 2, 2, '#', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: 'center' });
+  gridText_(sheet, 17, 4, 8, 'Step', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
+  gridText_(sheet, 17, 12, CANVAS.COLS - 12, 'What you do', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
+  steps.forEach(function (s, i) {
+    var row = 18 + i;
+    gridText_(sheet, row, 2, 2, s[0], { h: 'center', size: 10, color: BRAND.CAPTION });
+    gridText_(sheet, row, 4, 8, s[1], { bold: true, size: 11, color: BRAND.FOREST });
+    gridText_(sheet, row, 12, CANVAS.COLS - 12, s[2], { size: 10, color: BRAND.BODY, wrap: true });
+  });
+  zlabel_(sheet, 25, 'ASK YOUR AI');
+  gridText_(sheet, 26, 2, CANVAS.COLS - 2, 'Attach the sheet to Claude or ChatGPT and ask: "Which payoff order saves me the most interest, and what happens to my debt-free date if I add $75 a month?" The hidden _Schema tab explains your sheet.', { size: 11, italic: true, color: BRAND.BODY, bg: BRAND.CREAM, wrap: true });
+  sheet.setRowHeight(26, 40);
+  footer_(sheet, 30, CANVAS.LAST);
 }
 
 /**
  * Column & Co. — The Payoff v1.0
- * 13 · Bank CSV import (adapted from the Foundation, section 13).
- * (Scaffold; paste zone + import wiring next.)
+ * 13 · Bank CSV import (adapted from the Foundation, section 13). Paste a
+ * bank export; sniff Date/Description/Amount; map descriptions → debts via
+ * the keyword rules on the Debts tab; dedupe against the Payments Log;
+ * append. The split (Est. interest / principal) is computed by the log.
  */
+var IMP = { PASTE_ROW: 12, PASTE_ROWS: 40, PASTE_COLS: 6, PREVIEW_ROW: 56, PREVIEW_ROWS: 20 };
+
 function buildBankImport_(sheet, mode) {
-  ensureGrid_(sheet, 80, 12);
+  ensureGrid_(sheet, IMP.PREVIEW_ROW + IMP.PREVIEW_ROWS + 6, 12);
   chrome_(sheet, TABS.IMPORT, 'L', 'PASTE · MAP · APPEND');
-  titleRow_(sheet, 'L', 'Bank Import',
-    'Paste your bank export. The Payoff sniffs the columns, maps descriptions to your debts, dedupes, and appends to the Payments Log.');
-  footer_(sheet, 60, 'L');
+  var r = titleRow_(sheet, 'L', 'Bank Import',
+    'Paste your bank export below. The Payoff sniffs the columns, maps descriptions to your debts (keyword rules live on the Debts tab), dedupes, and appends to the Payments Log.');
+
+  sectionLabel_(sheet, 'A9', 'L9', '1 · PASTE YOUR CSV  (include the header row)');
+  var zone = sheet.getRange(IMP.PASTE_ROW, 1, IMP.PASTE_ROWS, IMP.PASTE_COLS);
+  zone.setBackground(BRAND.GREEN_ZONE).setBorder(true, true, true, true, true, true, BRAND.CANOPY, SpreadsheetApp.BorderStyle.DASHED);
+  setCell_(sheet, 'A' + IMP.PASTE_ROW, { value: 'Date', font: FONT.BODY, size: 10, color: BRAND.CAPTION });
+  setCell_(sheet, 'B' + IMP.PASTE_ROW, { value: 'Description', font: FONT.BODY, size: 10, color: BRAND.CAPTION });
+  setCell_(sheet, 'C' + IMP.PASTE_ROW, { value: 'Amount', font: FONT.BODY, size: 10, color: BRAND.CAPTION });
+  if (mode === 'mock') {
+    sheet.getRange(IMP.PASTE_ROW + 1, 1, 3, 3).setValues([
+      ['06/12/2026', 'ACH PYMT CHASE CARD', -196], ['06/12/2026', 'AUTOPAY TOYOTA FIN', -647], ['06/10/2026', 'SALLIE MAE EDU', -190]]);
+  }
+
+  sectionLabel_(sheet, 'A' + (IMP.PREVIEW_ROW - 2), 'L' + (IMP.PREVIEW_ROW - 2), '2 · MAPPED  (run 💳 → Import Bank CSV to fill this)');
+  var hdr = ['Description', 'Matched debt', 'Amount', 'Status'];
+  sheet.getRange(IMP.PREVIEW_ROW - 1, 1, 1, 4).setValues([hdr]).setFontWeight('bold')
+    .setBackground(BRAND.FOREST).setFontColor(BRAND.PARCHMENT).setFontFamily(FONT.BODY).setFontSize(10);
+
+  setCell_(sheet, 'A' + (IMP.PREVIEW_ROW + IMP.PREVIEW_ROWS + 1), {
+    value: 'Keyword rules map descriptions to debts — edit them on the Debts tab (the Keyword / Maps to debt columns). Re-pasting the same export is safe: duplicates are skipped.',
+    merge: 'L' + (IMP.PREVIEW_ROW + IMP.PREVIEW_ROWS + 1), font: FONT.BODY, size: 10, italic: true, color: BRAND.CAPTION, wrap: true });
+
+  footer_(sheet, IMP.PREVIEW_ROW + IMP.PREVIEW_ROWS + 4, 'L');
+  setColWidths_(sheet, [120, 240, 100, 90, 90, 90, 40, 40, 40, 40, 40, 40]);
 }
-function importPayments() { _menuTODO_('Import Bank CSV'); }
-function renumberPayments() { _menuTODO_('Renumber Payments'); }
+
+function importPayments() {
+  var ss = SpreadsheetApp.getActive(), imp = ss.getSheetByName(TABS.IMPORT), pay = ss.getSheetByName(TABS.PAYMENTS);
+  if (!imp || !pay) return;
+  var raw = imp.getRange(IMP.PASTE_ROW, 1, IMP.PASTE_ROWS, IMP.PASTE_COLS).getValues();
+  var rowsAsArrays;
+  var firstCell = raw[0][0];
+  if (typeof firstCell === 'string' && firstCell.indexOf('\n') !== -1) {
+    rowsAsArrays = String(firstCell).split(/\r?\n/).filter(function (l) { return l.trim() !== ''; }).map(parseCsvLine_);
+  } else {
+    rowsAsArrays = raw.map(function (r) { return r.map(function (c) { return c == null ? '' : c; }); })
+      .filter(function (r) { return r.some(function (c) { return String(c).trim() !== ''; }); });
+  }
+  if (rowsAsArrays.length < 2) { ss.toast('Paste a CSV (header + at least one row) into the green zone first.', CC.BRAND, 5); return; }
+
+  var cols = sniffColumns_(rowsAsArrays[0].map(String));
+  if (cols.date < 0 || cols.amount < 0) { ss.toast('Could not detect Date/Amount columns. Headers: Date, Description, Amount.', CC.BRAND, 6); return; }
+
+  var parsed = [];
+  for (var i = 1; i < rowsAsArrays.length; i++) {
+    var f = rowsAsArrays[i]; if (!f || f.length < 2) continue;
+    var amt = parseAmount_(f, cols); if (amt == null) continue;
+    parsed.push({ date: parseDate_(f[cols.date]), desc: String(f[cols.desc] != null ? f[cols.desc] : '').trim(), amount: Math.abs(amt) });
+  }
+  var rules = loadKeywordRules_(ss);
+  var existing = existingPaymentKeys_(pay);
+  var res = mapBankRows_(parsed, rules, existing);
+
+  // mapped preview
+  imp.getRange(IMP.PREVIEW_ROW, 1, IMP.PREVIEW_ROWS, 4).clearContent();
+  var preview = [];
+  parsed.forEach(function (p) {
+    var debt = matchDebt_(p.desc, rules);
+    var status = !debt ? 'no rule — skipped' : (existing[keyOf_(p.date, debt, p.amount)] ? 'duplicate — skip' : 'new');
+    preview.push([p.desc, debt || '—', p.amount, status]);
+  });
+  if (preview.length) imp.getRange(IMP.PREVIEW_ROW, 1, Math.min(preview.length, IMP.PREVIEW_ROWS), 4).setValues(preview.slice(0, IMP.PREVIEW_ROWS));
+
+  if (res.toAppend.length) {
+    var row = findFirstEmptyRow_(pay, PAY.COL_DATE, PAY.FIRST_ROW, PAYMENTS_CAPACITY);
+    pay.getRange(row, 1, res.toAppend.length, 6).setValues(res.toAppend);
+  }
+  var parts = ['Imported ' + res.toAppend.length];
+  if (res.dup) parts.push(res.dup + ' duplicate' + (res.dup === 1 ? '' : 's') + ' skipped');
+  if (res.unmatched.length) parts.push(res.unmatched.length + ' with no keyword rule (add one on Debts)');
+  ss.toast(parts.join(' · '), CC.BRAND, (res.dup || res.unmatched.length) ? 10 : 6);
+}
+
+// Pure, testable core: map parsed bank rows → rows to append.
+function mapBankRows_(parsed, rules, existing) {
+  var toAppend = [], dup = 0, unmatched = [], seen = {};
+  Object.keys(existing).forEach(function (k) { seen[k] = true; });
+  parsed.forEach(function (p) {
+    var debt = matchDebt_(p.desc, rules);
+    if (!debt) { unmatched.push(p.desc); return; }
+    var key = keyOf_(p.date, debt, p.amount);
+    if (seen[key]) { dup++; return; }
+    seen[key] = true;
+    toAppend.push([p.date, debt, p.amount, '', '', 'imported · ' + String(p.desc).slice(0, 40)]);
+  });
+  return { toAppend: toAppend, dup: dup, unmatched: unmatched };
+}
+
+function keyOf_(date, debt, amount) {
+  var ds = (date instanceof Date) ? Utilities.formatDate(date, Session_tz_(), 'yyyy-MM-dd') : String(date || '').trim();
+  return ds + '|' + String(debt || '').trim() + '|' + Number(amount).toFixed(2);
+}
+function Session_tz_() { try { return SpreadsheetApp.getActive().getSpreadsheetTimeZone(); } catch (e) { return 'America/Detroit'; } }
+
+function existingPaymentKeys_(pay) {
+  var keys = {}, vals = pay.getRange(PAY.FIRST_ROW, 1, PAYMENTS_CAPACITY, 3).getValues();
+  for (var i = 0; i < vals.length; i++) {
+    if (!vals[i][0]) continue;
+    keys[keyOf_(vals[i][0], vals[i][1], Math.abs(Number(vals[i][2]) || 0))] = true;
+  }
+  return keys;
+}
+
+// longest-keyword-wins — load order never matters.
+function matchDebt_(desc, rules) {
+  var up = String(desc || '').toUpperCase(), best = null;
+  for (var i = 0; i < rules.length; i++) {
+    var k = rules[i].keyword;
+    if (k && up.indexOf(k) !== -1) { if (!best || k.length > best.keyword.length) best = rules[i]; }
+  }
+  return best ? best.debt : null;
+}
+
+function loadKeywordRules_(ss) {
+  var named = ss.getRangeByName('cc_keyword_rules');
+  var vals = named ? named.getValues() : ss.getSheetByName(TABS.DEBTS).getRange('Q' + DEBT.FIRST_ROW + ':R' + DEBT_LAST_ROW).getValues();
+  var rules = [];
+  vals.forEach(function (r) { if (r[0] && r[1]) rules.push({ keyword: String(r[0]).toUpperCase().trim(), debt: String(r[1]).trim() }); });
+  return rules;
+}
+
+function parseCsvLine_(line) {
+  var out = [], cur = '', inQ = false;
+  for (var i = 0; i < line.length; i++) {
+    var ch = line[i];
+    if (ch === '"') { if (inQ && line[i + 1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+    else if (ch === ',' && !inQ) { out.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out.map(function (s) { return s.trim(); });
+}
+function sniffColumns_(header) {
+  var lower = header.map(function (h) { return String(h).toLowerCase(); });
+  var find = function (keys) {
+    for (var k = 0; k < keys.length; k++) for (var i = 0; i < lower.length; i++) if (lower[i].indexOf(keys[k]) !== -1) return i;
+    return -1;
+  };
+  return { date: find(['date', 'posting']), desc: find(['description', 'memo', 'payee', 'name']), amount: find(['amount', 'debit']), debit: find(['debit']), credit: find(['credit']) };
+}
+function parseAmount_(fields, cols) {
+  if (cols.debit >= 0 && cols.credit >= 0 && cols.debit !== cols.credit) {
+    var d = cleanNum_(fields[cols.debit]), c = cleanNum_(fields[cols.credit]);
+    if (d) return -Math.abs(d); if (c) return Math.abs(c); return null;
+  }
+  return cleanNum_(fields[cols.amount]);
+}
+function cleanNum_(s) {
+  if (s == null) return null;
+  if (typeof s === 'number') return s;
+  s = String(s).replace(/[$,\s]/g, ''); if (s === '') return null;
+  var paren = /^\(.*\)$/.test(s); s = s.replace(/[()]/g, '');
+  var n = Number(s); if (isNaN(n)) return null; return paren ? -n : n;
+}
+function parseDate_(s) { if (s instanceof Date) return s; var d = new Date(s); return isNaN(d.getTime()) ? s : d; }
+
+function renumberPayments() {
+  var ss = SpreadsheetApp.getActive(), pay = ss.getSheetByName(TABS.PAYMENTS);
+  if (!pay) return;
+  var first = PAY.FIRST_ROW;
+  pay.getRange(first, PAY.COL_DATE, PAYMENTS_CAPACITY, 1).setNumberFormat('mmm d, yyyy');
+  pay.getRange(first, PAY.COL_AMOUNT, PAYMENTS_CAPACITY, 3).setNumberFormat('$#,##0.00');
+  var debtRule = SpreadsheetApp.newDataValidation().requireValueInRange(ss.getRange("'" + TABS.DEBTS + "'!B10:B" + DEBT_LAST_ROW), true).setAllowInvalid(true).build();
+  pay.getRange(first, PAY.COL_DEBT, PAYMENTS_CAPACITY, 1).setDataValidation(debtRule);
+  ss.toast('Payments Log formats refreshed.', CC.BRAND, 3);
+}
+
+// ── The replay + live temple repaint (live execution only) ────────────
+// "Watch the build" re-paints the Dashboard temple at each month, course
+// by course, with flush + a dignified pause (~0.6s/step — not animation).
+function replayTemple_(dash) {
+  var ss = SpreadsheetApp.getActive();
+  var info = liveTempleInfo_(ss);
+  if (!info || !info.debts.length) return;
+  var frames = Math.min(PAYOFF_HORIZON_MONTHS, info.months + 2);
+  for (var m = 0; m <= frames; m += Math.max(1, Math.round(frames / 24))) {
+    repaintTempleAt_(dash, 11, info, m, { H: CANVAS.TEMPLE_H, showStylobate: true });
+    SpreadsheetApp.flush();
+    Utilities.sleep(600);
+  }
+  repaintTempleAt_(dash, 11, info, 0, { H: CANVAS.TEMPLE_H, showStylobate: true });
+}
+
+// Read the live engine to rebuild the per-debt schedule for a repaint.
+function liveTempleInfo_(ss, stratOverride) {
+  var eng = ss.getSheetByName(TABS.ENGINE), debtsSh = ss.getSheetByName(TABS.DEBTS);
+  if (!eng || !debtsSh) return null;
+  var reg = debtsSh.getRange(DEBT.FIRST_ROW, 1, DEBT_CAPACITY, DEBT.COL_ANCHOR).getValues();
+  var debts = [], inPlan = [];
+  reg.forEach(function (r) {
+    var name = r[DEBT.COL_NAME - 1]; if (!name || String(r[DEBT.COL_INPLAN - 1]) === 'No') return;
+    var start = Number(r[DEBT.COL_START - 1]) || Number(r[DEBT.COL_STMT - 1]) || 0;
+    var K = Number(r[DEBT.COL_CURRENT - 1]) || 0;
+    debts.push({ start: start, K: K, name: name });
+    if (K > 0) inPlan.push({ name: name, bal0: K, apr: Number(r[DEBT.COL_APR - 1]) || 0, min: Number(r[DEBT.COL_MIN - 1]) || 0, order: r[DEBT.COL_ORDER - 1] });
+  });
+  var stratTxt = String(ss.getRangeByName('cc_active_strategy') ? ss.getRangeByName('cc_active_strategy').getValue() : '');
+  var strat = stratOverride || (stratTxt.indexOf('Aval') === 0 ? 'avalanche' : (stratTxt.indexOf('My') === 0 ? 'custom' : 'snowball'));
+  var extra = Number(ss.getRangeByName('cc_extra_monthly') ? ss.getRangeByName('cc_extra_monthly').getValue() : 0) || 0;
+  var sched = simulateSchedule_(inPlan, rankDebts_(inPlan, strat), extra), byName = {};
+  inPlan.forEach(function (d, i) { byName[d.name] = sched.bal[i]; });
+  var ci = 0, cols = debts.map(function (d) { var c = { start: d.start, color: debtColor_(ci++), short: shortName_(d.name), arr: byName[d.name] || null }; return c; });
+  return { debts: cols, months: sched.months === Infinity ? PAYOFF_HORIZON_MONTHS : sched.months };
+}
+function repaintTempleAt_(sheet, top, info, m, opts) {
+  var data = info.debts.map(function (d) { return { start: d.start, balAt: d.arr ? d.arr[Math.min(m, d.arr.length - 1)] : 0, color: d.color, short: d.short }; });
+  paintTemple_(sheet, top, data, opts);
+}
+function shortName_(name) {
+  var SHORT = { 'Rooms+ Store Card': 'Store', 'Medical bill': 'Medical', 'Visa ····4417': 'Visa', 'Auto loan': 'Auto', 'Student loan': 'Student' };
+  return SHORT[name] || String(name).split(' ')[0];
+}
