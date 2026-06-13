@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Payoff — The Hall of the Paid</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Jost:wght@300;400;500;600;700&display=swap');
+  *{box-sizing:border-box;} body{margin:0;background:#0E2418;font-family:Jost,sans-serif;color:#FAF8F2;}
+  .wrap{max-width:1080px;margin:0 auto;padding:22px;}
+  .top{display:flex;align-items:baseline;gap:12px;}
+  .top h1{font-family:'Playfair Display',serif;font-weight:700;font-size:22px;margin:0;color:#FAF8F2;}
+  .top .badge{background:#C5A95A;color:#1C3D2E;font-size:9px;font-weight:700;letter-spacing:.16em;padding:3px 9px;border-radius:2px;}
+  .top .who{margin-left:auto;font-size:11px;color:rgba(250,248,242,.55);}
+  .sub{color:rgba(250,248,242,.6);font-size:12px;font-weight:300;margin:4px 0 16px;}
+
+  /* the hall: a forest interior with a colonnade receding down both sides */
+  .hall{position:relative;background:linear-gradient(180deg,#16301f 0%,#0E2418 100%);border:1px solid rgba(197,169,90,.25);border-radius:8px;
+        padding:0 0 22px;overflow:hidden;}
+  .entry{text-align:center;padding:18px 0 8px;}
+  .entry .ee{font-family:'Playfair Display',serif;font-style:italic;font-size:13px;color:rgba(197,169,90,.85);}
+  .entry .et{font-family:'Playfair Display',serif;font-weight:700;font-size:26px;color:#FAF8F2;letter-spacing:.04em;margin-top:2px;}
+  /* flanking colonnade */
+  .colonnade{position:absolute;top:64px;bottom:0;width:54px;display:flex;flex-direction:column;gap:0;}
+  .colonnade.l{left:0;} .colonnade.r{right:0;}
+  .cseg{flex:1;display:flex;justify-content:center;gap:6px;align-items:stretch;padding:7px 0;}
+  .pil{width:13px;background:linear-gradient(90deg,rgba(250,248,242,.05),rgba(250,248,242,.14),rgba(250,248,242,.05));border-radius:2px;}
+  .aisle{margin:0 64px;padding:8px 14px 0;}
+
+  .zone{font-size:9.5px;font-weight:700;letter-spacing:.2em;color:rgba(197,169,90,.8);text-align:center;margin:16px 0 12px;}
+  .plaques{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;}
+  .plaque{width:188px;background:linear-gradient(180deg,#F4EFE3,#E4DCC8);color:#1C3D2E;border-radius:5px;padding:16px 14px 13px;text-align:center;
+          border:1px solid #C5A95A;box-shadow:0 6px 18px rgba(0,0,0,.3);position:relative;}
+  .plaque .seal{width:34px;height:34px;border-radius:999px;background:#C5A95A;color:#1C3D2E;font-size:17px;line-height:34px;margin:0 auto 8px;font-family:'Playfair Display',serif;font-weight:700;}
+  .plaque .nm{font-family:'Playfair Display',serif;font-weight:700;font-size:14px;}
+  .plaque .am{font-size:11px;color:#7a5a1e;font-weight:600;margin-top:1px;}
+  .plaque .dt{font-size:9.5px;color:rgba(28,61,46,.6);margin-top:5px;letter-spacing:.04em;}
+  .plaque .sig{font-family:'Playfair Display',serif;font-style:italic;font-size:10px;color:rgba(28,61,46,.7);margin-top:7px;border-top:1px solid rgba(28,61,46,.15);padding-top:6px;}
+  .plaque.empty{background:transparent;border:1px dashed rgba(250,248,242,.22);color:rgba(250,248,242,.4);box-shadow:none;}
+  .plaque.empty .seal{background:rgba(250,248,242,.08);color:rgba(250,248,242,.3);}
+  .plaque.empty .nm{color:rgba(250,248,242,.45);font-style:italic;}
+
+  .trophies{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;}
+  .ped{width:150px;text-align:center;}
+  .cup{font-size:26px;line-height:1;}
+  .ped .base{background:linear-gradient(180deg,rgba(197,169,90,.18),rgba(197,169,90,.06));border:1px solid rgba(197,169,90,.4);border-radius:4px;padding:11px 10px 9px;margin-top:6px;}
+  .ped .rv{font-family:'Playfair Display',serif;font-weight:700;font-size:17px;color:#C5A95A;}
+  .ped .rk{font-size:9px;letter-spacing:.1em;color:rgba(250,248,242,.6);text-transform:uppercase;margin-top:2px;}
+  .ped.locked .cup{filter:grayscale(1);opacity:.35;}
+  .ped.locked .base{border-style:dashed;border-color:rgba(250,248,242,.2);background:transparent;}
+  .ped.locked .rv{color:rgba(250,248,242,.4);font-size:12px;font-style:italic;}
+  .ped.locked .rk{color:rgba(250,248,242,.35);}
+
+  .footer{text-align:center;font-family:'Playfair Display',serif;font-style:italic;font-size:12px;color:rgba(197,169,90,.7);margin-top:22px;}
+  .navhint{text-align:center;font-size:10px;color:rgba(250,248,242,.4);margin-top:18px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>The Payoff · The Hall</h1><span class="badge">WORKING MOCKUP</span><span class="who">Casey Alvarez · step inside the temple you're building</span></div>
+  <div class="sub">A room you enter. Every debt you slay mounts a plaque on these walls; every record you set takes a pedestal. The empty places are waiting for you — and they tell you exactly what earns them.</div>
+
+  <div class="hall">
+    <div class="entry">
+      <div class="ee">— you have entered the temple —</div>
+      <div class="et">The Hall of the Paid</div>
+    </div>
+    <div class="colonnade l" id="colL"></div>
+    <div class="colonnade r" id="colR"></div>
+    <div class="aisle">
+      <div class="zone">◆ &nbsp;DEBTS SLAIN &nbsp;◆</div>
+      <div class="plaques">
+        <div class="plaque">
+          <div class="seal">✦</div>
+          <div class="nm">Store card</div>
+          <div class="am">$1,150 slain</div>
+          <div class="dt">SEP 2025 · FELL IN 5 MONTHS · FIRST BLOOD</div>
+          <div class="sig">"The one that started it all."</div>
+        </div>
+        <div class="plaque">
+          <div class="seal">✦</div>
+          <div class="nm">Medical bill</div>
+          <div class="am">$3,400 slain</div>
+          <div class="dt">APR 2026 · FELL IN 12 MONTHS</div>
+          <div class="sig">"Never again. — C.A."</div>
+        </div>
+        <div class="plaque empty">
+          <div class="seal">3</div>
+          <div class="nm">Auto loan</div>
+          <div class="dt" style="color:rgba(250,248,242,.4)">NEXT TO FALL · EST. JUN 2027</div>
+        </div>
+      </div>
+
+      <div class="zone">◆ &nbsp;RECORDS &nbsp;◆</div>
+      <div class="trophies">
+        <div class="ped"><div class="cup">🏆</div><div class="base"><div class="rv">14 mo</div><div class="rk">longest streak</div></div></div>
+        <div class="ped"><div class="cup">🛡️</div><div class="base"><div class="rv">14 mo</div><div class="rk">no new debt</div></div></div>
+        <div class="ped"><div class="cup">⚡</div><div class="base"><div class="rv">5 mo</div><div class="rk">fastest kill</div></div></div>
+        <div class="ped"><div class="cup">🏛️</div><div class="base"><div class="rv">$9,210</div><div class="rk">total slain</div></div></div>
+        <div class="ped locked"><div class="cup">½</div><div class="base"><div class="rv">halfway</div><div class="rk">at $20,475 paid</div></div></div>
+        <div class="ped locked"><div class="cup">★</div><div class="base"><div class="rv">debt-free</div><div class="rk">the golden temple</div></div></div>
+      </div>
+
+      <div class="footer">When the last column rises, this hall is full — and the temple is yours.</div>
+      <div class="navhint">in the workbook: a tab you open · plaques + trophies are cell-cards that appear as you earn them · 💳 → Frame a win for sharing</div>
+    </div>
+  </div>
+</div>
+<script>
+  // flanking colonnade — receding pilasters (lighter/narrower toward the center = depth)
+  for (const side of ['colL','colR']) {
+    const host = document.getElementById(side);
+    for (let i = 0; i < 5; i++) {
+      const seg = document.createElement('div'); seg.className = 'cseg';
+      const p = document.createElement('div'); p.className = 'pil';
+      p.style.opacity = 0.5 + i * 0.1;
+      seg.appendChild(p); host.appendChild(seg);
+    }
+  }
+</script>
+</body>
+</html>
