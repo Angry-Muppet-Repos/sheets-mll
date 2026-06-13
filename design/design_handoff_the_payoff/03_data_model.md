@@ -113,8 +113,13 @@ harness inventory at build time.
 
 - **Debt-free date** = anchor month + active block's months-to-zero
   (in-plan debts only).
-- **Interest saved vs minimums** = closed-form minimums-only interest −
-  active plan interest, in-plan debts only, both capped at the horizon.
+- **Interest saved vs minimums** = minimums-only interest THROUGH THE
+  HORIZON − active plan interest (in-plan debts only). When any
+  minimum doesn't cover its own month's interest, minimums-only never
+  finishes — the KPI sub-line then reads "on minimums alone you'd
+  still owe $X after 10 years" (computed: balances remaining at the
+  horizon under minimums). A per-debt **Underwater** status fires when
+  `min ≤ bal × APR/12`.
 - **Paid off to date** = Σ starting balances − Σ current balances
   (floor 0 per debt).
 - **Ahead/behind** (Progress) = plan's projected total for the current

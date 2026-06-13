@@ -12,34 +12,40 @@ Workbench lesson).
 | Debt | Type | Start | APR | Min | State in the story |
 |---|---|---|---|---|---|
 | Rooms+ Store Card | Card | $1,150 | 27.99% | $35 | **PAID ✓ month 5** — first kill |
-| Medical bill | Medical | $2,600 | 0% | $150 | **PAID ✓ month 13** — second kill, 0% APR row exercised |
-| Visa ····4417 | Card | $4,800 | 24.99% | $96 | ACTIVE — current snowball target, dying soon |
-| Auto loan | Auto | $9,400 | 6.9% | $212 | ACTIVE |
-| Student loan | Student | $18,200 | 5.5% | $190 | ACTIVE |
+| Medical bill | Medical | $3,400 | 0% | $150 | **PAID ✓ month 12** — second kill, 0% APR row exercised |
+| Visa ····4417 | Card | $9,800 | 24.99% | $196 | ACTIVE — the **underwater minimum**: $196 < ~$204/mo interest, so it crept UP to $9,930 while the small debts died. The engine exposes it (Underwater chip) |
+| Auto loan | Auto | $8,400 | 6.9% | $212 | ACTIVE — current snowball target ($5,148 now) |
+| Student loan | Student | $18,200 | 5.5% | $190 | ACTIVE ($16,663 now) — carries the Balance-override demo |
 | Mortgage | Mortgage | $148,000 | 6.1% | $1,055 | **In plan? = No** — tracked, excluded from the date (the toggle demo) |
 
-Starting consumer total **$36,150**; minimums $683 + $250 extra.
+Starting consumer total **$40,950**; minimums $683 + $250 extra.
+Visa bigger than the auto at a far higher APR — so snowball (auto
+first) and avalanche (Visa first) genuinely diverge on Compare.
 
-## Locked headline truths (generator-verified by the harness math layer)
+## Locked headline truths (computed by the 03 iteration, re-verified by the harness math layer)
 
-- Two kills on the Dashboard Kill List with month-stamped PAID chips.
-- Debt-free date ≈ **40–48 months from start** (exact figure comes from
-  the engine and is pinned by the harness once the generator lands —
-  the brief's "~46 months" is the design target).
-- Interest saved vs minimums-only in the **$5,500–7,500** band.
-- Compare tab tells the honest story: avalanche finishes 1–3 months
-  earlier and ~$300–700 cheaper; snowball's first kill lands ~4 months
-  sooner. Verdict line renders both clauses.
-- What-if chips: +$50 and +$100 each pull the date in by a visible
-  number of months (≥ 2).
+- Current consumer total **$31,741** · paid off to date **$9,209** ·
+  two kills on the Dashboard Kill List (months 5 and 12).
+- Active snowball from now: **47 months** · debt-free {build month +
+  47} · $7,487 interest on plan · kills Auto m12 → Visa m31 →
+  Student m47.
+- Avalanche: 46 months · $6,515 — **saves $972 and finishes 1 month
+  earlier; snowball's first kill lands 15 months sooner** (m12 vs
+  m27). The verdict line renders both clauses.
+- What-if chips: **+$50 → 2 months sooner · +$100 → 6 months sooner.**
+- Interest-saved KPI uses the horizon window: **$26,772 saved through
+  10 years** — and the never-finishes state fires: "on minimums alone
+  you'd still owe **$15,559** after 10 years" (the Visa's minimum
+  never escapes its own interest).
 - Mortgage row shows current balance and "TRACKED" status, appears in
-  totals-tracked but NOT in the debt-free date, payoff table
-  below-the-line.
+  tracked totals but NOT in the debt-free date; below-the-line on The
+  Plan.
 - Payments Log ≈ **90 rows** (14 months × active debts + extras), some
   with interest portions filled, most blank — both paths demoed. One
   Balance override filled (the student loan) to demo the true-up.
 - Progress: actual line slightly AHEAD of plan (≈ $400) — the
-  motivating screenshot; milestone strip shows $35k and $30k crossed.
+  motivating screenshot; milestone strip shows $40k, $35k crossed and
+  $30k about to fall.
 
 ## Mock AI Insights (Dashboard, mock build only)
 

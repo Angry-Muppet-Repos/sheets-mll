@@ -90,8 +90,10 @@ Rows 10–34 (25 slots):
   statement figure and it wins (caption: "check in monthly — your
   statement is the truth").
 - Computed (locked): Current balance · Status chip (ACTIVE · PAID ✓ ·
-  TRACKED when out of plan) · Payoff date (active strategy) ·
-  Projected interest · share-of-total bar.
+  TRACKED when out of plan · **UNDERWATER** when the minimum doesn't
+  cover one month's interest — the warning every card statement hides)
+  · Payoff date (active strategy) · Projected interest ·
+  share-of-total bar.
 - "In plan? = No" guidance caption names the mortgage case explicitly.
 
 ## 6 · Payments Log — [ADAPT of the sibling logs]
