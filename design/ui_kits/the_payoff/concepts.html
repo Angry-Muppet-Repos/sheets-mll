@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Payoff — gamification concept board</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Jost:wght@300;400;500;600;700&display=swap');
+  body { margin: 0; background: #FAF8F2; font-family: Jost, sans-serif; color: #1C3D2E; padding: 26px; }
+  h1 { font-family: 'Playfair Display', serif; font-size: 26px; margin: 0 0 2px; }
+  .sub { font-weight: 300; font-size: 12.5px; color: rgba(28,61,46,0.7); margin-bottom: 20px; }
+  .board { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .panel { background: #fffdf8; border: 1px solid rgba(28,61,46,0.12); border-radius: 6px; overflow: hidden; }
+  .panel h2 { background: #1C3D2E; color: #FAF8F2; font-size: 11px; font-weight: 600; letter-spacing: 0.18em; margin: 0; padding: 9px 14px; }
+  .panel h2 .n { color: #C5A95A; margin-right: 8px; }
+  .panel .body { padding: 16px 18px 14px; }
+  .cap { font-size: 11px; font-weight: 300; color: rgba(28,61,46,0.65); margin-top: 10px; line-height: 1.5; }
+  .big { font-family: 'Playfair Display', serif; font-weight: 700; }
+
+  /* 1 · The Column */
+  .colwrap { display: flex; gap: 22px; align-items: flex-end; }
+  .column { display: flex; flex-direction: column-reverse; gap: 2px; align-items: center; }
+  .crow { display: flex; gap: 2px; }
+  .cell { width: 11px; height: 11px; border-radius: 1px; background: #EFEAE0; border: 1px solid rgba(28,61,46,0.10); }
+  .cell.f { background: #1C3D2E; border-color: #1C3D2E; }
+  .cell.now { background: #C5A95A; border-color: #C5A95A; }
+
+  /* 2 · brick wall */
+  .wall { display: flex; flex-direction: column-reverse; gap: 3px; }
+  .brow { display: flex; gap: 3px; }
+  .brow.off { margin-left: 14px; }
+  .brick { width: 26px; height: 12px; border-radius: 1px; background: #F0EBD8; border: 1px solid rgba(28,61,46,0.18); }
+  .brick.f { background: #2D5C45; border-color: #2D5C45; }
+  .brick.gold { background: #C5A95A; border-color: #C5A95A; }
+
+  /* 3 · plaques */
+  .plaques { display: flex; gap: 12px; }
+  .plaque { flex: 1; border: 1.5px solid #C5A95A; border-radius: 6px; padding: 12px 12px 10px; text-align: center; background: linear-gradient(180deg, #fffdf8, #F7F2E4); }
+  .plaque .seal { width: 34px; height: 34px; border-radius: 999px; background: #C5A95A; color: #1C3D2E; font-size: 17px; line-height: 34px; margin: 0 auto 7px; font-family: 'Playfair Display', serif; font-weight: 700; }
+  .plaque .nm { font-weight: 600; font-size: 12px; }
+  .plaque .dt { font-size: 10px; color: rgba(28,61,46,0.6); margin-top: 2px; }
+  .plaque.dim { opacity: 0.42; border-style: dashed; }
+  .plaque.dim .seal { background: #EFEAE0; color: rgba(28,61,46,0.45); }
+
+  /* 4 · streak + levels */
+  .flames { display: flex; gap: 4px; margin: 6px 0 14px; }
+  .flame { width: 20px; height: 24px; border-radius: 3px 3px 6px 6px; background: #EFEAE0; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+  .flame.f { background: #1C3D2E; }
+  .lvls { display: flex; align-items: center; gap: 0; }
+  .lvl { text-align: center; flex: 1; position: relative; }
+  .lvl .dot { width: 30px; height: 30px; border-radius: 999px; margin: 0 auto 5px; line-height: 30px; font-size: 14px; background: #1C3D2E; color: #C5A95A; }
+  .lvl.next .dot { background: #C5A95A; color: #1C3D2E; }
+  .lvl.todo .dot { background: #EFEAE0; color: rgba(28,61,46,0.4); }
+  .lvl .t { font-size: 9.5px; font-weight: 600; letter-spacing: 0.08em; }
+  .lvl .s { font-size: 8.5px; color: rgba(28,61,46,0.55); }
+  .lvl::after { content: ''; position: absolute; top: 14px; right: -50%; width: 100%; height: 2px; background: rgba(28,61,46,0.15); z-index: 0; }
+  .lvl:last-child::after { display: none; }
+
+  .feed { background: #1C3D2E; border-radius: 4px; padding: 10px 14px; color: #FAF8F2; font-size: 12px; margin-top: 12px; }
+  .feed b { color: #C5A95A; font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>The Payoff · gamification concepts</h1>
+<div class="sub">Everything below is buildable in real Sheets — painted cell grids + conditional formatting + emoji. No images. It fills itself as payments are logged, and it recolors with the 24 palettes.</div>
+
+<div class="board">
+  <div class="panel">
+    <h2><span class="n">1</span>THE COLUMN — BUILD IT AS YOU PAY</h2>
+    <div class="body">
+      <div class="colwrap">
+        <div class="column" id="col"></div>
+        <div>
+          <div class="big" style="font-size:30px">22%</div>
+          <div style="font-size:11px;color:rgba(28,61,46,0.65)">built · $9,209 of $40,950</div>
+          <div style="font-size:11px;margin-top:10px">Every cell is <b>$150</b> you'll never owe again.</div>
+          <div style="font-size:11px;margin-top:4px">The gold course is <b>this month's row</b> — being laid right now.</div>
+          <div style="font-size:11px;margin-top:10px;color:rgba(28,61,46,0.65)">Capital tops out on <span class="big" style="font-size:13px">May 2030</span>.</div>
+        </div>
+      </div>
+      <div class="cap">The brand IS the game: you're literally building a column, bottom-up, one cell per $150 of principal. A ~270-cell painted grid driven by one conditional-format rule. The signature screenshot no other debt tracker can copy.</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="n">2</span>ONE WALL PER DEBT — BRICKS, NOT BARS</h2>
+    <div class="body">
+      <div style="font-weight:600;font-size:12.5px;margin-bottom:8px">Auto loan · 15 of 34 bricks laid · $250 each</div>
+      <div class="wall" id="wall"></div>
+      <div class="cap">Each debt gets a little wall on Progress: a brick per $250 paid, the gold brick is the one your next payment lays. Paid-off debts show a finished wall with a seal. The per-debt version of the thermometer the category loves — minus the clip-art.</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="n">3</span>THE TROPHY CASE — KILLS BECOME PLAQUES</h2>
+    <div class="body">
+      <div class="plaques">
+        <div class="plaque"><div class="seal">✦</div><div class="nm">Rooms+ Store Card</div><div class="dt">$1,150 · slain Sep 2025</div></div>
+        <div class="plaque"><div class="seal">✦</div><div class="nm">Medical bill</div><div class="dt">$3,400 · slain Apr 2026</div></div>
+        <div class="plaque dim"><div class="seal">3</div><div class="nm">Auto loan</div><div class="dt">est. Jun 2027</div></div>
+      </div>
+      <div class="feed">💪 <b>That payment bought you 12 days.</b> Your debt-free date just moved closer — May 2030 and shrinking.</div>
+      <div class="cap">Kills mint a gold plaque; the next one waits, dimmed, with its projected date. And every logged payment gets a feedback line (plus a toast in-sheet): what it bought you, in days — small variable reward, every single time.</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="n">4</span>STREAK · LEVELS · THE ROAD</h2>
+    <div class="body">
+      <div style="font-weight:600;font-size:12.5px">🔥 14-month payment streak</div>
+      <div class="flames" id="flames"></div>
+      <div class="lvls">
+        <div class="lvl"><div class="dot">✦</div><div class="t">FIRST BRICK</div><div class="s">first extra payment</div></div>
+        <div class="lvl"><div class="dot">✦</div><div class="t">FIRST KILL</div><div class="s">Sep 2025</div></div>
+        <div class="lvl"><div class="dot">✦</div><div class="t">QUARTER GONE</div><div class="s">Apr 2026</div></div>
+        <div class="lvl next"><div class="dot">½</div><div class="t">HALFWAY</div><div class="s">at $20,475 · ~Jul 2027</div></div>
+        <div class="lvl todo"><div class="dot">⌂</div><div class="t">HOME STRETCH</div><div class="s">last debt standing</div></div>
+        <div class="lvl todo"><div class="dot">★</div><div class="t">FREE</div><div class="s">May 2030</div></div>
+      </div>
+      <div class="cap">A streak meter you won't want to break, and six named ranks — calm, engraved, Column &amp; Co. flavored (no cartoon XP). The next rank always shows its price and its projected date: a subgoal within reach.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // The Column: widths per row, bottom-up; fill to 22% with a gold current course
+  const widths = [];
+  widths.push(18, 16, 12);                        // plinth steps
+  for (let i = 0; i < 22; i++) widths.push(8);    // shaft
+  widths.push(10, 12, 16, 18);                    // capital flare
+  const totalCells = widths.reduce((a, b) => a + b, 0);
+  const fillCells = Math.round(totalCells * 0.225);
+  let made = 0;
+  const col = document.getElementById('col');
+  for (const w of widths) {
+    const row = document.createElement('div'); row.className = 'crow';
+    let rowFilled = 0;
+    for (let i = 0; i < w; i++) {
+      const c = document.createElement('div');
+      const idx = made + i;
+      c.className = 'cell' + (idx < fillCells ? ' f' : '');
+      row.appendChild(c);
+      if (idx < fillCells) rowFilled++;
+    }
+    if (rowFilled > 0 && rowFilled < w) [...row.children].forEach((c, i) => { if (i < rowFilled) { c.className = 'cell now'; } });
+    made += w;
+    col.appendChild(row);
+  }
+  // wall: 34 bricks, 15 laid, next gold
+  const wall = document.getElementById('wall');
+  let b = 0;
+  for (let r = 0; r < 5; r++) {
+    const row = document.createElement('div'); row.className = 'brow' + (r % 2 ? ' off' : '');
+    for (let i = 0; i < 7 && b < 34; i++, b++) {
+      const br = document.createElement('div');
+      br.className = 'brick' + (b < 15 ? ' f' : b === 15 ? ' gold' : '');
+      row.appendChild(br);
+    }
+    wall.appendChild(row);
+  }
+  // flames: 14 of 16
+  const fl = document.getElementById('flames');
+  for (let i = 0; i < 16; i++) {
+    const f = document.createElement('div');
+    f.className = 'flame' + (i < 14 ? ' f' : '');
+    f.textContent = i < 14 ? '🔥' : '';
+    fl.appendChild(f);
+  }
+</script>
+</body>
+</html>
