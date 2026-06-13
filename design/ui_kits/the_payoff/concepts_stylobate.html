@@ -63,7 +63,7 @@
 <body>
 <div class="wrap">
   <div class="top"><h1>The Payoff · The Stylobate</h1><span class="badge">WORKING MOCKUP</span><span class="who">the stone your temple stands on</span></div>
-  <div class="sub">Greek temples rise from a <i>stylobate</i> — the dressed stone step the columns stand on. Here it is your starter buffer: fund it to $1,000 and your whole temple rests on solid stone, so a surprise expense never sends your blocks back to the wall. Until then, you are building on sand.</div>
+  <div class="sub">Greek temples rise from a <i>stylobate</i> — the dressed stone step the columns stand on. Here it is your starter buffer: set your goal (the box below — $1,000 is the classic), fund it, and your whole temple rests on solid stone, so a surprise expense never sends your blocks back to the wall. Until then, you are building on sand.</div>
 
   <div class="stage">
     <div class="hd"><span>THE TEMPLE · NAMED, STONE TO CROWN</span><span class="g" id="state">BUILDING ON SAND</span></div>
@@ -85,14 +85,15 @@
         <div class="part"><div class="gly">▬</div><div><div class="nm">ENTABLATURE</div><div class="de">the beam your columns carry — the roofline they all rise toward.</div></div></div>
         <div class="part"><div class="gly">◳</div><div><div class="nm">CAPITAL</div><div class="de">a column topped out — a debt paid in full. It crowns in gold.</div></div></div>
         <div class="part"><div class="gly">█</div><div><div class="nm">COLUMN</div><div class="de">one debt, rising from the stone as you pay it down.</div></div></div>
-        <div class="part key"><div class="gly">⬓</div><div><div class="nm">STYLOBATE</div><div class="de">the stone you stand on — your $1,000 buffer. Fund it and new debt can't crack what's underneath you.</div></div></div>
+        <div class="part key"><div class="gly">⬓</div><div><div class="nm">STYLOBATE</div><div class="de">the stone you stand on — your starter buffer, goal you set. Fund it and new debt cannot crack what is underneath you.</div></div></div>
       </div>
     </div>
     <div class="controls">
       <button class="btn" id="fund">Add $200 to the Stylobate</button>
       <button class="btn ghost" id="empty">Reset to sand</button>
+      <span class="stylinfo">Your goal: $<input id="goal" value="1000" style="width:62px;background:#FFFDE7;border:1px solid #C5A95A;color:#1C3D2E;font-family:Jost,sans-serif;font-weight:600;font-size:12px;padding:3px 6px;border-radius:2px;text-align:right"></span>
       <span class="stylinfo" id="info"></span>
-      <span class="hint">in the sheet: a buffer goal you fund alongside payments — the base lights stone by stone</span>
+      <span class="hint">the goal is yours — $500, $1,000, a full month of expenses · the base recomputes live</span>
     </div>
   </div>
 </div>
@@ -106,7 +107,7 @@ const debts = [
 ];
 const COLORS=['#93B27E','#6E9560','#3E7E5C','#2D5C45','#1C3D2E'];
 const H=16, CELL=9, GAP=1.5;
-let buffer=0; const GOAL=1000;
+let buffer=0; let GOAL=1000;
 
 function colWidthPx(w){ return w*CELL + (w-1)*GAP; }
 const templeWidthPx = debts.reduce((a,d)=>a+colWidthPx(d.w),0) + (debts.length-1)*7;
@@ -154,6 +155,7 @@ function renderStylobate(){
 
 document.getElementById('fund').onclick=()=>{ buffer=Math.min(GOAL,buffer+200); renderStylobate(); };
 document.getElementById('empty').onclick=()=>{ buffer=0; renderStylobate(); };
+document.getElementById('goal').oninput=(e)=>{ const v=parseInt(String(e.target.value).replace(/[^0-9]/g,''))||0; GOAL=Math.max(1,v); buffer=Math.min(buffer,GOAL); renderStylobate(); };
 renderTemple(); renderStylobate();
 </script>
 </body>
