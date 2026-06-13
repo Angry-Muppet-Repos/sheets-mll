@@ -112,11 +112,22 @@ diverge, the workbook is ground truth.
   theme chrome/KPIs/tables only — the temple/wall/Hall/stylobate are a
   FIXED stone-and-gold material set + fixed debt ramp (05 § color rule).
   Interest is engine-estimated (balance×APR/12); the owner types only
-  payment amount + the monthly statement balance (03). DESIGN COMPLETE —
-  NEXT is the build: paste `design/design_handoff_the_payoff/
-  BUILD_KICKOFF.txt` into a fresh session → `tools/verify_payoff.js`
-  (Workbench harness + a JS re-amortization math layer) then
-  `apps_script/ColumnCo_Payoff_v1.gs`.
+  payment amount + the monthly statement balance (03). **BUILT (2026-06-13):**
+  `apps_script/ColumnCo_Payoff_v1.gs` (12 tabs) + `tools/verify_payoff.js`
+  (harness layers a–h + a MATH LAYER that re-implements the 03 amortization
+  in JS and asserts the .gs engine twin's months/interest/payoff-order/
+  debt-free date match exactly — incl. the locked 04 truths: snowball
+  47 mo / $7,487 · avalanche saves $972 · +$50 2mo / +$100 6mo · $26,772
+  saved · $15,559 still owed). Hidden `_Engine` is SIX live-formula blocks
+  (snowball·avalanche·custom·+$50·+$100·minimums-only-baseline) at 120×25
+  + a registry mirror; the monument is painted cell grids in a fixed
+  stone-and-gold set (section 00 constants, never palette-derived). Build
+  decision logged: the baseline is its own iterative block (the 03 "no
+  sixth block / closed-form" note was an optimization; an iterative block
+  is exact + auditable + matches the math layer). NOT yet live-QA'd by Dan
+  — the replay/Time-Machine repaint + onEdit re-anchor are live-only
+  (static + math verified, never live-executed). Letters (sealed notes) +
+  grace tokens are specified in 05 but deferred from v1 (noted in handback).
 - **The Ledger v1** (`apps_script/ColumnCo_Ledger_v1.gs`) — merged via
   PR #2, statically verified, paused before Dan's live QA. NOT yet
   listed — it has never been live-QA'd.

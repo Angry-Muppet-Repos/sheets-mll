@@ -42,9 +42,17 @@ as atom references.
 
 Casey Alvarez, 14 months into a snowball with $250 extra. Total
 $40,950 → $31,741 now; $9,209 slain; two kills (Store card Sep 2025,
-Medical bill Apr 2026). Snowball 51 mo / $10,381 interest vs avalanche
-49 mo / $8,230 (saves $2,151, first win 15 mo sooner). Debt-free
-**Jul 2029**, 37 months out; $28,533 saved vs minimums (which never
-finish — $15,559 still owed at the 10-yr horizon). Stylobate $600 of a
-$1,000 goal. The gamification spec is
-`design/design_handoff_the_payoff/05_gamification.md`.
+Medical bill Apr 2026). **From now**, snowball 47 mo / $7,487 interest
+vs avalanche 46 mo / $6,515 (saves $972, first win 15 mo sooner — m12 vs
+m27). Debt-free **{build month + 47}** (May 2030 at a Jun-2026 build),
+47 months out; $26,772 saved vs minimums (which never finish — $15,559
+still owed at the 10-yr horizon). Stylobate $600 of a $1,000 goal.
+
+> **Trued up at build (2026-06-13).** These are the figures the engine
+> computes from the *current* balances and the harness math layer
+> re-verifies — identical to `04_mock_data_and_qa.md`. Earlier drafts of
+> this README quoted whole-journey numbers (51/49 mo incl. the 14 months
+> already paid, "Jul 2029", $2,151/$28,533); those were superseded. The
+> `full_mockup.html` display constants are illustrative of the prototype
+> and were not regenerated. The gamification spec is
+> `design/design_handoff_the_payoff/05_gamification.md`.

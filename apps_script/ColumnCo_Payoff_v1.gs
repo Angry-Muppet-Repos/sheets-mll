@@ -1765,6 +1765,22 @@ function buildHallBody_(sheet, mode) {
     trophy(12, 8, '⚡', '—', 'fastest kill', true);
     trophy(21, 8, '★', 'debt-free', 'the golden temple', true);
   }
+
+  // Letters — pre-written, zero-setup, sealed until you cross each rank.
+  gridText_(sheet, 26, 2, CANVAS.COLS - 2, '◆ SEALED LETTERS ◆', { h: 'center', size: 9, bold: true, color: '#C9B07A', bg: STONE.HALL_BG });
+  var letter = function (col, w, title, body, unsealed) {
+    sheet.getRange(28, col, 5, w).setBackground(unsealed ? STONE.PARCHMENT : STONE.HALL_BG2)
+      .setBorder(true, true, true, true, false, false, unsealed ? GOLD_ACHIEVE : '#3A5446', SpreadsheetApp.BorderStyle.SOLID);
+    gridText_(sheet, 28, col, w, (unsealed ? '✉ ' : '🔒 ') + title, { h: 'center', font: FONT.DISPLAY, bold: true, italic: true, size: 11, color: unsealed ? BRAND.FOREST : '#9DB0A2', bg: unsealed ? STONE.PARCHMENT : STONE.HALL_BG2 });
+    gridText_(sheet, 29, col, w, unsealed ? body : null, { h: 'center', size: 9, italic: true, color: unsealed ? BRAND.BODY : '#7C8C81', bg: unsealed ? STONE.PARCHMENT : STONE.HALL_BG2, wrap: true });
+    if (!unsealed) gridText_(sheet, 30, col, w, 'sealed', { h: 'center', size: 8, color: '#7C8C81', bg: STONE.HALL_BG2 });
+    sheet.getRange(29, col, 3, w).setBackground(unsealed ? STONE.PARCHMENT : STONE.HALL_BG2);
+  };
+  var first = (mode === 'mock');
+  letter(3, 8, 'First Blood', 'You did the hardest thing — you started, and you finished. One column stands; the rest fall in behind it.', first);
+  letter(12, 8, 'Halfway', 'Unseals when half your debt is slain.', false);
+  letter(21, 8, 'Debt-Free', 'Unseals when the temple is whole and you owe no one.', false);
+
   footer_(sheet, 50, CANVAS.LAST);
 }
 
