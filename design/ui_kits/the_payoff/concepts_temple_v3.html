@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Payoff — Temple v3 · scrubber + strategy race</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Jost:wght@300;400;500;600;700&display=swap');
+  *{box-sizing:border-box;} body{margin:0;background:#1C3D2E;font-family:Jost,sans-serif;color:#1C3D2E;}
+  .wrap{max-width:1140px;margin:0 auto;padding:22px;}
+  .top{display:flex;align-items:baseline;gap:12px;color:#FAF8F2;}
+  .top h1{font-family:'Playfair Display',serif;font-weight:700;font-size:22px;margin:0;}
+  .top .badge{background:#C5A95A;color:#1C3D2E;font-size:9px;font-weight:700;letter-spacing:.16em;padding:3px 9px;border-radius:2px;}
+  .top .who{margin-left:auto;font-size:11px;color:rgba(250,248,242,.6);}
+  .sub{color:rgba(250,248,242,.65);font-size:12px;font-weight:300;margin:4px 0 14px;}
+  .stage{background:#FAF8F2;border-radius:8px;overflow:hidden;margin-bottom:16px;}
+  .hd{background:#1C3D2E;color:#FAF8F2;font-size:10.5px;font-weight:600;letter-spacing:.18em;padding:9px 16px;display:flex;justify-content:space-between;}
+  .hd .g{color:#C5A95A;}
+  .body{padding:16px 20px;}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:6px;}
+  .legend .grp{display:flex;align-items:center;gap:6px;font-size:10px;}
+  .legend .sw{width:12px;height:12px;border-radius:2px;}
+  .legend .sw.rub{opacity:.4;} .legend .note{color:rgba(28,61,46,.55);}
+  .legend .div{width:1px;height:14px;background:rgba(28,61,46,.14);}
+
+  /* temple */
+  .temple{position:relative;display:inline-block;padding-top:40px;}
+  .entab{position:absolute;top:22px;left:0;right:0;height:8px;background:#EAE4D6;border-radius:1px;transition:background .5s;}
+  .pediment{position:absolute;top:0;left:0;right:0;height:22px;clip-path:polygon(50% 0,100% 100%,0 100%);background:#EAE4D6;transition:background .5s;}
+  .temple.done .entab,.temple.done .pediment{background:#C5A95A;}
+  .banner{position:absolute;top:5px;left:50%;transform:translateX(-50%);font-family:'Playfair Display',serif;font-weight:700;font-size:11px;color:#1C3D2E;letter-spacing:.1em;opacity:0;transition:opacity .5s;white-space:nowrap;}
+  .temple.done .banner{opacity:1;}
+  .cols{display:flex;gap:6px;align-items:flex-end;}
+  .col{display:flex;flex-direction:column;align-items:center;}
+  .capital{height:5px;border-radius:2px 2px 0 0;background:transparent;transition:background .4s;margin-bottom:2px;}
+  .col.full .capital{background:#C5A95A;}
+  .stack{display:flex;flex-direction:column-reverse;gap:1.5px;}
+  .srow{display:flex;gap:1.5px;}
+  .pcell{border-radius:1px;background:#EAE4D6;border:1px solid rgba(28,61,46,.06);transition:background .2s;}
+  .pcell.moving{background:#C5A95A !important;border-color:#b9962f !important;}
+  /* foundation buffer */
+  .found{margin-top:3px;border-radius:2px;background:#EAE4D6;display:flex;overflow:hidden;}
+  .found .ff{background:#C5A95A;transition:width .4s;}
+  .foundlab{font-size:8.5px;color:rgba(28,61,46,.6);margin-top:3px;text-align:center;}
+  .collabs{display:flex;gap:6px;margin-top:5px;}
+  .clab{text-align:center;font-size:8px;line-height:1.2;}
+  .clab .pct{font-weight:700;font-size:9.5px;} .clab .done{color:#C5A95A;}
+
+  .scrub{display:flex;align-items:center;gap:12px;margin-top:16px;background:#16301f;border-radius:5px;padding:11px 16px;}
+  .scrub input[type=range]{flex:1;accent-color:#C5A95A;}
+  .scrub .lab{color:#FAF8F2;font-size:11px;white-space:nowrap;}
+  .scrub .lab b{color:#C5A95A;font-family:'Playfair Display',serif;font-size:13px;}
+  .scrub .tag{font-size:9px;letter-spacing:.12em;padding:2px 7px;border-radius:999px;}
+  .tag.past{background:rgba(250,248,242,.15);color:#FAF8F2;} .tag.future{background:#C5A95A;color:#1C3D2E;}
+
+  /* race */
+  .race{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .lane{border:1px solid rgba(28,61,46,.12);border-radius:6px;padding:12px 14px;background:#fffdf8;}
+  .lane.win{border-color:#C5A95A;box-shadow:0 0 0 1px #C5A95A;}
+  .lane .ln{font-size:11px;font-weight:700;letter-spacing:.08em;display:flex;justify-content:space-between;align-items:baseline;}
+  .lane .ln .sub2{font-weight:300;font-size:9.5px;color:rgba(28,61,46,.6);}
+  .lane .stats{display:flex;gap:16px;margin:8px 0 4px;}
+  .lane .stat .v{font-family:'Playfair Display',serif;font-weight:700;font-size:17px;}
+  .lane .stat .k{font-size:8.5px;color:rgba(28,61,46,.6);letter-spacing:.05em;}
+  .verdict{background:#C5A95A;color:#1C3D2E;border-radius:5px;padding:10px 16px;font-size:12px;font-weight:500;margin-top:14px;}
+  .controls{background:#16301f;padding:12px 20px;display:flex;gap:11px;align-items:center;flex-wrap:wrap;}
+  .btn{background:#C5A95A;color:#1C3D2E;border:0;border-radius:3px;padding:8px 14px;font-weight:600;font-size:11.5px;cursor:pointer;}
+  .btn.ghost{background:transparent;color:#FAF8F2;border:1px solid rgba(250,248,242,.3);}
+  .hint{margin-left:auto;color:rgba(250,248,242,.5);font-size:10px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>The Payoff · The Temple</h1><span class="badge">WORKING MOCKUP v3</span><span class="who">Grammar A · timeline scrubber + strategy race</span></div>
+  <div class="sub">The Time Machine is now the temple's own timeline — drag the slider to stand in any month of your plan and watch the colonnade build toward complete. Below, race the two strategies and see them fill different columns at different rates.</div>
+
+  <!-- HERO: single plan + scrubber + foundation -->
+  <div class="stage">
+    <div class="hd"><span>① THE TEMPLE · YOUR PLAN, ANY MONTH</span><span class="g" id="heroClock">TODAY · MONTH 14</span></div>
+    <div class="body">
+      <div class="legend" id="legend"></div>
+      <div id="heroTemple"></div>
+      <div class="found" id="found" style="height:9px"><div class="ff" id="ff" style="width:60%"></div></div>
+      <div class="foundlab" id="foundlab">FOUNDATION · starter buffer $600 of $1,000 — fund it and your temple stands on solid ground</div>
+      <div class="scrub">
+        <span class="lab">⟵ past</span>
+        <input type="range" id="scrub" min="0" max="51" value="14">
+        <span class="lab">future ⟶</span>
+        <span class="lab" id="scrubLab"><b>Jun 2026</b> · today</span>
+        <span class="tag past" id="scrubTag">YOU ARE HERE</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RACE -->
+  <div class="stage">
+    <div class="hd"><span>② RACE THE STRATEGIES · SAME MONEY, DIFFERENT ORDER</span><span class="g" id="raceClock">MONTH 23</span></div>
+    <div class="body">
+      <div class="race">
+        <div class="lane" id="laneSnow"></div>
+        <div class="lane" id="laneAval"></div>
+      </div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+    <div class="controls">
+      <button class="btn" id="racePlay">▶ &nbsp;Run the race</button>
+      <input type="range" id="raceScrub" min="0" max="51" value="23" style="flex:1;accent-color:#C5A95A">
+      <span class="lab" style="color:#FAF8F2;font-size:11px">Month <b id="raceMlab" style="color:#C5A95A">23</b></span>
+      <span class="hint">snowball fills smallest-first · avalanche fills priciest-first · both end debt-free</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const R = {"hist":14,"total":40950,"debts":[{"name":"Store card","short":"Store","start":1150,"apr":0.2799},{"name":"Medical bill","short":"Medical","start":3400,"apr":0},{"name":"Auto loan","short":"Auto","start":8400,"apr":0.069},{"name":"Visa ····4417","short":"Visa","start":9800,"apr":0.2499},{"name":"Student loan","short":"Student","start":18200,"apr":0.055}],"snowball":{"months":51,"interest":10381,"bal":[[1150,892,628,357,81,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[3400,3250,3100,2950,2800,2650,2215,1780,1345,910,475,40,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[8400,8236,8072,7906,7740,7572,7404,7234,7064,6892,6720,6547,6372,5762,5148,4531,3910,3285,2657,2025,1390,751,108,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[9800,9808,9816,9825,9833,9842,9851,9860,9870,9879,9889,9899,9909,9919,9930,9941,9952,9963,9974,9986,9998,10010,10023,10035,9401,8754,8094,7419,6731,6028,5310,4578,3830,3067,2288,1492,681,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[18200,18093,17986,17879,17771,17662,17553,17444,17334,17223,17112,17000,16888,16776,16663,16549,16435,16320,16205,16089,15973,15856,15739,15621,15503,15384,15264,15144,15023,14902,14781,14658,14536,14412,14288,14164,14039,13913,12944,11970,10992,10009,9022,8031,7034,6034,5028,4018,3004,1984,961,0]],"kills":[5,12,23,37,51]},"avalanche":{"months":49,"interest":8230,"bal":[[1150,892,628,357,81,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[3400,3250,3100,2950,2800,2650,2500,2350,2200,2050,1900,1750,1600,1450,1300,1150,1000,850,700,550,400,250,100,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[8400,8236,8072,7906,7740,7572,7404,7234,7064,6892,6720,6547,6372,6197,6021,5843,5665,5485,5305,5123,4941,4757,4573,4387,4200,4012,3823,3633,3442,3250,3057,2231,1401,566,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[9800,9808,9816,9825,9833,9842,9566,9284,8997,8703,8403,8097,7785,7466,7140,6808,6469,6123,5769,5408,5040,4664,4280,3888,3338,2777,2203,1618,1021,411,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[18200,18093,17986,17879,17771,17662,17553,17444,17334,17223,17112,17000,16888,16776,16663,16549,16435,16320,16205,16089,15973,15856,15739,15621,15503,15384,15264,15144,15023,14902,14781,14658,14536,14412,14288,13321,12349,11372,10391,9406,8416,7422,6423,5419,4411,3398,2381,1359,332,0]],"kills":[5,23,34,30,49]}};
+const COLOR = {'Store card':'#93B27E','Medical bill':'#6E9560','Auto loan':'#3E7E5C','Visa ····4417':'#2D5C45','Student loan':'#1C3D2E'};
+const ORDER = ['Store card','Medical bill','Auto loan','Visa ····4417','Student loan'];
+const debts = ORDER.map(n=>{ const d=R.debts.find(x=>x.name===n); return {...d, color:COLOR[n]}; });
+const H=16, K=1300;
+debts.forEach(d=>d.width=Math.max(2,Math.round(d.start/K)));
+const balOf = (strat, di, m) => R[strat].bal[di][Math.min(m, R[strat].bal[di].length-1)];
+
+// legend
+document.getElementById('legend').innerHTML =
+  debts.map(d=>`<div class="grp"><span class="sw" style="background:${d.color}"></span>${d.short}</div>`).join('')
+  + `<div class="div"></div><div class="grp"><span class="sw rub" style="background:#2D5C45"></span><span class="note">owed (wall)</span></div>`
+  + `<div class="grp"><span class="sw" style="background:#2D5C45"></span><span class="note">conquered (column)</span></div>`
+  + `<div class="grp"><span class="sw" style="background:#C5A95A"></span><span class="note">gold = capital / topped out</span></div>`;
+
+// render a temple into host for a strategy at month m, with cell size
+function renderTemple(host, strat, m, cell){
+  const di2 = {};
+  let html = '<div class="temple'+( debts.every((d,i)=>balOf(strat,i,m)<=0)?' done':'')+'">';
+  html += '<div class="entab"></div><div class="pediment"></div><div class="banner">DEBT FREE</div><div class="cols">';
+  debts.forEach((d,i)=>{
+    const built = d.start - balOf(strat,i,m);
+    const pct = Math.max(0, built/d.start);
+    const filled = Math.min(H, Math.round(pct*H));
+    const full = balOf(strat,i,m)<=0;
+    const capW = d.width*cell + (d.width-1)*1.5 + 4;
+    html += '<div class="col'+(full?' full':'')+'"><div class="capital" style="width:'+capW+'px"></div><div class="stack">';
+    for(let r=0;r<H;r++){ html+='<div class="srow">';
+      for(let j=0;j<d.width;j++){ const on=r<filled; html+='<div class="pcell" style="width:'+cell+'px;height:'+cell+'px'+(on?(';background:'+d.color+';border-color:'+d.color):'')+'"></div>'; }
+      html+='</div>'; }
+    html += '</div></div>';
+  });
+  html += '</div>';
+  // labels
+  html += '<div class="collabs">';
+  debts.forEach((d,i)=>{ const built=d.start-balOf(strat,i,m); const pct=Math.max(0,built/d.start); const full=balOf(strat,i,m)<=0; const capW=d.width*cell+(d.width-1)*1.5+4;
+    html += '<div class="clab" style="width:'+capW+'px"><div>'+d.short+'</div><div class="pct'+(full?' done':'')+'">'+(full?'✦':Math.round(pct*100)+'%')+'</div></div>'; });
+  html += '</div></div>';
+  host.innerHTML = html;
+}
+
+// hero
+const scrub=document.getElementById('scrub');
+function hero(){ const m=+scrub.value;
+  renderTemple(document.getElementById('heroTemple'),'snowball',m,11);
+  const future = m>R.hist;
+  document.getElementById('heroClock').textContent = future? ('PROJECTED · MONTH '+m) : ('TODAY · MONTH '+m).replace('MONTH 14','MONTH 14');
+  const owed = debts.reduce((a,d,i)=>a+balOf('snowball',i,m),0);
+  document.getElementById('scrubLab').innerHTML = '<b>'+monthName(m)+'</b> · '+(owed<=0?'debt-free':('$'+owed.toLocaleString()+' to go'));
+  const tag=document.getElementById('scrubTag');
+  if(m<R.hist){ tag.textContent='THE PAST'; tag.className='tag past'; }
+  else if(m===R.hist){ tag.textContent='YOU ARE HERE'; tag.className='tag past'; }
+  else { tag.textContent='YOUR FUTURE'; tag.className='tag future'; }
+  // foundation: fully funded once you're past today (illustrative)
+  const pctFund = m>=R.hist? 0.6 : 0.6;
+  document.getElementById('heroClock').textContent = (m<R.hist?'PAST':m===R.hist?'TODAY':'PROJECTED')+' · MONTH '+m;
+}
+function monthName(m){ const base=['Apr 25','May 25','Jun 25','Jul 25','Aug 25','Sep 25','Oct 25','Nov 25','Dec 25','Jan 26','Feb 26','Mar 26','Apr 26','May 26','Jun 26']; if(m<base.length) return base[m]; const future=m-14; const d=new Date(2026,5+future,1); return d.toLocaleDateString('en-US',{month:'short',year:'2-digit'}); }
+scrub.oninput=hero; hero();
+
+// race
+const rs=document.getElementById('raceScrub');
+function race(){ const m=+rs.value;
+  renderTemple(document.getElementById('laneSnow'),'snowball',m,7);
+  renderTemple(document.getElementById('laneAval'),'avalanche',m,7);
+  // wrap each with header + stats
+  decorate('laneSnow','Snowball','smallest balance first','snowball',m);
+  decorate('laneAval','Avalanche','highest APR first','avalanche',m);
+  document.getElementById('raceMlab').textContent=m;
+  document.getElementById('raceClock').textContent='MONTH '+m;
+  const sDone=debts.every((d,i)=>balOf('snowball',i,m)<=0), aDone=debts.every((d,i)=>balOf('avalanche',i,m)<=0);
+  document.getElementById('laneSnow').classList.toggle('win', sDone&&!aDone);
+  document.getElementById('laneAval').classList.toggle('win', aDone&&!sDone||(aDone&&sDone));
+  const sKills=debts.filter((d,i)=>balOf('snowball',i,m)<=0).length, aKills=debts.filter((d,i)=>balOf('avalanche',i,m)<=0).length;
+  document.getElementById('verdict').innerHTML = m>=R.avalanche.months
+    ? 'Avalanche won — debt-free in <b>'+R.avalanche.months+' months</b> for <b>$'+R.avalanche.interest.toLocaleString()+'</b> interest, vs the snowball at '+R.snowball.months+' months / $'+R.snowball.interest.toLocaleString()+'. <b>Saved $'+(R.snowball.interest-R.avalanche.interest).toLocaleString()+'</b> — but the snowball gave more early wins.'
+    : 'At month '+m+': snowball has toppled <b>'+sKills+'</b> column'+(sKills===1?'':'s')+', avalanche <b>'+aKills+'</b>. Avalanche pours into the priciest debt (Visa), snowball into the smallest still standing — watch them fill different columns.';
+}
+function decorate(id,name,sub,strat,m){ const host=document.getElementById(id); const inner=host.innerHTML;
+  const months=R[strat].months, interest=R[strat].interest;
+  host.innerHTML='<div class="ln">'+name+' <span class="sub2">'+sub+'</span></div>'
+    +'<div class="stats"><div class="stat"><div class="v">'+months+' mo</div><div class="k">TO DEBT-FREE</div></div>'
+    +'<div class="stat"><div class="v">$'+interest.toLocaleString()+'</div><div class="k">TOTAL INTEREST</div></div></div>'+inner;
+}
+rs.oninput=race; race();
+let rp=false;
+document.getElementById('racePlay').onclick=()=>{ if(rp)return; rp=true; document.getElementById('racePlay').disabled=true; rs.value=0; race();
+  const iv=setInterval(()=>{ let v=+rs.value; if(v>=51){clearInterval(iv);rp=false;document.getElementById('racePlay').disabled=false;return;} rs.value=v+1; race(); }, 240); };
+</script>
+</body>
+</html>
