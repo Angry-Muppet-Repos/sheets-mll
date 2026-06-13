@@ -108,8 +108,14 @@ diverge, the workbook is ground truth.
   anatomy vocabulary Stylobate·Column·Capital·Entablature·Pediment.
   Dan approved the full all-tabs mockup (`design/ui_kits/the_payoff/
   full_mockup.html`, the canonical navigable prototype; the `concepts_*.html`
-  are the iteration history). NEXT: build `tools/verify_payoff.js`
-  (mirror the Workbench harness + a JS re-amortization math layer) and
+  are the iteration history). Color decision LOCKED: the 24 palettes
+  theme chrome/KPIs/tables only — the temple/wall/Hall/stylobate are a
+  FIXED stone-and-gold material set + fixed debt ramp (05 § color rule).
+  Interest is engine-estimated (balance×APR/12); the owner types only
+  payment amount + the monthly statement balance (03). DESIGN COMPLETE —
+  NEXT is the build: paste `design/design_handoff_the_payoff/
+  BUILD_KICKOFF.txt` into a fresh session → `tools/verify_payoff.js`
+  (Workbench harness + a JS re-amortization math layer) then
   `apps_script/ColumnCo_Payoff_v1.gs`.
 - **The Ledger v1** (`apps_script/ColumnCo_Ledger_v1.gs`) — merged via
   PR #2, statically verified, paused before Dan's live QA. NOT yet

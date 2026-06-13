@@ -160,8 +160,11 @@ rules live on the Debts tab (cols mirroring the Foundation pattern).
 - All IF-guarded for empty slots; zero #ERROR! in blank mode.
 
 ## 11 · _Config — [REUSE]
-24 palettes verbatim; `active_palette` cell; build-mode flag. Per-debt
-color ramp derives from the active palette (the temple recolors).
+24 palettes verbatim; `active_palette` cell; build-mode flag. The
+palette themes chrome/KPIs/tables only — the temple/wall/Hall/stylobate
+use a FIXED stone-and-gold material set + a fixed five-step debt ramp
+(constants in section 00, independent of `active_palette`). See 05 §
+color rule.
 
 ## 12 · _Schema — [ADAPT]
 Payoff prose: tabs, conventions (estimates-not-advice, the In-plan

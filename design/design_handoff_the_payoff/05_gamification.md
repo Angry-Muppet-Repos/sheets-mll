@@ -4,8 +4,26 @@ The motivational layer, locked by Dan after the mockup-gate iteration
 (concept boards + working interactive mocks in
 `design/ui_kits/the_payoff/concepts_*.html`). All of it is **real
 Sheets** — painted cell grids, conditional formatting, cell notes, a
-scripted flush-repaint loop, emoji. No images. Recolors with the 24
-palettes. Every figure traces to the engine (03).
+scripted flush-repaint loop, emoji. No images. Every figure traces to
+the engine (03).
+
+## Color rule — the monument is fixed stone-and-gold (LOCKED 2026-06-13)
+
+The 24-palette picker themes the **chrome, KPIs, and tables** like every
+sibling product — but the **temple, wall, Hall, and stylobate do NOT
+recolor.** They use a fixed, curated material set: a stone/parchment
+"unbuilt" tone, a five-step on-brand **debt ramp** (deepest forest →
+pale sage, one fixed color per debt slot), and **gold (#C5A95A) reserved
+for achievement/motion** (capitals, the finished pediment, a laid
+stylobate, blocks in motion). Rationale (proven in
+`concepts_temple_color.html`): deriving the temple from an arbitrary
+palette collapses the five debt hues into indistinguishable tints on
+monochromatic palettes, and on the six white/gray-accent palettes
+(Crimson & White, Forest & White, Silver & Black, Scarlet & Gray, Cool
+Slate, Burgundy) the "you won" gold turns white/gray and vanishes into
+the parchment. A monument is stone and gold; it is not repainted. The
+debt-ramp colors are constants in section 00 of the `.gs`, independent
+of `active_palette`.
 
 ## The metaphor — build a temple from your debts
 
@@ -23,7 +41,8 @@ product's vocabulary across every tab, toast, and listing line:
 
 Gold is reserved for one meaning everywhere: **achievement / motion now**
 (blocks moving this payment, a capital topping out, the finished
-pediment). Each debt otherwise owns a palette-derived color.
+pediment). Each debt otherwise owns a fixed color from the curated debt
+ramp (see the color rule above — NOT palette-derived).
 
 ## The Temple — Dashboard hero
 

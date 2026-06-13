@@ -1,0 +1,74 @@
+THE PAYOFF v1 — BUILD KICKOFF (paste this whole block as the first message in a fresh Claude Code session)
+================================================================================================
+
+REPO: Angry-Muppet-Repos/sheets-mll · develop on the branch this session
+designates · never main · never force-push. The design is LOCKED and
+fully mocked; this session BUILDS it. Do not redesign — if something in
+the build seems to need a design change, stop and ask Dan.
+
+WHAT THIS IS
+The Payoff v1 — a Google Sheets debt-payoff product (Foundation/Ledger/
+Workbench stack: one bound .gs that builds MOCK_DATA + BLANK workbooks).
+The differentiator is the motivational layer: The Temple (debts become
+columns; Column & Co.'s mark is a column), the Stylobate (savings
+buffer as the temple's base), The Hall (trophy room), the strategy
+Race, the Time Machine month scrubber, pre-written Letters, streaks.
+
+PHASE 0 — ORIENT (read before writing anything)
+1. CLAUDE.md (esp. the hard-won build lessons + current product state).
+2. design/design_handoff_the_payoff/ IN FULL — 01 brief · 02 tabs (12:
+   Start Here · Dashboard · The Plan · Compare · Debts · Payments Log ·
+   Progress · The Hall · Bank Import · _Engine · _Config · _Schema) ·
+   03 data model (capacity dials, the engine iteration + rollover
+   simplification, the estimate/statement-true-up interest model,
+   named ranges) · 04 mock+QA (Casey Alvarez; engine-derived figures) ·
+   05 gamification (LOCKED — Temple/Stylobate/Hall/Race/Letters/streaks,
+   the anatomy vocabulary, and the COLOR RULE: monument is fixed
+   stone-and-gold; palettes theme chrome only).
+3. design/ui_kits/the_payoff/full_mockup.html — the canonical navigable
+   prototype (all 9 visible tabs). concepts_*.html = iteration history.
+4. Skim the sibling scripts for the reusable skeleton: chrome_/titleRow_/
+   ensureGrid_/forEachSlab_/getOrCreateSheet_ (with filter teardown +
+   geometry normalization), the theme engine, the Foundation Bank-CSV
+   import (section 13) — apps_script/ColumnCo_Workbench_v1.gs and
+   ColumnCo_Foundation_v2.gs.
+
+PHASE 1 — THE HARNESS FIRST (tools/verify_payoff.js)
+Mirror tools/verify_workbench.js (stub SpreadsheetApp with 1000×26 grid
+enforcement + value store + filter semantics; layers a parse · b formula
+balance · c cross-ref audit vs 02/03 · d mode audit/mock-leak · e mock
+integrity · f functional · g rebuild-resilience over a stale workbook ·
+h cross-sheet reference inventory). ADD a math layer: re-implement the
+03 amortization in plain JS (snowball/avalanche/custom + the two
+scenario extras + minimums-only baseline + the estimate/true-up balance
+logic) and assert the .gs engine's months/interest/payoff-order/
+debt-free date match exactly. Keep it green throughout.
+
+PHASE 2 — THE SCRIPT (apps_script/ColumnCo_Payoff_v1.gs)
+Build to 02/03/05. Non-negotiables: ensureGrid_ before any wide write;
+forEachSlab_ + flush for the 5 engine schedule blocks (120×25); filter
+teardown + geometry normalization in getOrCreateSheet_; no future-dated
+mock rows; right-aligned numeric headers; zero #ERROR! in blank mode;
+chrome ends at the last VISIBLE column. The Temple/Hall/Stylobate are
+painted cell grids + conditional formatting + cell notes + a scripted
+flush+sleep replay; the debt ramp + gold are FIXED constants (section
+00), NOT palette-derived (05 color rule). Interest is engine-estimated
+(balance×APR/12); the owner types only payment Amount + the monthly
+statement balance.
+
+PHASE 3 — VERIFY + HANDBACK
+Full verify_payoff.js green (show results, incl. the math layer). True
+up any doc that drifted. Commit, push, send Dan the .gs to paste +
+build instructions + QA checklist (04) + known limitations (no live
+execution claims — Dan does live QA; the replay is ~0.5–0.7s/step, not
+animation; sharing is screenshot-optimized, no social API).
+
+LOCKED DECISIONS (do not relitigate)
+- Name: The Payoff. Grammar A (uniform temple, width=debt size).
+- Strategy comparison: full side-by-side race. Mortgages: per-debt
+  "In plan?" toggle (tracked, excluded from the date).
+- Stylobate: SAVED = sum of logged contributions (computed), GOAL
+  editable (cc_stylobate_goal, default $1,000). Letters: pre-written,
+  zero-setup. Color: palettes theme chrome; monument fixed stone-and-gold.
+- You cannot execute Apps Script or render Sheets — never claim tested
+  beyond the static + math verification.
