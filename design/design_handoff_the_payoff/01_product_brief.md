@@ -1,9 +1,11 @@
-# 01 · Product Brief — The Payoff (DRAFT — pending Dan's approval)
+# 01 · Product Brief — The Payoff
 
-> **Status: kickoff draft, 2026-06-12.** Dan picked the debt-payoff
-> product as the next build. This brief is the proposal — nothing
-> downstream (tab specs, mockup, script) starts until Dan approves it.
-> Decisions Dan owns are marked ⚑.
+> **Status: APPROVED by Dan 2026-06-13.** Decisions locked at kickoff:
+> name **The Payoff** · strategy comparison **full side-by-side** ·
+> mortgages handled by a per-debt **"In plan?" toggle** (see scale
+> contract) · wedge list approved as drafted. Pricing stays a
+> listing-time call. Next gates: tab specs (02–04) → visual mockup
+> (`design/ui_kits/the_payoff/`) → script.
 
 ## What this is
 
@@ -68,13 +70,21 @@ tools; not coders.
 - `DEBT_CAPACITY` = **25** debt slots (typical buyer carries 3–12;
   raising it is one constant + rebuild).
 - `PAYOFF_HORIZON_MONTHS` = **120** projection months (dial). Debts
-  that outlive the horizon (a mortgage row) show "beyond horizon ·
-  10+ yrs" gracefully — never an error. ⚑ Mortgages allowed as rows
-  but the product is positioned for consumer debt; confirm.
-- The engine computes the month × debt schedule for the ACTIVE
-  strategy plus summary figures (months + total interest) for the two
-  alternates — ~3 blocks of `25 × 120` guarded formulas, comparable to
-  the Workbench's product matrix. The only typing that scales is one
+  that outlive the horizon show "beyond horizon · 10+ yrs" gracefully —
+  never an error.
+- **The "In plan?" toggle** (per debt, default Yes): a mortgage — or
+  any debt the buyer doesn't want driving the plan — can be tracked
+  (balance, payments, totals) while excluded from the payoff strategy
+  and the debt-free date. Without it, one mortgage row would drag
+  "Debt-free March 2030" out to 2049 and kill the product's promise;
+  excluding mortgages outright would turn those buyers away. The
+  toggle serves both.
+- Full side-by-side comparison (Dan's pick): the engine computes
+  complete month × debt schedules for snowball AND avalanche AND the
+  custom order, plus two what-if scenario runs (+$50 / +$100 on the
+  active strategy) — five blocks of `25 × 120` guarded arithmetic,
+  heavier than the Workbench matrix in cells but lighter per cell.
+  Slab-written, capacity-dialed. The only typing that scales is one
   Payments Log row per payment.
 
 ## Brand, voice, naming
@@ -84,11 +94,10 @@ Jost, middle-dot separators, no exclamation points, second person, lead
 with the problem. Listing keywords ("debt snowball", "debt tracker")
 live in listing copy and tags — never in the product name.
 
-⚑ **Name (Dan's call).** Recommendation: **The Payoff** — names the
-outcome, not a method, and sits naturally beside The Foundation /
-The Ledger / The Workbench. Alternates considered: The Snowball
-(matches the #1 search term but names one method and leans on another
-brand's vocabulary), The Clean Slate, The Countdown.
+**Name (locked by Dan 2026-06-13): The Payoff** — names the outcome,
+not a method, and sits naturally beside The Foundation / The Ledger /
+The Workbench. (Alternates considered and passed: The Snowball, The
+Clean Slate, The Countdown.)
 
 Footer line every tab:
 `The Payoff v1.0 · columnandco.com · Do not distribute without license`
@@ -111,11 +120,11 @@ first kill — the strategy trade-off shown honestly in one screenshot.
 positioned at or just under The Foundation. Final number is Dan's call
 at listing time.
 
-## Open questions for Dan (answer before 02–04 get written)
+## Decisions locked at kickoff (Dan, 2026-06-13)
 
-1. Name: The Payoff? (⚑ above)
-2. Mortgage rows: allowed-but-deprioritized as drafted, or excluded?
-3. Strategy comparison: alternate strategies as summary figures only
-   (drafted), or full side-by-side schedules (heavier engine)?
-4. Anything you want in v1 that isn't in the wedge list — or anything
-   there you'd cut?
+1. Name: **The Payoff**.
+2. Mortgages: per-debt **"In plan?" toggle** — tracked but excluded
+   from the strategy and the debt-free date by default guidance.
+3. Strategy comparison: **full side-by-side schedules** (a dedicated
+   Compare tab), not summary figures.
+4. Wedge list approved as drafted; nothing added or cut.
