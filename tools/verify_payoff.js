@@ -654,7 +654,7 @@ section('g. rebuild resilience', gFail, gChecks.length);
 // Every cross-sheet column reference must appear in this REVIEWED
 // inventory — a novel reference fails until re-reviewed against 02/03.
 const A1_ALLOWED = {
-  'Debts': ['B', 'B:B', 'D', 'E', 'F', 'H', 'I', 'K', 'M', 'N', 'S', 'A:O'],
+  'Debts': ['B', 'B:B', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'S', 'A:O'],
   'Payments Log': ['A', 'B', 'E'],
   // _Engine scalars (row 18 + block summaries) the views read, plus the
   // mirror block B:Z and the active-timeline column AE.

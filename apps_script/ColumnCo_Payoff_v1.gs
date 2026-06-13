@@ -1693,17 +1693,17 @@ function buildDashboardBody_(sheet, mode) {
   gridText_(sheet, mr + 1, 8, 4, 'Due', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
   gridText_(sheet, mr + 1, 12, 4, 'Min', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: 'right' });
   gridText_(sheet, mr + 1, 16, CANVAS.COLS - 16, 'Status', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
+  // live "this month" — reads the registry, so it works for any owner
+  var DB = "'" + TABS.DEBTS + "'";
+  for (var i = 0; i < 6; i++) {
+    var R = DEBT.FIRST_ROW + i, row = mr + 2 + i;
+    gridText_(sheet, row, 2, 6, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$B$' + R + ')', size: 11, color: BRAND.FOREST });
+    gridText_(sheet, row, 8, 4, null, { formula: '=IF(' + DB + '!$G$' + R + '="","","day "&' + DB + '!$G$' + R + ')', size: 10, color: BRAND.CAPTION });
+    gridText_(sheet, row, 12, 4, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$F$' + R + ')', h: 'right', size: 10, format: '$#,##0' });
+    gridText_(sheet, row, 16, CANVAS.COLS - 16, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$L$' + R + ')', size: 10, italic: true, color: BRAND.CANOPY });
+  }
   if (mode === 'mock') {
-    var due = [['Auto loan', 'the 3rd', 212, 'target — gets the pool'], ['Visa ····4417', 'the 17th', 196, 'minimum while Auto dies'],
-      ['Student loan', 'the 21st', 190, 'due soon'], ['Mortgage', 'the 1st', 1055, 'tracked · not in plan']];
-    due.forEach(function (d, i) {
-      var row = mr + 2 + i;
-      gridText_(sheet, row, 2, 6, d[0], { size: 11, color: BRAND.FOREST });
-      gridText_(sheet, row, 8, 4, d[1], { size: 10, color: BRAND.CAPTION });
-      gridText_(sheet, row, 12, 4, d[2], { h: 'right', size: 10, format: '$#,##0' });
-      gridText_(sheet, row, 16, CANVAS.COLS - 16, d[3], { size: 10, italic: true, color: BRAND.CANOPY });
-    });
-    var ar = mr + 7;
+    var ar = mr + 9;
     zlabel_(sheet, ar, 'AI INSIGHTS · ATTACH THE SHEET AND ASK');
     MOCK.ai_insights.forEach(function (ins, i) {
       gridText_(sheet, ar + 1 + i, 2, 4, ins[0], { bold: true, size: 9, color: BRAND.GOLD, bg: BRAND.CREAM, h: 'center' });
@@ -1711,8 +1711,7 @@ function buildDashboardBody_(sheet, mode) {
     });
     footer_(sheet, ar + 6, CANVAS.LAST);
   } else {
-    gridText_(sheet, mr + 2, 2, CANVAS.COLS - 2, 'Add your debts and the Temple, the date, and this month\'s payments appear here.', { italic: true, size: 11, color: BRAND.CAPTION });
-    footer_(sheet, mr + 5, CANVAS.LAST);
+    footer_(sheet, mr + 10, CANVAS.LAST);
   }
 }
 
