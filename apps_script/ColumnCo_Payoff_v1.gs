@@ -560,13 +560,14 @@ function paintContentBg_(sheet, endRow, lastColLetter) {
 }
 
 // ── Control-cell contract (the named yellow inputs the engine reads) ──
+// Inputs sit on row 10 (labels on row 9 above them) for a clean control bar.
 var CTRL = {
-  STRATEGY: "'" + TABS.PLAN + "'!C9",       // cc_active_strategy
-  EXTRA:    "'" + TABS.PLAN + "'!H9",        // cc_extra_monthly
-  TIME_MACHINE: "'" + TABS.PLAN + "'!C12",   // cc_time_machine (month index)
-  COMPARE_MONTH: "'" + TABS.COMPARE + "'!C12",
-  STYLO_GOAL: "'" + TABS.PROGRESS + "'!C12", // cc_stylobate_goal
-  ENGINE_ANCHOR: "'" + TABS.CONFIG + "'!B41" // cc_engine_anchor (first of current month)
+  STRATEGY: "'" + TABS.PLAN + "'!C10",        // cc_active_strategy
+  EXTRA:    "'" + TABS.PLAN + "'!P10",        // cc_extra_monthly
+  TIME_MACHINE: "'" + TABS.PLAN + "'!C18",    // cc_time_machine (month index)
+  COMPARE_MONTH: "'" + TABS.COMPARE + "'!C10",
+  STYLO_GOAL: "'" + TABS.PROGRESS + "'!C10",  // cc_stylobate_goal
+  ENGINE_ANCHOR: "'" + TABS.CONFIG + "'!B41"  // cc_engine_anchor (first of current month)
 };
 
 /**
@@ -1187,25 +1188,54 @@ function writeEngineBlock_(sheet, blockIdx) {
 
 // The visual tabs use a narrow-cell CANVAS so the monument can be painted
 // as a colonnade of small squares; content blocks merge across the cells.
-var CANVAS = { COLS: 30, LAST: 'AD', CELL_W: 19, TEMPLE_H: 11 };
+// Per-tab canvas grid, mutated at the start of each view build. Temple tabs
+// use a FINE, wide grid so the colonnade is slender + nothing clips; card/
+// text tabs a coarser wide grid. Both total ~960px so nothing is cramped.
+var GRID = { COLS: 52, LAST: 'AZ', CELL_W: 18, TEMPLE_H: 18 };
+var TEMPLE_GRID = { cols: 52, cellW: 18 };   // ~936px — fine grid for the temple
+var CARD_GRID = { cols: 30, cellW: 32 };     // ~960px — cards / text
 // Progress contributions ledger lives at FIXED rows so the SAVED line and
 // the Log-a-contribution menu action always target it (the temple above is
 // a fixed height — debts are columns, not rows — so it never reaches here).
-var PROG_LEDGER_TOP = 42, PROG_LEDGER_ROWS = 24;
-function canvasSetup_(sheet, tabName, subLabel, endRow) {
-  ensureGrid_(sheet, endRow, CANVAS.COLS);
-  chrome_(sheet, tabName, CANVAS.LAST, subLabel);
-  for (var c = 1; c <= CANVAS.COLS; c++) sheet.setColumnWidth(c, CANVAS.CELL_W);
+var PROG_LEDGER_TOP = 44, PROG_LEDGER_ROWS = 24;
+
+function useGrid_(cols, cellW) { GRID = { COLS: cols, LAST: columnToLetter_(cols), CELL_W: cellW, TEMPLE_H: 18 }; return GRID; }
+function canvasSetup_(sheet, tabName, subLabel, endRow, grid) {
+  grid = grid || TEMPLE_GRID;
+  useGrid_(grid.cols, grid.cellW);
+  ensureGrid_(sheet, endRow, GRID.COLS);
+  chrome_(sheet, tabName, GRID.LAST, subLabel);
+  for (var c = 1; c <= GRID.COLS; c++) sheet.setColumnWidth(c, GRID.CELL_W);
   // Parchment backdrop, NOT registered as themable — the fixed stone-and-
   // gold monument sits on it and must never recolor with the palette (05).
-  sheet.getRange(CONTENT_START_ROW, 1, endRow - CONTENT_START_ROW + 1, CANVAS.COLS).setBackground(BRAND.PARCHMENT);
+  sheet.getRange(CONTENT_START_ROW, 1, endRow - CONTENT_START_ROW + 1, GRID.COLS).setBackground(BRAND.PARCHMENT);
 }
-function buildPlan_(sheet, mode)      { canvasSetup_(sheet, TABS.PLAN, '', 80); buildPlanBody_(sheet, mode); }
-function buildCompare_(sheet, mode)   { canvasSetup_(sheet, TABS.COMPARE, 'SAME MONEY · TWO ROADS', 70); buildCompareBody_(sheet, mode); }
-function buildProgress_(sheet, mode)  { canvasSetup_(sheet, TABS.PROGRESS, 'THE STYLOBATE + YOUR STREAKS', 80); buildProgressBody_(sheet, mode); }
-function buildDashboard_(sheet, mode) { canvasSetup_(sheet, TABS.DASHBOARD, 'YOUR TEMPLE TODAY', 90); buildDashboardBody_(sheet, mode); }
-function buildHall_(sheet, mode)      { canvasSetup_(sheet, TABS.HALL, 'STEP INSIDE THE TEMPLE', 70); buildHallBody_(sheet, mode); }
-function buildStartHere_(sheet, mode) { canvasSetup_(sheet, TABS.START, 'SETUP', 60); buildStartBody_(sheet, mode); }
+// content area = cols 2 .. COLS-1 (one margin column each side)
+function contentCols_() { return { first: 2, last: GRID.COLS - 1, span: GRID.COLS - 2 }; }
+// n equal blocks across the content area, `gap` cells between
+function evenCols_(n, gap) {
+  gap = (gap == null) ? 1 : gap;
+  var ca = contentCols_(), w = Math.floor((ca.span - gap * (n - 1)) / n), out = [], c = ca.first;
+  for (var i = 0; i < n; i++) { out.push({ col: c, w: w }); c += w + gap; }
+  return out;
+}
+// blocks proportional to `weights`, spanning the content area
+function weightedCols_(weights, gap) {
+  gap = gap || 0;
+  var ca = contentCols_(), sum = weights.reduce(function (a, b) { return a + b; }, 0);
+  var avail = ca.span - gap * (weights.length - 1), out = [], c = ca.first;
+  for (var i = 0; i < weights.length; i++) {
+    var w = (i === weights.length - 1) ? (ca.last - c + 1) : Math.max(1, Math.round(avail * weights[i] / sum));
+    out.push({ col: c, w: w }); c += w + gap;
+  }
+  return out;
+}
+function buildPlan_(sheet, mode)      { canvasSetup_(sheet, TABS.PLAN, '', 84, TEMPLE_GRID); buildPlanBody_(sheet, mode); }
+function buildCompare_(sheet, mode)   { canvasSetup_(sheet, TABS.COMPARE, 'SAME MONEY · TWO ROADS', 78, TEMPLE_GRID); buildCompareBody_(sheet, mode); }
+function buildProgress_(sheet, mode)  { canvasSetup_(sheet, TABS.PROGRESS, 'THE STYLOBATE + YOUR STREAKS', 80, TEMPLE_GRID); buildProgressBody_(sheet, mode); }
+function buildDashboard_(sheet, mode) { canvasSetup_(sheet, TABS.DASHBOARD, 'YOUR TEMPLE TODAY', 96, TEMPLE_GRID); buildDashboardBody_(sheet, mode); }
+function buildHall_(sheet, mode)      { canvasSetup_(sheet, TABS.HALL, 'STEP INSIDE THE TEMPLE', 70, CARD_GRID); buildHallBody_(sheet, mode); }
+function buildStartHere_(sheet, mode) { canvasSetup_(sheet, TABS.START, 'SETUP', 60, CARD_GRID); buildStartBody_(sheet, mode); }
 
 /**
  * Column & Co. — The Payoff v1.0
@@ -1266,17 +1296,17 @@ function onEdit(e) {
     }
   }
 
-  // The Plan: scrubbing the Time Machine (C12) re-paints the temple at that
+  // The Plan: scrubbing the Time Machine (C18) re-paints the temple at that
   // month on the active plan. (Live only; the build paints the default view.)
-  if (name === TABS.PLAN && row === 12 && col === 3) {
-    try { repaintTempleAt_(sheet, 21, liveTempleInfo_(SpreadsheetApp.getActive()), Number(e.range.getValue()) || 0, { H: 10 }); } catch (e3) {}
+  if (name === TABS.PLAN && row === 18 && col === 3) {
+    try { repaintTempleAt_(sheet, 20, liveTempleInfo_(SpreadsheetApp.getActive()), Number(e.range.getValue()) || 0, { H: 16 }); } catch (e3) {}
   }
-  // Compare: the shared race month (C12) re-paints both lanes.
-  if (name === TABS.COMPARE && row === 12 && col === 3) {
+  // Compare: the shared race month (C10) re-paints both lanes.
+  if (name === TABS.COMPARE && row === 10 && col === 3) {
     try {
       var ssc = SpreadsheetApp.getActive(), mm = Number(e.range.getValue()) || 0;
-      repaintTempleAt_(sheet, 19, liveTempleInfo_(ssc, 'snowball'), mm, { H: 9, win: [2, 15] });
-      repaintTempleAt_(sheet, 19, liveTempleInfo_(ssc, 'avalanche'), mm, { H: 9, win: [17, 30] });
+      repaintTempleAt_(sheet, 22, liveTempleInfo_(ssc, 'snowball'), mm, { H: 12, win: [2, 25], minW: 2, capW: 6 });
+      repaintTempleAt_(sheet, 22, liveTempleInfo_(ssc, 'avalanche'), mm, { H: 12, win: [28, 51], minW: 2, capW: 6 });
     } catch (e4) {}
   }
 }
@@ -1393,11 +1423,11 @@ function logContribution() {
   var resp = ui.prompt('Log a Stylobate contribution', 'Amount to lay in stone (negative to draw down):', ui.ButtonSet.OK_CANCEL);
   if (resp.getSelectedButton() !== ui.Button.OK) return;
   var amt = cleanNum_(resp.getResponseText()); if (amt == null) { ui.alert('Type a number.'); return; }
-  var row = findFirstEmptyRow_(prog, 2, PROG_LEDGER_TOP, PROG_LEDGER_ROWS);
-  prog.getRange(row, 2).setValue(new Date());
-  prog.getRange(row, 6).setValue(amt);
-  var goal = Number(prog.getRange('C12').getValue()) || STYLOBATE_GOAL_DEFAULT;
-  var saved = 0, vals = prog.getRange(PROG_LEDGER_TOP, 6, PROG_LEDGER_ROWS, 1).getValues();
+  var row = findFirstEmptyRow_(prog, LC_DATE_COL, PROG_LEDGER_TOP, PROG_LEDGER_ROWS);
+  prog.getRange(row, LC_DATE_COL).setValue(new Date());
+  prog.getRange(row, LC_AMT_COL).setValue(amt);
+  var goal = Number(prog.getRange('C10').getValue()) || STYLOBATE_GOAL_DEFAULT;
+  var saved = 0, vals = prog.getRange(PROG_LEDGER_TOP, LC_AMT_COL, PROG_LEDGER_ROWS, 1).getValues();
   vals.forEach(function (v) { saved += Number(v[0]) || 0; });
   var pct = Math.min(100, Math.round(saved / goal * 100));
   ss.toast(saved >= goal ? '✦ The Stylobate is complete — solid stone under your temple.'
@@ -1455,61 +1485,74 @@ function gridText_(sheet, row, col, w, val, opts) {
   return rng;
 }
 function zlabel_(sheet, row, text) {
-  gridText_(sheet, row, 2, CANVAS.COLS - 2, text, { size: 9, bold: true, color: BRAND.GOLD });
+  gridText_(sheet, row, 2, GRID.COLS - 2, text, { size: 9, bold: true, color: BRAND.GOLD });
 }
 
-// The Temple — Grammar A. Uniform height H, width ∝ starting balance
-// (floor 2), each column fills bottom-up by % of ITS debt paid. The wall
-// of remaining debt sits above; the stylobate base below. FIXED stone +
-// debt-ramp + gold (never themed). debts: [{start, balAt, color, short}].
+// The Temple — Grammar A. Slender columns, width ∝ starting balance, each
+// filling bottom-up by % of ITS debt paid, with stone-block (mortar)
+// texture. Stepped pediment + continuous entablature on top; gold capitals
+// when paid; whole monument goes gold at debt-free. Stylobate base below.
+// FIXED stone + debt-ramp + gold (05 color rule — never themed).
+// rows from `top`: pediment(2) · entablature(1) · capital(1) · columns(H) ·
+// base(1) · labels(2) · stylobate(3, optional). debts:[{start,balAt,color,short}].
+var MORTAR = '#CBBE9F';   // subtle mortar line between stone blocks
 function paintTemple_(sheet, top, debts, opts) {
   opts = opts || {};
-  var H = opts.H || CANVAS.TEMPLE_H;
-  var winL = (opts.win && opts.win[0]) || 2, winR = (opts.win && opts.win[1]) || (CANVAS.COLS - 1);
+  var H = opts.H || 18, cellH = opts.cellH || 8;
+  var minW = opts.minW || 3, capW = opts.capW || 7;
+  var winL = (opts.win && opts.win[0]) || 2, winR = (opts.win && opts.win[1]) || (GRID.COLS - 1);
   var winW = winR - winL + 1, n = debts.length;
   if (!n) {
-    gridText_(sheet, top + 2, winL, winW, 'Add your first debt on the Debts tab — your temple rises here.',
-      { font: FONT.DISPLAY, italic: true, size: 12, color: BRAND.CAPTION, h: 'center' });
-    return top + 6;
+    gridText_(sheet, top + 3, winL, winW, 'Add your first debt on the Debts tab — your temple rises here.',
+      { font: FONT.DISPLAY, italic: true, size: 13, color: BRAND.CAPTION, h: 'center' });
+    return top + 9;
   }
-  var sumStart = debts.reduce(function (a, d) { return a + Math.max(1, d.start); }, 0);
-  var avail = winW - 1 - (n - 1);
-  var widths = debts.map(function (d) { return Math.max(2, 2 + Math.round(Math.max(0, avail - n * 2) * Math.max(1, d.start) / sumStart)); });
+  // width ∝ starting balance, normalized so the LARGEST debt = capW and the
+  // rest scale down (true Grammar A — columns differ by debt size).
+  var maxStart = debts.reduce(function (a, d) { return Math.max(a, Math.max(1, d.start)); }, 1);
+  var widths = debts.map(function (d) {
+    return Math.max(minW, Math.min(capW, minW + Math.round((capW - minW) * Math.max(1, d.start) / maxStart)));
+  });
   var totalW = function () { return widths.reduce(function (a, w) { return a + w; }, 0) + (n - 1); };
-  while (totalW() > winW) { var mx = 0; for (var q = 1; q < n; q++) if (widths[q] > widths[mx]) mx = q; if (widths[mx] <= 2) break; widths[mx]--; }
-  var TW = totalW(), left = winL + Math.max(0, Math.floor((winW - TW) / 2));
+  while (totalW() > winW - 2) { var mx = 0; for (var q = 1; q < n; q++) if (widths[q] > widths[mx]) mx = q; if (widths[mx] <= 2) break; widths[mx]--; }
+  var TW = totalW(), left = winL + Math.max(1, Math.floor((winW - TW) / 2)), center = left + TW / 2;
   var done = debts.every(function (d) { return d.balAt <= 0.005; });
-
-  var rPed = top, rEnt = top + 1, rCap = top + 2, rCol0 = top + 3, rBase = rCol0 + H;
   var beam = done ? GOLD_ACHIEVE : STONE.BEAM;
-  // pediment (centered) + entablature beam
-  var pedW = Math.max(3, Math.round(TW * 0.5)), pedLeft = left + Math.floor((TW - pedW) / 2);
-  sheet.getRange(rPed, pedLeft, 1, pedW).setBackground(beam);
-  sheet.getRange(rEnt, left, 1, TW).setBackground(beam);
-  if (done) gridText_(sheet, rPed, left, TW, 'DEBT-FREE', { h: 'center', font: FONT.DISPLAY, bold: true, size: 10, color: BRAND.FOREST });
+
+  var rPed0 = top, rPed1 = top + 1, rEnt = top + 2, rCap = top + 3, rCol0 = top + 4, rBase = rCol0 + H;
+  // pediment — two stepped bands narrowing upward, centered
+  var pw1 = Math.max(5, Math.round(TW * 0.64)), pw0 = Math.max(3, Math.round(TW * 0.34));
+  sheet.getRange(rPed1, Math.round(center - pw1 / 2), 1, pw1).setBackground(beam);
+  sheet.getRange(rPed0, Math.round(center - pw0 / 2), 1, pw0).setBackground(beam);
+  // entablature — continuous beam with a slight overhang
+  var entL = Math.max(winL, left - 1), entW = Math.min(winR - entL + 1, TW + 2);
+  sheet.getRange(rEnt, entL, 1, entW).setBackground(beam);
+  if (done) gridText_(sheet, rPed1, left, TW, 'DEBT-FREE' + (opts.dateLabel ? '  ·  ' + opts.dateLabel : ''),
+    { h: 'center', font: FONT.DISPLAY, bold: true, size: 11, color: BRAND.FOREST });
   // columns
   var c = left;
   debts.forEach(function (d, i) {
     var w = widths[i], pct = clamp01_((d.start - d.balAt) / Math.max(1, d.start));
     var f = Math.max(0, Math.min(H, Math.round(pct * H))), paid = d.balAt <= 0.005;
-    sheet.getRange(rCap, c, 1, w).setBackground(paid ? GOLD_ACHIEVE : STONE.EMPTY);
+    sheet.getRange(rCap, c, 1, w).setBackground(paid ? GOLD_ACHIEVE : STONE.BEAM);   // capital
     var grid = [];
-    for (var r = 0; r < H; r++) { var rowArr = []; var filled = r >= (H - f); for (var k = 0; k < w; k++) rowArr.push(filled ? d.color : STONE.EMPTY); grid.push(rowArr); }
-    sheet.getRange(rCol0, c, H, w).setBackgrounds(grid);
+    for (var r = 0; r < H; r++) { var rowArr = []; var on = r >= (H - f); for (var k = 0; k < w; k++) rowArr.push(on ? d.color : STONE.EMPTY); grid.push(rowArr); }
+    var colRng = sheet.getRange(rCol0, c, H, w);
+    colRng.setBackgrounds(grid);
+    colRng.setBorder(true, true, true, true, true, true, MORTAR, SpreadsheetApp.BorderStyle.SOLID);   // stacked-stone texture
     sheet.getRange(rBase, c, 1, w).setBackground(STONE.BEAM);
-    gridText_(sheet, rBase + 1, c, w, d.short, { h: 'center', size: 8, color: BRAND.BODY });
-    gridText_(sheet, rBase + 2, c, w, paid ? '✦' : Math.round(pct * 100) + '%',
+    gridText_(sheet, rBase + 1, c, w, d.short, { h: 'center', size: 9, color: BRAND.BODY });
+    gridText_(sheet, rBase + 2, c, w, paid ? '✦ paid' : Math.round(pct * 100) + '%',
       { h: 'center', size: 9, bold: true, color: paid ? '#7a5a1e' : BRAND.FOREST });
     c += w + 1;
   });
   var bottom = rBase + 2;
-  // stylobate (the saving base) — three steps widening downward
+  // stylobate — three steps widening DOWNWARD, gold fill by savedFrac
   if (opts.showStylobate) {
     var sf = clamp01_(opts.savedFrac || 0);
     for (var s = 0; s < 3; s++) {
-      var stepW = Math.min(winW, TW + (2 - s) * 4), stepLeft = Math.max(winL, left - Math.floor((stepW - TW) / 2));
-      if (stepLeft + stepW - 1 > winR) stepW = winR - stepLeft + 1;
-      var rr = rBase + 3 + s;              // below BOTH label rows (name + %)
+      var rr = rBase + 3 + s, stepW = Math.min(winW, TW + 2 + s * 4);
+      var stepLeft = Math.max(winL, Math.min(winR - stepW + 1, Math.round(center - stepW / 2)));
       sheet.getRange(rr, stepLeft, 1, stepW).setBackground(sf > 0 ? STONE.BEAM : STONE.SAND);
       var goldW = Math.round(stepW * sf);
       if (goldW > 0) sheet.getRange(rr, stepLeft, 1, Math.min(stepW, goldW)).setBackground(GOLD_ACHIEVE);
@@ -1517,9 +1560,9 @@ function paintTemple_(sheet, top, debts, opts) {
     }
     bottom = rBase + 5;
   }
-  sheet.setRowHeight(rPed, 13); sheet.setRowHeight(rEnt, 7); sheet.setRowHeight(rCap, 6);
-  for (var rh = rCol0; rh < rCol0 + H; rh++) sheet.setRowHeight(rh, 14);
-  sheet.setRowHeight(rBase, 6);
+  sheet.setRowHeight(rPed0, 9); sheet.setRowHeight(rPed1, 9); sheet.setRowHeight(rEnt, 10); sheet.setRowHeight(rCap, 7);
+  for (var rh = rCol0; rh < rCol0 + H; rh++) sheet.setRowHeight(rh, cellH);
+  sheet.setRowHeight(rBase, 7);
   return bottom + 1;
 }
 
@@ -1539,206 +1582,216 @@ function mockTempleDebts_(monthM, strategy) {
   return out;
 }
 
-// the named yellow controls on The Plan (strategy · extra · time machine)
+// the named yellow controls on The Plan (strategy · extra · what-if chips)
 function planControls_(sheet, mode) {
-  gridText_(sheet, 9, 2, 1, 'STRATEGY', { size: 9, bold: true, color: BRAND.CANOPY });
+  var EN = "'_Engine'", sr = ENG.ROW_SCALARS;
+  gridText_(sheet, 9, 3, 12, 'STRATEGY', { size: 9, bold: true, color: BRAND.CANOPY });
+  gridText_(sheet, 9, 16, 5, 'EXTRA / MONTH', { size: 9, bold: true, color: BRAND.CANOPY });
   var strat = SpreadsheetApp.newDataValidation().requireValueInList(STRATEGIES, true).build();
-  setCell_(sheet, 'C9', { value: STRATEGY_DEFAULT, merge: 'F9', bg: BRAND.YELLOW, font: FONT.BODY, size: 11, bold: true, color: BRAND.FOREST, h: 'left' })
+  setCell_(sheet, 'C10', { value: STRATEGY_DEFAULT, merge: 'N10', bg: BRAND.YELLOW, font: FONT.BODY, size: 11, bold: true, color: BRAND.FOREST, h: 'left' })
     .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID).setDataValidation(strat);
-  gridText_(sheet, 9, 7, 1, 'EXTRA', { size: 9, bold: true, color: BRAND.CANOPY });
-  setCell_(sheet, 'H9', { value: (mode === 'mock') ? MOCK.extra : 0, bg: BRAND.YELLOW, font: FONT.BODY, size: 11, bold: true, color: BRAND.FOREST, format: '$#,##0', h: 'left' })
+  setCell_(sheet, 'P10', { value: (mode === 'mock') ? MOCK.extra : 0, merge: 'T10', bg: BRAND.YELLOW, font: FONT.BODY, size: 12, bold: true, color: BRAND.FOREST, format: '$#,##0', h: 'left' })
     .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
   // what-if chips (live from the scenario blocks)
-  gridText_(sheet, 9, 10, 5, null, { h: 'center', size: 10, bold: true, color: '#7d6420', bg: BRAND.CHIP_FAIR_BG,
-    formula: '="+$' + SCENARIO_EXTRAS[0] + " → −\"&\'_Engine\'!$K$" + ENG.ROW_SCALARS + '&" mo"' });
-  gridText_(sheet, 9, 16, 5, null, { h: 'center', size: 10, bold: true, color: '#7d6420', bg: BRAND.CHIP_FAIR_BG,
-    formula: '="+$' + SCENARIO_EXTRAS[1] + " → −\"&\'_Engine\'!$L$" + ENG.ROW_SCALARS + '&" mo"' });
-  // time machine (the named scrubber cell)
-  gridText_(sheet, 12, 2, 1, 'TIME MACHINE', { size: 9, bold: true, color: BRAND.CANOPY });
-  setCell_(sheet, 'C12', { formula: '=IFERROR(MIN(' + PAYOFF_HORIZON_MONTHS + ',\'_Engine\'!$B$' + ENG.ROW_SCALARS + '),0)', bg: BRAND.YELLOW, font: FONT.BODY, size: 11, bold: true, color: BRAND.FOREST, h: 'center' })
-    .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
-  gridText_(sheet, 12, 4, 10, null, { size: 10, italic: true, color: BRAND.CAPTION,
-    formula: '="month "&C12&" of your plan — type 0 for today, or the debt-free month to see the finished temple"' });
+  gridText_(sheet, 10, 25, 12, null, { h: 'center', size: 11, bold: true, color: '#7d6420', bg: BRAND.CHIP_FAIR_BG,
+    formula: '="+$' + SCENARIO_EXTRAS[0] + '/mo  →  "&' + EN + '!$K$' + sr + '&" months sooner"' });
+  gridText_(sheet, 10, 38, 13, null, { h: 'center', size: 11, bold: true, color: '#7d6420', bg: BRAND.CHIP_FAIR_BG,
+    formula: '="+$' + SCENARIO_EXTRAS[1] + '/mo  →  "&' + EN + '!$L$' + sr + '&" months sooner"' });
 }
 
 function buildPlanBody_(sheet, mode) {
-  titleRow_(sheet, CANVAS.LAST, 'The Plan',
+  titleRow_(sheet, GRID.LAST, 'The Plan',
     'Pick a strategy, set your extra — then drag the Time Machine to stand in any month of your future.');
   planControls_(sheet, mode);
-  var sr = ENG.ROW_SCALARS;
-  // headline forest band (rows 14-17)
-  sheet.getRange(14, 2, 4, CANVAS.COLS - 2).setBackground(BRAND.FOREST);
-  gridText_(sheet, 14, 3, 8, 'DEBT-FREE', { size: 9, bold: true, color: BRAND.GOLD });
-  gridText_(sheet, 15, 3, 9, null, { formula: '=\'_Engine\'!$P$' + sr, font: FONT.DISPLAY, bold: true, size: 30, color: BRAND.PARCHMENT });
-  var stat = function (col, valF, cap) {
-    gridText_(sheet, 15, col, 5, null, { formula: valF, font: FONT.DISPLAY, bold: true, size: 18, color: BRAND.PARCHMENT });
-    gridText_(sheet, 16, col, 5, cap, { size: 9, color: '#C9D6CE' });
-  };
-  stat(13, '=\'_Engine\'!$B$' + sr + '&" mo"', 'left on this plan');
-  stat(18, '=TEXT(\'_Engine\'!$C$' + sr + ',"$#,##0")', 'interest on this plan');
-  stat(23, '=TEXT(\'_Engine\'!$H$' + sr + ',"$#,##0")', 'saved vs minimums');
-  sheet.setRowHeight(15, 34);
+  var sr = ENG.ROW_SCALARS, EN = "'_Engine'";
 
-  // the Time Machine temple (default = the debt-free month → finished temple)
-  zlabel_(sheet, 19, 'THE TIME MACHINE · STAND IN ANY MONTH OF YOUR PLAN');
-  var endRow = 22;
+  // headline forest band (rows 12-15): the debt-free date is the hero
+  sheet.getRange(12, 2, 4, GRID.COLS - 2).setBackground(BRAND.FOREST);
+  gridText_(sheet, 12, 4, 16, 'DEBT-FREE ON THIS PLAN', { size: 10, bold: true, color: BRAND.GOLD });
+  gridText_(sheet, 13, 4, 14, null, { formula: '=' + EN + '!$P$' + sr, font: FONT.DISPLAY, bold: true, size: 32, color: BRAND.PARCHMENT });
+  sheet.setRowHeight(13, 42);
+  var stat = function (col, w, valF, cap) {
+    gridText_(sheet, 13, col, w, null, { formula: valF, font: FONT.DISPLAY, bold: true, size: 20, color: BRAND.PARCHMENT });
+    gridText_(sheet, 14, col, w, cap, { size: 10, color: '#C9D6CE' });
+  };
+  stat(20, 8, '=' + EN + '!$B$' + sr + '&" mo"', 'left on this plan');
+  stat(29, 11, '=TEXT(' + EN + '!$C$' + sr + ',"$#,##0")', 'interest on this plan');
+  stat(41, 10, '=TEXT(' + EN + '!$H$' + sr + ',"$#,##0")', 'saved vs minimums');
+
+  // the Time Machine + temple (default visit = the debt-free month)
+  zlabel_(sheet, 17, 'THE TIME MACHINE · STAND IN ANY MONTH OF YOUR PLAN');
+  setCell_(sheet, 'C18', { formula: '=IFERROR(MIN(' + PAYOFF_HORIZON_MONTHS + ',' + EN + '!$B$' + sr + '),0)', merge: 'F18', bg: BRAND.YELLOW, font: FONT.BODY, size: 12, bold: true, color: BRAND.FOREST, h: 'center' })
+    .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
+  gridText_(sheet, 18, 8, GRID.COLS - 8, null, { size: 10, italic: true, color: BRAND.CAPTION,
+    formula: '="month "&C18&" of your plan — type 0 for today, or any month to scrub the temple"' });
+  var endRow;
   if (mode === 'mock') {
-    var data = mockTempleDebts_(simulateSchedule_(mockInPlanDebts_(), rankDebts_(mockInPlanDebts_(), 'snowball'), MOCK.extra).months, 'snowball');
-    endRow = paintTemple_(sheet, 21, data, { H: 10 });
-  } else { endRow = paintTemple_(sheet, 21, [], {}); }
+    var m = simulateSchedule_(mockInPlanDebts_(), rankDebts_(mockInPlanDebts_(), 'snowball'), MOCK.extra).months;
+    endRow = paintTemple_(sheet, 20, mockTempleDebts_(m, 'snowball'), { H: 16 });
+  } else { endRow = paintTemple_(sheet, 20, [], { H: 16 }); }
 
   // payoff order table (live, from the Debts computed columns)
   var tr = endRow + 1;
   zlabel_(sheet, tr, 'PAYOFF ORDER · WHEN EACH DEBT DIES ON THIS PLAN');
   tr += 1;
-  var cols = [[2, 3, '#'], [5, 8, 'Debt'], [13, 5, 'Balance now'], [18, 3, 'APR'], [21, 5, 'Payoff'], [26, 5, 'Interest']];
-  cols.forEach(function (cc) { gridText_(sheet, tr, cc[0], cc[1], cc[2], { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: cc[0] >= 13 ? 'right' : 'left' }); });
+  var cw = weightedCols_([3, 16, 9, 5, 9, 9], 1), hdr = ['#', 'Debt', 'Balance now', 'APR', 'Payoff', 'Interest'];
+  cw.forEach(function (cc, j) { gridText_(sheet, tr, cc.col, cc.w, hdr[j], { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: j >= 2 ? 'right' : 'left' }); });
+  var DB = "'" + TABS.DEBTS + "'";
   for (var i = 0; i < 6; i++) {
-    var R = DEBT.FIRST_ROW + i, row = tr + 1 + i, DB = "'" + TABS.DEBTS + "'";
-    gridText_(sheet, row, 2, 3, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",IFERROR(INDEX(\'_Engine\'!$B$' + ENG.ROW_RANK_ACTIVE + ':$Z$' + ENG.ROW_RANK_ACTIVE + ',1,' + (i + 1) + '),"·"))', h: 'center', size: 10, color: BRAND.CAPTION });
-    gridText_(sheet, row, 5, 8, null, { formula: '=' + DB + '!$B$' + R, size: 11, color: BRAND.FOREST });
-    gridText_(sheet, row, 13, 5, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$K$' + R + ')', h: 'right', size: 11, format: '$#,##0' });
-    gridText_(sheet, row, 18, 3, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$E$' + R + ')', h: 'right', size: 10, color: BRAND.BODY, format: '0.0%' });
-    gridText_(sheet, row, 21, 5, null, { formula: '=' + DB + '!$M$' + R, h: 'right', size: 10, color: BRAND.BODY });
-    gridText_(sheet, row, 26, 5, null, { formula: '=' + DB + '!$N$' + R, h: 'right', size: 10, color: BRAND.BODY });
+    var R = DEBT.FIRST_ROW + i, row = tr + 1 + i;
+    gridText_(sheet, row, cw[0].col, cw[0].w, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",IFERROR(INDEX(' + EN + '!$B$' + ENG.ROW_RANK_ACTIVE + ':$Z$' + ENG.ROW_RANK_ACTIVE + ',1,' + (i + 1) + '),"·"))', h: 'center', size: 10, color: BRAND.CAPTION });
+    gridText_(sheet, row, cw[1].col, cw[1].w, null, { formula: '=' + DB + '!$B$' + R, size: 11, color: BRAND.FOREST });
+    gridText_(sheet, row, cw[2].col, cw[2].w, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$K$' + R + ')', h: 'right', size: 11, format: '$#,##0' });
+    gridText_(sheet, row, cw[3].col, cw[3].w, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$E$' + R + ')', h: 'right', size: 10, color: BRAND.BODY, format: '0.0%' });
+    gridText_(sheet, row, cw[4].col, cw[4].w, null, { formula: '=' + DB + '!$M$' + R, h: 'right', size: 10, color: BRAND.BODY });
+    gridText_(sheet, row, cw[5].col, cw[5].w, null, { formula: '=' + DB + '!$N$' + R, h: 'right', size: 10, color: BRAND.BODY });
   }
   var afterTable = tr + 1 + 6;
-  // balance timeline + disclaimer
   zlabel_(sheet, afterTable + 1, 'BALANCE TIMELINE · IN-PLAN TOTAL BY MONTH');
-  gridText_(sheet, afterTable + 2, 2, CANVAS.COLS - 2, null, { formula: sparkCol_('_Engine!$AE$' + ENG.TIMELINE_FIRST + ':$AE$' + ENG.TIMELINE_LAST, BRAND.CANOPY) });
-  sheet.setRowHeight(afterTable + 2, 40);
-  gridText_(sheet, afterTable + 4, 2, CANVAS.COLS - 2, 'Projections are estimates at monthly compounding, not financial advice and not a servicing statement. Your lender\'s figures are the truth — re-type your statement balance monthly on the Debts tab.', { size: 9, italic: true, color: BRAND.CAPTION, wrap: true });
-  footer_(sheet, afterTable + 7, CANVAS.LAST);
+  gridText_(sheet, afterTable + 2, 2, GRID.COLS - 2, null, { formula: sparkCol_("'_Engine'!$AE$" + ENG.TIMELINE_FIRST + ':$AE$' + ENG.TIMELINE_LAST, BRAND.CANOPY) });
+  sheet.setRowHeight(afterTable + 2, 44);
+  gridText_(sheet, afterTable + 4, 2, GRID.COLS - 2, 'Projections are estimates at monthly compounding, not financial advice and not a servicing statement. Your lender\'s figures are the truth — re-type your statement balance monthly on the Debts tab.', { size: 9, italic: true, color: BRAND.CAPTION, wrap: true });
+  footer_(sheet, afterTable + 7, GRID.LAST);
 }
 
 function buildCompareBody_(sheet, mode) {
-  titleRow_(sheet, CANVAS.LAST, 'Compare',
+  titleRow_(sheet, GRID.LAST, 'Compare',
     'Snowball against avalanche, computed in full. Same debts, same extra — watch them fill different columns.');
-  // verdict band
-  var snowT = engBlockByKey_('snow').top, avalT = engBlockByKey_('aval').top;
-  gridText_(sheet, 9, 2, CANVAS.COLS - 2, null, { bg: GOLD_ACHIEVE, color: BRAND.FOREST, bold: true, size: 11, h: 'center',
-    formula: '="Avalanche saves "&TEXT(MAX(0,\'_Engine\'!$E$' + snowT + '-\'_Engine\'!$E$' + avalT + '),"$#,##0")&" over the snowball  ·  the snowball\'s first win lands "&MAX(0,\'_Engine\'!$F$' + avalT + '-\'_Engine\'!$F$' + snowT + ')&" months earlier."' });
-  sheet.setRowHeight(9, 24);
-  // race scrubber
-  gridText_(sheet, 11, 2, 1, 'RACE · MONTH', { size: 9, bold: true, color: BRAND.CANOPY });
-  setCell_(sheet, 'C12', { value: (mode === 'mock') ? 23 : 0, bg: BRAND.YELLOW, font: FONT.BODY, size: 11, bold: true, color: BRAND.FOREST, h: 'center' })
+  var EN = "'_Engine'", snowT = engBlockByKey_('snow').top, avalT = engBlockByKey_('aval').top;
+  // race scrubber (label row 9, input row 10)
+  gridText_(sheet, 9, 3, 10, 'RACE · MONTH', { size: 9, bold: true, color: BRAND.CANOPY });
+  setCell_(sheet, 'C10', { value: (mode === 'mock') ? 23 : 0, merge: 'E10', bg: BRAND.YELLOW, font: FONT.BODY, size: 12, bold: true, color: BRAND.FOREST, h: 'center' })
     .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
-  gridText_(sheet, 12, 4, 12, 'the extra applies to BOTH lanes — the fair comparison. Type a month to race them.', { size: 10, italic: true, color: BRAND.CAPTION });
+  gridText_(sheet, 10, 7, GRID.COLS - 7, 'the same extra applies to both lanes — the fair comparison. Type a month to scrub both temples.', { size: 10, italic: true, color: BRAND.CAPTION });
+
+  // verdict panel (rows 12-15) — the value, made obvious
+  sheet.getRange(12, 2, 4, GRID.COLS - 2).setBackground(BRAND.FOREST);
+  gridText_(sheet, 12, 4, 20, 'THE TRADE-OFF · SAME MONEY, TWO ROADS', { size: 10, bold: true, color: BRAND.GOLD });
+  gridText_(sheet, 13, 4, 22, null, { formula: '=TEXT(MAX(0,' + EN + '!$E$' + snowT + '-' + EN + '!$E$' + avalT + '),"$#,##0")', font: FONT.DISPLAY, bold: true, size: 26, color: BRAND.PARCHMENT });
+  gridText_(sheet, 14, 4, 22, 'saved in interest by going Avalanche', { size: 10, color: '#C9D6CE' });
+  gridText_(sheet, 13, 28, 22, null, { formula: '=MAX(0,' + EN + '!$F$' + avalT + '-' + EN + '!$F$' + snowT + ')&" months"', font: FONT.DISPLAY, bold: true, size: 26, color: BRAND.PARCHMENT });
+  gridText_(sheet, 14, 28, 22, 'sooner first win by going Snowball', { size: 10, color: '#C9D6CE' });
 
   var lane = function (label, sub, blockTop, win, strat) {
-    gridText_(sheet, 14, win[0], win[1] - win[0] + 1, label, { font: FONT.DISPLAY, bold: true, size: 15, color: BRAND.FOREST });
-    gridText_(sheet, 15, win[0], win[1] - win[0] + 1, sub, { size: 9, italic: true, color: BRAND.CAPTION });
-    gridText_(sheet, 16, win[0], 4, null, { formula: '=\'_Engine\'!$D$' + blockTop + '&" mo"', font: FONT.DISPLAY, bold: true, size: 16, color: BRAND.FOREST });
-    gridText_(sheet, 16, win[0] + 4, 6, null, { formula: '=TEXT(\'_Engine\'!$E$' + blockTop + ',"$#,##0")&" interest"', size: 10, color: BRAND.BODY });
-    gridText_(sheet, 17, win[0], win[1] - win[0] + 1, null, { formula: '="first kill: "&\'_Engine\'!$G$' + blockTop + '&" · "&IFERROR(TEXT(EDATE(cc_engine_anchor,\'_Engine\'!$F$' + blockTop + '),"mmm yyyy"),"—")', size: 9, color: BRAND.CANOPY });
-    if (mode === 'mock') paintTemple_(sheet, 19, mockTempleDebts_(23, strat), { H: 9, win: win });
-    else paintTemple_(sheet, 19, [], { win: win });
+    var w = win[1] - win[0] + 1;
+    gridText_(sheet, 17, win[0], w, label, { font: FONT.DISPLAY, bold: true, size: 16, color: BRAND.FOREST });
+    gridText_(sheet, 18, win[0], w, sub, { size: 10, italic: true, color: BRAND.CAPTION });
+    gridText_(sheet, 19, win[0], 6, null, { formula: '=' + EN + '!$D$' + blockTop + '&" mo"', font: FONT.DISPLAY, bold: true, size: 18, color: BRAND.FOREST });
+    gridText_(sheet, 19, win[0] + 6, w - 6, null, { formula: '=TEXT(' + EN + '!$E$' + blockTop + ',"$#,##0")&" interest"', size: 11, color: BRAND.BODY });
+    gridText_(sheet, 20, win[0], w, null, { formula: '="first kill: "&' + EN + '!$G$' + blockTop + '&"  ·  "&IFERROR(TEXT(EDATE(cc_engine_anchor,' + EN + '!$F$' + blockTop + '),"mmm yyyy"),"—")', size: 10, color: BRAND.CANOPY });
+    if (mode === 'mock') paintTemple_(sheet, 22, mockTempleDebts_(23, strat), { H: 12, win: win, minW: 2, capW: 6 });
+    else paintTemple_(sheet, 22, [], { win: win });
   };
-  lane('Snowball', 'smallest balance first', snowT, [2, 15], 'snowball');
-  lane('Avalanche', 'highest APR first', avalT, [17, 30], 'avalanche');
-  footer_(sheet, 48, CANVAS.LAST);
+  lane('Snowball', 'smallest balance first', snowT, [2, 25], 'snowball');
+  lane('Avalanche', 'highest APR first', avalT, [28, 51], 'avalanche');
+  footer_(sheet, 46, GRID.LAST);
 }
 
+// Progress contributions ledger: Date display merged across cols 2-6, the
+// editable Amount across 8-12 (the menu action + SAVED sum target col 8 = H).
+var LC_DATE_COL = 2, LC_AMT_COL = 8, LC_CELL_W = 5;
 function buildProgressBody_(sheet, mode) {
-  titleRow_(sheet, CANVAS.LAST, 'Progress',
+  titleRow_(sheet, GRID.LAST, 'Progress',
     'Build the stone you stand on, and keep your streaks alive — the habits that keep you out of debt for good.');
   var contribs = (mode === 'mock') ? generateMockContributions_() : [];
   var saved = contribs.reduce(function (a, c) { return a + c[1]; }, 0);
-  var sumF = 'SUM(F' + PROG_LEDGER_TOP + ':F' + (PROG_LEDGER_TOP + PROG_LEDGER_ROWS - 1) + ')';
+  var sumF = 'SUM(' + columnToLetter_(LC_AMT_COL) + PROG_LEDGER_TOP + ':' + columnToLetter_(LC_AMT_COL) + (PROG_LEDGER_TOP + PROG_LEDGER_ROWS - 1) + ')';
 
-  // SAVED (live, sums the ledger) + the editable goal
-  gridText_(sheet, 9, 2, 16, null, { formula: '="SAVED  "&TEXT(' + sumF + ',"$#,##0")&"  of  "&TEXT(C12,"$#,##0")&" in stone"', font: FONT.DISPLAY, bold: true, size: 16, color: '#7a5a1e' });
-  gridText_(sheet, 12, 2, 1, 'GOAL', { size: 9, bold: true, color: BRAND.CANOPY });
-  setCell_(sheet, 'C12', { value: STYLOBATE_GOAL_DEFAULT, bg: BRAND.YELLOW, font: FONT.BODY, size: 11, bold: true, color: BRAND.FOREST, format: '$#,##0', h: 'center' })
+  // editable goal (label row 9 · input row 10) + the live SAVED line
+  gridText_(sheet, 9, 3, 10, 'STYLOBATE GOAL', { size: 9, bold: true, color: BRAND.CANOPY });
+  setCell_(sheet, 'C10', { value: STYLOBATE_GOAL_DEFAULT, merge: 'F10', bg: BRAND.YELLOW, font: FONT.BODY, size: 12, bold: true, color: BRAND.FOREST, format: '$#,##0', h: 'center' })
     .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
+  gridText_(sheet, 9, 14, GRID.COLS - 14, null, { formula: '="SAVED  "&TEXT(' + sumF + ',"$#,##0")&"  of  "&TEXT(C10,"$#,##0")&" laid in stone"', font: FONT.DISPLAY, bold: true, size: 18, color: '#7a5a1e' });
 
-  // the stylobate temple (fixed height: rows 16-32)
-  zlabel_(sheet, 14, 'THE STYLOBATE · YOUR BUFFER, THE TEMPLE\'S BASE');
-  if (mode === 'mock') paintTemple_(sheet, 16, mockTempleDebts_(0, 'snowball'), { H: 8, showStylobate: true, savedFrac: saved / STYLOBATE_GOAL_DEFAULT });
-  else paintTemple_(sheet, 16, [], { H: 8, showStylobate: true, savedFrac: 0 });
+  // the stylobate temple (fixed height, rows 15-35)
+  zlabel_(sheet, 13, 'THE STYLOBATE · YOUR BUFFER, THE TEMPLE\'S BASE');
+  if (mode === 'mock') paintTemple_(sheet, 15, mockTempleDebts_(0, 'snowball'), { H: 11, showStylobate: true, savedFrac: saved / STYLOBATE_GOAL_DEFAULT });
+  else paintTemple_(sheet, 15, [], { H: 11, showStylobate: true, savedFrac: 0 });
 
-  // streaks (three record cards) — below the temple
-  zlabel_(sheet, 34, 'YOUR STREAKS · THE HABITS THAT KEEP YOU FREE');
-  var sv = (mode === 'mock') ? '14 mo' : '—', wk = (mode === 'mock') ? '9 wks' : '—';
-  kpiCard_(sheet, 'B35', 8, '🔥  BEAT THE MINIMUM', sv, 'months you paid more than required', BRAND.GOLD);
-  kpiCard_(sheet, 'L35', 8, '🛡️  NO NEW DEBT', sv, 'no balance has risen since you started', BRAND.GOLD);
-  kpiCard_(sheet, 'V35', 8, '✓  WEEKLY CHECK-IN', wk, 'the habit that predicts finishing', BRAND.GOLD);
+  // streaks (three record cards), spread across the width
+  zlabel_(sheet, 37, 'YOUR STREAKS · THE HABITS THAT KEEP YOU FREE');
+  var sv = (mode === 'mock') ? '14 mo' : '—', wk = (mode === 'mock') ? '9 wks' : '—', sc = evenCols_(3, 2);
+  kpiCard_(sheet, columnToLetter_(sc[0].col) + '38', sc[0].w, '🔥  BEAT THE MINIMUM', sv, 'months you paid more than required', BRAND.GOLD);
+  kpiCard_(sheet, columnToLetter_(sc[1].col) + '38', sc[1].w, '🛡️  NO NEW DEBT', sv, 'no balance has risen since you started', BRAND.GOLD);
+  kpiCard_(sheet, columnToLetter_(sc[2].col) + '38', sc[2].w, '✓  WEEKLY CHECK-IN', wk, 'the habit that predicts finishing', BRAND.GOLD);
 
-  // contributions ledger at the FIXED PROG_LEDGER_TOP (rows 41+)
-  zlabel_(sheet, 40, 'CONTRIBUTIONS · EACH ONE LAID IN STONE');
-  gridText_(sheet, 41, 2, 4, 'Date', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
-  gridText_(sheet, 41, 6, 4, 'Amount', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: 'right' });
-  sheet.getRange(PROG_LEDGER_TOP, 2, PROG_LEDGER_ROWS, 4).setBackground(BRAND.YELLOW);
-  sheet.getRange(PROG_LEDGER_TOP, 6, PROG_LEDGER_ROWS, 4).setBackground(BRAND.YELLOW);
-  sheet.getRange(PROG_LEDGER_TOP, 2, PROG_LEDGER_ROWS, 1).setNumberFormat('mmm d, yyyy');
-  sheet.getRange(PROG_LEDGER_TOP, 6, PROG_LEDGER_ROWS, 1).setNumberFormat('$#,##0');
-  if (mode === 'mock' && contribs.length) {
-    sheet.getRange(PROG_LEDGER_TOP, 2, contribs.length, 1).setValues(contribs.map(function (c) { return [c[0]]; }));
-    sheet.getRange(PROG_LEDGER_TOP, 6, contribs.length, 1).setValues(contribs.map(function (c) { return [c[1]]; }));
+  // contributions ledger at the FIXED rows (merged for readable date/amount)
+  zlabel_(sheet, 42, 'CONTRIBUTIONS · EACH ONE LAID IN STONE');
+  gridText_(sheet, 43, LC_DATE_COL, LC_CELL_W, 'Date', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
+  gridText_(sheet, 43, LC_AMT_COL, LC_CELL_W, 'Amount', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: 'right' });
+  for (var lr = 0; lr < PROG_LEDGER_ROWS; lr++) {
+    var rr = PROG_LEDGER_TOP + lr;
+    safeMerge_(sheet.getRange(rr, LC_DATE_COL, 1, LC_CELL_W));
+    safeMerge_(sheet.getRange(rr, LC_AMT_COL, 1, LC_CELL_W));
   }
-  setCell_(sheet, 'A' + (PROG_LEDGER_TOP + PROG_LEDGER_ROWS + 1), {
+  sheet.getRange(PROG_LEDGER_TOP, LC_DATE_COL, PROG_LEDGER_ROWS, LC_CELL_W).setBackground(BRAND.YELLOW);
+  sheet.getRange(PROG_LEDGER_TOP, LC_AMT_COL, PROG_LEDGER_ROWS, LC_CELL_W).setBackground(BRAND.YELLOW);
+  sheet.getRange(PROG_LEDGER_TOP, LC_DATE_COL, PROG_LEDGER_ROWS, 1).setNumberFormat('mmm d, yyyy');
+  sheet.getRange(PROG_LEDGER_TOP, LC_AMT_COL, PROG_LEDGER_ROWS, 1).setNumberFormat('$#,##0').setHorizontalAlignment('right');
+  if (mode === 'mock' && contribs.length) {
+    sheet.getRange(PROG_LEDGER_TOP, LC_DATE_COL, contribs.length, 1).setValues(contribs.map(function (c) { return [c[0]]; }));
+    sheet.getRange(PROG_LEDGER_TOP, LC_AMT_COL, contribs.length, 1).setValues(contribs.map(function (c) { return [c[1]]; }));
+  }
+  setCell_(sheet, 'B' + (PROG_LEDGER_TOP + PROG_LEDGER_ROWS + 1), {
     value: 'SAVED is the running sum of your contributions — never typed. A drawdown is a negative entry; the stylobate honestly cracks back toward sand. Streaks are illustrative in the demo.',
-    merge: CANVAS.LAST + (PROG_LEDGER_TOP + PROG_LEDGER_ROWS + 1), font: FONT.BODY, size: 9, italic: true, color: BRAND.CAPTION, wrap: true });
-  footer_(sheet, PROG_LEDGER_TOP + PROG_LEDGER_ROWS + 3, CANVAS.LAST);
+    merge: GRID.LAST + (PROG_LEDGER_TOP + PROG_LEDGER_ROWS + 1), font: FONT.BODY, size: 9, italic: true, color: BRAND.CAPTION, wrap: true });
+  footer_(sheet, PROG_LEDGER_TOP + PROG_LEDGER_ROWS + 3, GRID.LAST);
 }
 
 function buildDashboardBody_(sheet, mode) {
-  titleRow_(sheet, CANVAS.LAST, 'Dashboard', 'Where you stand. Your debts are becoming a temple.');
-  var sr = ENG.ROW_SCALARS;
-  // the Temple hero (at TODAY) on its stylobate
+  titleRow_(sheet, GRID.LAST, 'Dashboard', 'Where you stand. Your debts are becoming a temple, course by course.');
+  var sr = ENG.ROW_SCALARS, EN = "'_Engine'";
   zlabel_(sheet, 9, 'THE TEMPLE · WHAT YOU HAVE MADE PERMANENT');
-  var endRow = 11;
+  var endRow;
   if (mode === 'mock') {
     var saved = generateMockContributions_().reduce(function (a, c) { return a + c[1]; }, 0);
-    endRow = paintTemple_(sheet, 11, mockTempleDebts_(0, 'snowball'), { H: CANVAS.TEMPLE_H, showStylobate: true, savedFrac: saved / STYLOBATE_GOAL_DEFAULT });
-  } else { endRow = paintTemple_(sheet, 11, [], { showStylobate: true }); }
+    endRow = paintTemple_(sheet, 11, mockTempleDebts_(0, 'snowball'), { H: 18, showStylobate: true, savedFrac: saved / STYLOBATE_GOAL_DEFAULT });
+  } else { endRow = paintTemple_(sheet, 11, [], { H: 18, showStylobate: true }); }
 
-  // KPI row
+  // KPI row — four cards spread across the width
   var kr = endRow + 1;
   zlabel_(sheet, kr, 'THE NUMBERS');
-  kpiCard_(sheet, 'B' + (kr + 1), 6, 'TOTAL DEBT NOW', '=TEXT(\'_Engine\'!$M$' + sr + ',"$#,##0")', '=" of "&TEXT(\'_Engine\'!$O$' + sr + ',"$#,##0")&" at the start"', BRAND.GOLD);
-  kpiCard_(sheet, 'H' + (kr + 1), 6, 'PAID OFF TO DATE', '=TEXT(\'_Engine\'!$N$' + sr + ',"$#,##0")', 'every block torn from the wall', BRAND.GOLD);
-  kpiCard_(sheet, 'N' + (kr + 1), 7, 'DEBT-FREE DATE', '=\'_Engine\'!$P$' + sr, '=\'_Engine\'!$B$' + sr + '&" months on this plan"', BRAND.GOLD);
-  kpiCard_(sheet, 'U' + (kr + 1), 9, 'SAVED vs MINIMUMS', '=TEXT(\'_Engine\'!$H$' + sr + ',"$#,##0")', '=IF(\'_Engine\'!$G$' + sr + '>0,"minimums never finish — still "&TEXT(\'_Engine\'!$G$' + sr + ',"$#,##0")&" owed at 10 yrs","vs paying only the minimums")', BRAND.GOLD);
+  var kc = evenCols_(4, 1);
+  kpiCard_(sheet, columnToLetter_(kc[0].col) + (kr + 1), kc[0].w, 'TOTAL DEBT NOW', '=TEXT(' + EN + '!$M$' + sr + ',"$#,##0")', '=" of "&TEXT(' + EN + '!$O$' + sr + ',"$#,##0")&" at the start"', BRAND.GOLD);
+  kpiCard_(sheet, columnToLetter_(kc[1].col) + (kr + 1), kc[1].w, 'PAID OFF TO DATE', '=TEXT(' + EN + '!$N$' + sr + ',"$#,##0")', 'torn from the wall, made permanent', BRAND.GOLD);
+  kpiCard_(sheet, columnToLetter_(kc[2].col) + (kr + 1), kc[2].w, 'DEBT-FREE DATE', '=' + EN + '!$P$' + sr, '=' + EN + '!$B$' + sr + '&" months on this plan"', BRAND.GOLD);
+  kpiCard_(sheet, columnToLetter_(kc[3].col) + (kr + 1), kc[3].w, 'SAVED vs MINIMUMS', '=TEXT(' + EN + '!$H$' + sr + ',"$#,##0")', '=IF(' + EN + '!$G$' + sr + '>0,"minimums never finish — still "&TEXT(' + EN + '!$G$' + sr + ',"$#,##0")&" owed at 10 yrs","vs paying only the minimums")', BRAND.GOLD);
 
-  // this month + AI insights (mock-gated)
+  // this month (live from the registry)
   var mr = kr + 5;
   zlabel_(sheet, mr, 'THIS MONTH · WHAT IS DUE');
-  gridText_(sheet, mr + 1, 2, 6, 'Debt', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
-  gridText_(sheet, mr + 1, 8, 4, 'Due', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
-  gridText_(sheet, mr + 1, 12, 4, 'Min', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: 'right' });
-  gridText_(sheet, mr + 1, 16, CANVAS.COLS - 16, 'Status', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
-  // live "this month" — reads the registry, so it works for any owner
+  var tc = weightedCols_([10, 6, 5, 16], 1), th = ['Debt', 'Due', 'Min', 'Status'];
+  tc.forEach(function (cc, j) { gridText_(sheet, mr + 1, cc.col, cc.w, th[j], { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: j === 2 ? 'right' : 'left' }); });
   var DB = "'" + TABS.DEBTS + "'";
   for (var i = 0; i < 6; i++) {
     var R = DEBT.FIRST_ROW + i, row = mr + 2 + i;
-    gridText_(sheet, row, 2, 6, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$B$' + R + ')', size: 11, color: BRAND.FOREST });
-    gridText_(sheet, row, 8, 4, null, { formula: '=IF(' + DB + '!$G$' + R + '="","","day "&' + DB + '!$G$' + R + ')', size: 10, color: BRAND.CAPTION });
-    gridText_(sheet, row, 12, 4, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$F$' + R + ')', h: 'right', size: 10, format: '$#,##0' });
-    gridText_(sheet, row, 16, CANVAS.COLS - 16, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$L$' + R + ')', size: 10, italic: true, color: BRAND.CANOPY });
+    gridText_(sheet, row, tc[0].col, tc[0].w, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$B$' + R + ')', size: 11, color: BRAND.FOREST });
+    gridText_(sheet, row, tc[1].col, tc[1].w, null, { formula: '=IF(' + DB + '!$G$' + R + '="","","day "&' + DB + '!$G$' + R + ')', size: 10, color: BRAND.CAPTION });
+    gridText_(sheet, row, tc[2].col, tc[2].w, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$F$' + R + ')', h: 'right', size: 10, format: '$#,##0' });
+    gridText_(sheet, row, tc[3].col, tc[3].w, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$L$' + R + ')', size: 10, italic: true, color: BRAND.CANOPY });
   }
   if (mode === 'mock') {
     var ar = mr + 9;
     zlabel_(sheet, ar, 'AI INSIGHTS · ATTACH THE SHEET AND ASK');
     MOCK.ai_insights.forEach(function (ins, i) {
-      gridText_(sheet, ar + 1 + i, 2, 4, ins[0], { bold: true, size: 9, color: BRAND.GOLD, bg: BRAND.CREAM, h: 'center' });
-      gridText_(sheet, ar + 1 + i, 6, CANVAS.COLS - 6, ins[1], { size: 10, color: BRAND.BODY, wrap: true });
+      gridText_(sheet, ar + 1 + i, 2, 5, ins[0], { bold: true, size: 9, color: BRAND.GOLD, bg: BRAND.CREAM, h: 'center' });
+      gridText_(sheet, ar + 1 + i, 8, GRID.COLS - 8, ins[1], { size: 10, color: BRAND.BODY, wrap: true });
     });
-    footer_(sheet, ar + 6, CANVAS.LAST);
+    footer_(sheet, ar + 6, GRID.LAST);
   } else {
-    footer_(sheet, mr + 10, CANVAS.LAST);
+    footer_(sheet, mr + 10, GRID.LAST);
   }
 }
 
 function buildHallBody_(sheet, mode) {
-  titleRow_(sheet, CANVAS.LAST, 'The Hall',
+  titleRow_(sheet, GRID.LAST, 'The Hall',
     'A room you enter. Every debt you slay mounts a plaque; every record takes a pedestal. The empty places are waiting.');
   // forest interior
-  sheet.getRange(9, 2, 40, CANVAS.COLS - 2).setBackground(STONE.HALL_BG);
-  gridText_(sheet, 9, 2, CANVAS.COLS - 2, '— you have entered the temple —', { h: 'center', italic: true, size: 11, color: '#C9B07A', bg: STONE.HALL_BG });
-  gridText_(sheet, 10, 2, CANVAS.COLS - 2, 'The Hall of the Paid', { h: 'center', font: FONT.DISPLAY, bold: true, size: 18, color: BRAND.PARCHMENT, bg: STONE.HALL_BG });
+  sheet.getRange(9, 2, 40, GRID.COLS - 2).setBackground(STONE.HALL_BG);
+  gridText_(sheet, 9, 2, GRID.COLS - 2, '— you have entered the temple —', { h: 'center', italic: true, size: 11, color: '#C9B07A', bg: STONE.HALL_BG });
+  gridText_(sheet, 10, 2, GRID.COLS - 2, 'The Hall of the Paid', { h: 'center', font: FONT.DISPLAY, bold: true, size: 18, color: BRAND.PARCHMENT, bg: STONE.HALL_BG });
 
-  gridText_(sheet, 12, 2, CANVAS.COLS - 2, '◆ DEBTS SLAIN ◆', { h: 'center', size: 9, bold: true, color: '#C9B07A', bg: STONE.HALL_BG });
+  gridText_(sheet, 12, 2, GRID.COLS - 2, '◆ DEBTS SLAIN ◆', { h: 'center', size: 9, bold: true, color: '#C9B07A', bg: STONE.HALL_BG });
   var plaque = function (col, w, name, amt, sub, locked) {
     var rng = sheet.getRange(14, col, 4, w);
     rng.setBackground(locked ? STONE.HALL_BG2 : STONE.PARCHMENT)
@@ -1756,7 +1809,7 @@ function buildHallBody_(sheet, mode) {
     plaque(11, 10, 'Your first win', 'waiting', 'PAY A DEBT TO FULL TO MOUNT ITS PLAQUE', true);
   }
 
-  gridText_(sheet, 19, 2, CANVAS.COLS - 2, '◆ RECORDS ◆', { h: 'center', size: 9, bold: true, color: '#C9B07A', bg: STONE.HALL_BG });
+  gridText_(sheet, 19, 2, GRID.COLS - 2, '◆ RECORDS ◆', { h: 'center', size: 9, bold: true, color: '#C9B07A', bg: STONE.HALL_BG });
   var trophy = function (top, col, w, icon, val, label, locked, valFormula) {
     sheet.getRange(top, col, 3, w).setBackground(STONE.HALL_BG)
       .setBorder(true, true, true, true, false, false, locked ? '#3A5446' : GOLD_ACHIEVE, SpreadsheetApp.BorderStyle.SOLID);
@@ -1779,7 +1832,7 @@ function buildHallBody_(sheet, mode) {
   }
 
   // Letters — pre-written, zero-setup, sealed until you cross each rank.
-  gridText_(sheet, 29, 2, CANVAS.COLS - 2, '◆ SEALED LETTERS ◆', { h: 'center', size: 9, bold: true, color: '#C9B07A', bg: STONE.HALL_BG });
+  gridText_(sheet, 29, 2, GRID.COLS - 2, '◆ SEALED LETTERS ◆', { h: 'center', size: 9, bold: true, color: '#C9B07A', bg: STONE.HALL_BG });
   var letter = function (col, w, title, body, unsealed) {
     var bg = unsealed ? STONE.PARCHMENT : STONE.HALL_BG2;
     sheet.getRange(31, col, 4, w).setBackground(bg)
@@ -1792,11 +1845,11 @@ function buildHallBody_(sheet, mode) {
   letter(12, 8, 'Halfway', 'Unseals when half your debt is slain.', false);
   letter(21, 8, 'Debt-Free', 'Unseals when the temple is whole and you owe no one.', false);
 
-  footer_(sheet, 37, CANVAS.LAST);
+  footer_(sheet, 37, GRID.LAST);
 }
 
 function buildStartBody_(sheet, mode) {
-  titleRow_(sheet, CANVAS.LAST, 'Every debt. One date.',
+  titleRow_(sheet, GRID.LAST, 'Every debt. One date.',
     'A plan you own — list your debts, pick a strategy, and watch your temple rise as you pay.');
   zlabel_(sheet, 9, 'THE ANATOMY · THE VOCABULARY OF THE PRODUCT');
   var anat = [['STYLOBATE', 'the stone you stand on — your buffer'], ['COLUMN', 'one debt, rising as you pay'],
@@ -1804,7 +1857,7 @@ function buildStartBody_(sheet, mode) {
   anat.forEach(function (a, i) {
     var row = 10 + i;
     gridText_(sheet, row, 2, 5, a[0], { bold: true, size: 10, color: BRAND.GOLD, bg: BRAND.CREAM, h: 'center' });
-    gridText_(sheet, row, 7, CANVAS.COLS - 7, a[1], { size: 11, color: BRAND.BODY });
+    gridText_(sheet, row, 7, GRID.COLS - 7, a[1], { size: 11, color: BRAND.BODY });
   });
   zlabel_(sheet, 16, 'SETUP · 6 STEPS');
   var steps = [
@@ -1816,17 +1869,17 @@ function buildStartBody_(sheet, mode) {
     ['6', 'Watch it rise', 'The Dashboard temple builds itself from your payments.']];
   gridText_(sheet, 17, 2, 2, '#', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: 'center' });
   gridText_(sheet, 17, 4, 8, 'Step', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
-  gridText_(sheet, 17, 12, CANVAS.COLS - 12, 'What you do', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
+  gridText_(sheet, 17, 12, GRID.COLS - 12, 'What you do', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
   steps.forEach(function (s, i) {
     var row = 18 + i;
     gridText_(sheet, row, 2, 2, s[0], { h: 'center', size: 10, color: BRAND.CAPTION });
     gridText_(sheet, row, 4, 8, s[1], { bold: true, size: 11, color: BRAND.FOREST });
-    gridText_(sheet, row, 12, CANVAS.COLS - 12, s[2], { size: 10, color: BRAND.BODY, wrap: true });
+    gridText_(sheet, row, 12, GRID.COLS - 12, s[2], { size: 10, color: BRAND.BODY, wrap: true });
   });
   zlabel_(sheet, 25, 'ASK YOUR AI');
-  gridText_(sheet, 26, 2, CANVAS.COLS - 2, 'Attach the sheet to Claude or ChatGPT and ask: "Which payoff order saves me the most interest, and what happens to my debt-free date if I add $75 a month?" The hidden _Schema tab explains your sheet.', { size: 11, italic: true, color: BRAND.BODY, bg: BRAND.CREAM, wrap: true });
+  gridText_(sheet, 26, 2, GRID.COLS - 2, 'Attach the sheet to Claude or ChatGPT and ask: "Which payoff order saves me the most interest, and what happens to my debt-free date if I add $75 a month?" The hidden _Schema tab explains your sheet.', { size: 11, italic: true, color: BRAND.BODY, bg: BRAND.CREAM, wrap: true });
   sheet.setRowHeight(26, 40);
-  footer_(sheet, 30, CANVAS.LAST);
+  footer_(sheet, 30, GRID.LAST);
 }
 
 /**
@@ -2018,11 +2071,11 @@ function replayTemple_(dash) {
   if (!info || !info.debts.length) return;
   var frames = Math.min(PAYOFF_HORIZON_MONTHS, info.months + 2);
   for (var m = 0; m <= frames; m += Math.max(1, Math.round(frames / 24))) {
-    repaintTempleAt_(dash, 11, info, m, { H: CANVAS.TEMPLE_H, showStylobate: true });
+    repaintTempleAt_(dash, 11, info, m, { H: GRID.TEMPLE_H, showStylobate: true });
     SpreadsheetApp.flush();
     Utilities.sleep(600);
   }
-  repaintTempleAt_(dash, 11, info, 0, { H: CANVAS.TEMPLE_H, showStylobate: true });
+  repaintTempleAt_(dash, 11, info, 0, { H: GRID.TEMPLE_H, showStylobate: true });
 }
 
 // Read the live engine to rebuild the per-debt schedule for a repaint.

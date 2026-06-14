@@ -577,11 +577,11 @@ const expectNamed = {
   cc_debts_table: 'Debts!A10:O34',
   cc_keyword_rules: 'Debts!Q10:R34',
   cc_payments_log: 'Payments Log!A10:G5009',
-  cc_active_strategy: 'The Plan!C9',
-  cc_extra_monthly: 'The Plan!H9',
-  cc_time_machine: 'The Plan!C12',
-  cc_compare_month: 'Compare!C12',
-  cc_stylobate_goal: 'Progress!C12'
+  cc_active_strategy: 'The Plan!C10',
+  cc_extra_monthly: 'The Plan!P10',
+  cc_time_machine: 'The Plan!C18',
+  cc_compare_month: 'Compare!C10',
+  cc_stylobate_goal: 'Progress!C10'
 };
 const named = namedByMode.mock;
 const STRATEGY_DEFAULT_TXT = api.STRATEGY_DEFAULT;
@@ -614,8 +614,8 @@ audits.push(['Payments Est. interest = MIN(amount, bal×APR/12) by lookup', has(
 audits.push(['Payments Est. principal = amount − interest', has(formulas, 'Payments Log!E10', '$C10-$D10'), formulas['Payments Log!E10']]);
 audits.push(['Payments header: A9 = Date, G9 = Month', writes['Payments Log!A9'] === 'Date' && writes['Payments Log!G9'] === 'Month', writes['Payments Log!A9']]);
 // control cells
-audits.push(['The Plan strategy cell seeded Snowball; extra = 250 (mock)', writes['The Plan!C9:F9'] === STRATEGY_DEFAULT_TXT && writes['The Plan!H9'] === 250, writes['The Plan!C9:F9']]);
-audits.push(['blank: The Plan extra = 0', writesBlank['The Plan!H9'] === 0, writesBlank['The Plan!H9']]);
+audits.push(['The Plan strategy cell seeded Snowball; extra = 250 (mock)', writes['The Plan!C10:N10'] === STRATEGY_DEFAULT_TXT && writes['The Plan!P10:T10'] === 250, writes['The Plan!C10:N10']]);
+audits.push(['blank: The Plan extra = 0', writesBlank['The Plan!P10:T10'] === 0, writesBlank['The Plan!P10:T10']]);
 // mock registry
 audits.push(['mock Debts row 10 = Rooms+ Store Card (Card)', writes['Debts!B10'] === 'Rooms+ Store Card' && writes['Debts!C10'] === 'Card', writes['Debts!B10']]);
 audits.push(['mock mortgage In plan? = No (tracked)', writes['Debts!H15'] === 'No', writes['Debts!H15']]);
@@ -721,6 +721,23 @@ for (const mode of ['mock', 'blank']) {
 }
 for (const [ref, ex] of Object.entries(novel)) { hFail++; console.log('  NOVEL REFERENCE ' + ref + ' — review vs 02/03, then add to the inventory. From ' + ex); }
 section('h. cross-sheet reference inventory', hFail);
+
+// ───────────── j. text-fit audit — single-cell labels clip ─────────────
+// A literal label of 5+ chars written to ONE narrow canvas cell clips
+// ("STRATEGY"→"ST"). Labels must merge enough columns. Catches the v1
+// live-QA "slop" class statically (formula/merge clips are caught by eye).
+const VIEW_TABS = new Set(['Dashboard', 'The Plan', 'Compare', 'Progress', 'The Hall', 'Start Here']);
+let jFail = 0;
+for (const mode of ['mock', 'blank']) {
+  for (const rec of captures[mode]) {
+    if (rec.kind !== 'value' || typeof rec.val !== 'string') continue;
+    if (rec.val.length < 5 || rec.val.charAt(0) === '=') continue;
+    if (!VIEW_TABS.has(rec.sheet) || rec.a1.indexOf(':') !== -1) continue;   // merged = has room
+    jFail++;
+    console.log('  CLIP-RISK [' + mode + '] ' + rec.sheet + '!' + rec.a1 + ' single cell holds "' + rec.val.slice(0, 28) + '" (' + rec.val.length + ' chars) — merge/widen it');
+  }
+}
+section('j. text-fit (single-cell label) audit', jFail);
 
 console.log('\nTOTAL: ' + (FAILS === 0 ? 'ALL GREEN' : FAILS + ' FAILURES'));
 process.exit(FAILS ? 1 : 0);
