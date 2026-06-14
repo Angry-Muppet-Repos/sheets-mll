@@ -1260,6 +1260,7 @@ function buildMenu_() {
   menu.addItem('Log a Stylobate contribution…', 'logContribution');
   menu.addSeparator();
   menu.addItem('Watch the build', 'watchTheBuild');
+  menu.addItem('Run the race (Compare)', 'runTheRace');
   menu.addItem('Frame a win for sharing…', 'frameAWin');
   menu.addSeparator();
   menu.addItem('Import Bank CSV…', 'importPayments');
@@ -1442,6 +1443,30 @@ function watchTheBuild() {
   // Live replay: re-paint the Dashboard temple at each month, past →
   // present → projection, flush + a dignified pause per frame (~0.6s).
   try { replayTemple_(dash); } catch (e) {}
+}
+
+// The Strategy Race — animate both Compare lanes month by month, snowball
+// vs avalanche filling at different rates (the mockup's "Run the race").
+// flush + a dignified pause per frame (~0.55s/step — not 60fps).
+function runTheRace() {
+  var ss = SpreadsheetApp.getActive(), cmp = ss.getSheetByName(TABS.COMPARE);
+  if (!cmp) return;
+  cmp.activate();
+  ss.toast('Running the race — snowball vs avalanche, month by month.', CC.BRAND, 4);
+  try {
+    var snow = liveTempleInfo_(ss, 'snowball'), aval = liveTempleInfo_(ss, 'avalanche');
+    if (!snow || !snow.debts.length) return;
+    var frames = Math.min(PAYOFF_HORIZON_MONTHS, Math.max(snow.months, aval.months) + 2);
+    var step = Math.max(1, Math.round(frames / 28));
+    for (var m = 0; m <= frames; m += step) {
+      repaintTempleAt_(cmp, 22, snow, m, { H: 12, win: [2, 25], minW: 2, capW: 6 });
+      repaintTempleAt_(cmp, 22, aval, m, { H: 12, win: [28, 51], minW: 2, capW: 6 });
+      cmp.getRange('C10').setValue(m);          // keep the race-month cell in sync
+      SpreadsheetApp.flush();
+      Utilities.sleep(550);
+    }
+    cmp.getRange('C10').setValue(Math.min(23, frames));
+  } catch (e) {}
 }
 
 function frameAWin() {
@@ -1662,7 +1687,8 @@ function buildCompareBody_(sheet, mode) {
   gridText_(sheet, 9, 3, 10, 'RACE · MONTH', { size: 9, bold: true, color: BRAND.CANOPY });
   setCell_(sheet, 'C10', { value: (mode === 'mock') ? 23 : 0, merge: 'E10', bg: BRAND.YELLOW, font: FONT.BODY, size: 12, bold: true, color: BRAND.FOREST, h: 'center' })
     .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
-  gridText_(sheet, 10, 7, GRID.COLS - 7, 'the same extra applies to both lanes — the fair comparison. Type a month to scrub both temples.', { size: 10, italic: true, color: BRAND.CAPTION });
+  gridText_(sheet, 10, 7, 18, 'the same extra applies to both lanes — the fair comparison. Type a month to scrub.', { size: 10, italic: true, color: BRAND.CAPTION });
+  gridText_(sheet, 10, 26, GRID.COLS - 26, '▶  RUN THE RACE — 💳 menu → Run the race (Compare): both temples fill, month by month', { size: 10, bold: true, color: '#7d6420', bg: BRAND.CHIP_FAIR_BG, h: 'center' });
 
   // verdict panel (rows 12-15) — the value, made obvious
   sheet.getRange(12, 2, 4, GRID.COLS - 2).setBackground(BRAND.FOREST);
