@@ -564,7 +564,7 @@ function paintContentBg_(sheet, endRow, lastColLetter) {
 var CTRL = {
   STRATEGY: "'" + TABS.PLAN + "'!C10",        // cc_active_strategy
   EXTRA:    "'" + TABS.PLAN + "'!P10",        // cc_extra_monthly
-  TIME_MACHINE: "'" + TABS.PLAN + "'!C18",    // cc_time_machine (month index)
+  TIME_MACHINE: "'" + TABS.PLAN + "'!C30",    // cc_time_machine (month index)
   COMPARE_MONTH: "'" + TABS.COMPARE + "'!C10",
   STYLO_GOAL: "'" + TABS.PROGRESS + "'!C10",  // cc_stylobate_goal
   ENGINE_ANCHOR: "'" + TABS.CONFIG + "'!B41"  // cc_engine_anchor (first of current month)
@@ -1297,10 +1297,10 @@ function onEdit(e) {
     }
   }
 
-  // The Plan: scrubbing the Time Machine (C18) re-paints the temple at that
+  // The Plan: scrubbing the Time Machine (C30) re-paints the temple at that
   // month on the active plan. (Live only; the build paints the default view.)
-  if (name === TABS.PLAN && row === 18 && col === 3) {
-    try { repaintTempleAt_(sheet, 20, liveTempleInfo_(SpreadsheetApp.getActive()), Number(e.range.getValue()) || 0, { H: 16 }); } catch (e3) {}
+  if (name === TABS.PLAN && row === 30 && col === 3) {
+    try { repaintTempleAt_(sheet, 34, liveTempleInfo_(SpreadsheetApp.getActive()), Number(e.range.getValue()) || 0, { H: 15 }); } catch (e3) {}
   }
   // Compare: the shared race month (C10) re-paints both lanes.
   if (name === TABS.COMPARE && row === 10 && col === 3) {
@@ -1626,7 +1626,7 @@ function planControls_(sheet, mode) {
 
 function buildPlanBody_(sheet, mode) {
   titleRow_(sheet, GRID.LAST, 'The Plan',
-    'Pick a strategy, set your extra — then drag the Time Machine to stand in any month of your future.');
+    'Pick a strategy and your extra payment. This is exactly what you owe, the order you attack it, and the month you are free.');
   planControls_(sheet, mode);
   var sr = ENG.ROW_SCALARS, EN = "'_Engine'";
 
@@ -1643,40 +1643,46 @@ function buildPlanBody_(sheet, mode) {
   stat(29, 11, '=TEXT(' + EN + '!$C$' + sr + ',"$#,##0")', 'interest on this plan');
   stat(41, 10, '=TEXT(' + EN + '!$H$' + sr + ',"$#,##0")', 'saved vs minimums');
 
-  // the Time Machine + temple (default visit = the debt-free month)
-  zlabel_(sheet, 17, 'THE TIME MACHINE · STAND IN ANY MONTH OF YOUR PLAN');
-  setCell_(sheet, 'C18', { formula: '=IFERROR(MIN(' + PAYOFF_HORIZON_MONTHS + ',' + EN + '!$B$' + sr + '),0)', merge: 'F18', bg: BRAND.YELLOW, font: FONT.BODY, size: 12, bold: true, color: BRAND.FOREST, h: 'center' })
-    .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
-  gridText_(sheet, 18, 8, GRID.COLS - 8, null, { size: 10, italic: true, color: BRAND.CAPTION,
-    formula: '="month "&C18&" of your plan — type 0 for today, or any month to scrub the temple"' });
-  var endRow;
-  if (mode === 'mock') {
-    var m = simulateSchedule_(mockInPlanDebts_(), rankDebts_(mockInPlanDebts_(), 'snowball'), MOCK.extra).months;
-    endRow = paintTemple_(sheet, 20, mockTempleDebts_(m, 'snowball'), { H: 16 });
-  } else { endRow = paintTemple_(sheet, 20, [], { H: 16 }); }
+  // plain-English plan summary — the one line that says what to actually do
+  var summaryF = '="Your plan:  "&IF(LEFT(cc_active_strategy,4)="Aval","Avalanche (highest APR first)",IF(LEFT(cc_active_strategy,2)="My","your own ranking","Snowball (smallest balance first)"))&".    Put your "&TEXT(cc_extra_monthly,"$#,##0")&"/mo extra on "&IFERROR(INDEX(cc_debts_list,MATCH(1,' + EN + '!$B$' + ENG.ROW_RANK_ACTIVE + ':$Z$' + ENG.ROW_RANK_ACTIVE + ',0)),"your first debt")&" until it is paid, then roll everything to the next debt below it.    Debt-free "&' + EN + '!$P$' + sr + '&"  ("&' + EN + '!$B$' + sr + '&" months from now)."';
+  sheet.getRange(16, 2, 2, GRID.COLS - 2).setBackground(BRAND.CREAM);
+  gridText_(sheet, 16, 3, GRID.COLS - 4, null, { formula: summaryF, size: 12, color: BRAND.FOREST, wrap: true });
+  sheet.setRowHeight(16, 17); sheet.setRowHeight(17, 17);
 
-  // payoff order table (live, from the Debts computed columns)
-  var tr = endRow + 1;
-  zlabel_(sheet, tr, 'PAYOFF ORDER · WHEN EACH DEBT DIES ON THIS PLAN');
-  tr += 1;
-  var cw = weightedCols_([3, 16, 9, 5, 9, 9], 1), hdr = ['#', 'Debt', 'Balance now', 'APR', 'Payoff', 'Interest'];
-  cw.forEach(function (cc, j) { gridText_(sheet, tr, cc.col, cc.w, hdr[j], { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: j >= 2 ? 'right' : 'left' }); });
-  var DB = "'" + TABS.DEBTS + "'";
+  // YOUR PAYOFF ORDER — the hero of this tab, right under the summary
+  zlabel_(sheet, 19, 'YOUR PAYOFF ORDER · WHAT YOU OWE, AND WHEN EACH DEBT DIES');
+  var tr = 20, DB = "'" + TABS.DEBTS + "'";
+  var cw = weightedCols_([3, 16, 9, 5, 9, 9], 1), hdr = ['#', 'Debt', 'Balance now', 'APR', 'Gone by', 'Interest'];
+  cw.forEach(function (cc, j) { gridText_(sheet, tr, cc.col, cc.w, hdr[j], { bold: true, size: 10, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: j >= 2 ? 'right' : 'left' }); });
   for (var i = 0; i < 6; i++) {
     var R = DEBT.FIRST_ROW + i, row = tr + 1 + i;
+    if (i % 2 === 1) sheet.getRange(row, 2, 1, GRID.COLS - 2).setBackground(BRAND.PARCHMENT);
     gridText_(sheet, row, cw[0].col, cw[0].w, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",IFERROR(INDEX(' + EN + '!$B$' + ENG.ROW_RANK_ACTIVE + ':$Z$' + ENG.ROW_RANK_ACTIVE + ',1,' + (i + 1) + '),"·"))', h: 'center', size: 10, color: BRAND.CAPTION });
     gridText_(sheet, row, cw[1].col, cw[1].w, null, { formula: '=' + DB + '!$B$' + R, size: 11, color: BRAND.FOREST });
     gridText_(sheet, row, cw[2].col, cw[2].w, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$K$' + R + ')', h: 'right', size: 11, format: '$#,##0' });
     gridText_(sheet, row, cw[3].col, cw[3].w, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$E$' + R + ')', h: 'right', size: 10, color: BRAND.BODY, format: '0.0%' });
-    gridText_(sheet, row, cw[4].col, cw[4].w, null, { formula: '=' + DB + '!$M$' + R, h: 'right', size: 10, color: BRAND.BODY });
+    gridText_(sheet, row, cw[4].col, cw[4].w, null, { formula: '=' + DB + '!$M$' + R, h: 'right', size: 11, bold: true, color: BRAND.FOREST });
     gridText_(sheet, row, cw[5].col, cw[5].w, null, { formula: '=' + DB + '!$N$' + R, h: 'right', size: 10, color: BRAND.BODY });
   }
-  var afterTable = tr + 1 + 6;
-  zlabel_(sheet, afterTable + 1, 'BALANCE TIMELINE · IN-PLAN TOTAL BY MONTH');
-  gridText_(sheet, afterTable + 2, 2, GRID.COLS - 2, null, { formula: sparkCol_("'_Engine'!$AE$" + ENG.TIMELINE_FIRST + ':$AE$' + ENG.TIMELINE_LAST, BRAND.CANOPY) });
-  sheet.setRowHeight(afterTable + 2, 44);
-  gridText_(sheet, afterTable + 4, 2, GRID.COLS - 2, 'Projections are estimates at monthly compounding, not financial advice and not a servicing statement. Your lender\'s figures are the truth — re-type your statement balance monthly on the Debts tab.', { size: 9, italic: true, color: BRAND.CAPTION, wrap: true });
-  footer_(sheet, afterTable + 7, GRID.LAST);
+  gridText_(sheet, 27, 3, GRID.COLS - 4, 'A mortgage (or any debt you toggle "In plan? = No" on the Debts tab) is tracked but kept out of this order and the date.', { size: 9, italic: true, color: BRAND.CAPTION });
+
+  // THE TIME MACHINE + temple — demoted BELOW the plan, and explained
+  zlabel_(sheet, 29, 'THE TIME MACHINE · DRAG TO STAND IN ANY MONTH OF YOUR PLAN');
+  setCell_(sheet, 'C30', { formula: '=IFERROR(MIN(' + PAYOFF_HORIZON_MONTHS + ',' + EN + '!$B$' + sr + '),0)', merge: 'F30', bg: BRAND.YELLOW, font: FONT.BODY, size: 12, bold: true, color: BRAND.FOREST, h: 'center' })
+    .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
+  gridText_(sheet, 30, 8, GRID.COLS - 8, null, { size: 10, italic: true, color: BRAND.CAPTION, formula: '="month "&C30&" — type 0 for today, or any month to scrub the temple below"' });
+  gridText_(sheet, 32, 3, GRID.COLS - 4, 'Each column below is one of your debts — its width is the debt\'s size. It fills from the bottom as you pay it down, and its capital turns gold the month it is cleared; all columns gold means debt-free.', { size: 10, italic: true, color: BRAND.CAPTION, wrap: true });
+  var endRow;
+  if (mode === 'mock') {
+    var m = simulateSchedule_(mockInPlanDebts_(), rankDebts_(mockInPlanDebts_(), 'snowball'), MOCK.extra).months;
+    endRow = paintTemple_(sheet, 34, mockTempleDebts_(m, 'snowball'), { H: 15 });
+  } else { endRow = paintTemple_(sheet, 34, [], { H: 15 }); }
+
+  zlabel_(sheet, endRow + 1, 'BALANCE TIMELINE · IN-PLAN TOTAL BY MONTH');
+  gridText_(sheet, endRow + 2, 2, GRID.COLS - 2, null, { formula: sparkCol_("'_Engine'!$AE$" + ENG.TIMELINE_FIRST + ':$AE$' + ENG.TIMELINE_LAST, BRAND.CANOPY) });
+  sheet.setRowHeight(endRow + 2, 44);
+  gridText_(sheet, endRow + 4, 2, GRID.COLS - 2, 'Projections are estimates at monthly compounding, not financial advice and not a servicing statement. Your lender\'s figures are the truth — re-type your statement balance monthly on the Debts tab.', { size: 9, italic: true, color: BRAND.CAPTION, wrap: true });
+  footer_(sheet, endRow + 7, GRID.LAST);
 }
 
 function buildCompareBody_(sheet, mode) {
@@ -1765,39 +1771,48 @@ function buildProgressBody_(sheet, mode) {
 }
 
 function buildDashboardBody_(sheet, mode) {
-  titleRow_(sheet, GRID.LAST, 'Dashboard', 'Where you stand. Your debts are becoming a temple, course by course.');
-  var sr = ENG.ROW_SCALARS, EN = "'_Engine'";
-  zlabel_(sheet, 9, 'THE TEMPLE · WHAT YOU HAVE MADE PERMANENT');
-  var endRow;
-  if (mode === 'mock') {
-    var saved = generateMockContributions_().reduce(function (a, c) { return a + c[1]; }, 0);
-    endRow = paintTemple_(sheet, 11, mockTempleDebts_(0, 'snowball'), { H: 18, showStylobate: true, savedFrac: saved / STYLOBATE_GOAL_DEFAULT });
-  } else { endRow = paintTemple_(sheet, 11, [], { H: 18, showStylobate: true }); }
+  titleRow_(sheet, GRID.LAST, 'Dashboard', 'Where you stand today — the numbers first, then your debts becoming a temple.');
+  var sr = ENG.ROW_SCALARS, EN = "'_Engine'", DB = "'" + TABS.DEBTS + "'";
 
-  // KPI row — four cards spread across the width
-  var kr = endRow + 1;
-  zlabel_(sheet, kr, 'THE NUMBERS');
+  // 1 · the plan, in one plain line
+  var summaryF = '="Your plan:  "&IF(LEFT(cc_active_strategy,4)="Aval","Avalanche (highest APR first)",IF(LEFT(cc_active_strategy,2)="My","your own ranking","Snowball (smallest balance first)"))&".    Put your "&TEXT(cc_extra_monthly,"$#,##0")&"/mo extra on "&IFERROR(INDEX(cc_debts_list,MATCH(1,' + EN + '!$B$' + ENG.ROW_RANK_ACTIVE + ':$Z$' + ENG.ROW_RANK_ACTIVE + ',0)),"your first debt")&" until it is paid, then roll it to the next.    Debt-free "&' + EN + '!$P$' + sr + '&"  ("&' + EN + '!$B$' + sr + '&" months from now)."';
+  sheet.getRange(9, 2, 2, GRID.COLS - 2).setBackground(BRAND.CREAM);
+  gridText_(sheet, 9, 3, GRID.COLS - 4, null, { formula: summaryF, size: 12, color: BRAND.FOREST, wrap: true });
+  sheet.setRowHeight(9, 17); sheet.setRowHeight(10, 17);
+
+  // 2 · the numbers (KPI row) — what someone needs at a glance
+  zlabel_(sheet, 12, 'WHERE YOU STAND');
   var kc = evenCols_(4, 1);
-  kpiCard_(sheet, columnToLetter_(kc[0].col) + (kr + 1), kc[0].w, 'TOTAL DEBT NOW', '=TEXT(' + EN + '!$M$' + sr + ',"$#,##0")', '=" of "&TEXT(' + EN + '!$O$' + sr + ',"$#,##0")&" at the start"', BRAND.GOLD);
-  kpiCard_(sheet, columnToLetter_(kc[1].col) + (kr + 1), kc[1].w, 'PAID OFF TO DATE', '=TEXT(' + EN + '!$N$' + sr + ',"$#,##0")', 'torn from the wall, made permanent', BRAND.GOLD);
-  kpiCard_(sheet, columnToLetter_(kc[2].col) + (kr + 1), kc[2].w, 'DEBT-FREE DATE', '=' + EN + '!$P$' + sr, '=' + EN + '!$B$' + sr + '&" months on this plan"', BRAND.GOLD);
-  kpiCard_(sheet, columnToLetter_(kc[3].col) + (kr + 1), kc[3].w, 'SAVED vs MINIMUMS', '=TEXT(' + EN + '!$H$' + sr + ',"$#,##0")', '=IF(' + EN + '!$G$' + sr + '>0,"minimums never finish — still "&TEXT(' + EN + '!$G$' + sr + ',"$#,##0")&" owed at 10 yrs","vs paying only the minimums")', BRAND.GOLD);
+  kpiCard_(sheet, columnToLetter_(kc[0].col) + '13', kc[0].w, 'TOTAL DEBT NOW', '=TEXT(' + EN + '!$M$' + sr + ',"$#,##0")', '=" of "&TEXT(' + EN + '!$O$' + sr + ',"$#,##0")&" at the start"', BRAND.GOLD);
+  kpiCard_(sheet, columnToLetter_(kc[1].col) + '13', kc[1].w, 'PAID OFF TO DATE', '=TEXT(' + EN + '!$N$' + sr + ',"$#,##0")', 'torn from the wall, made permanent', BRAND.GOLD);
+  kpiCard_(sheet, columnToLetter_(kc[2].col) + '13', kc[2].w, 'DEBT-FREE DATE', '=' + EN + '!$P$' + sr, '=' + EN + '!$B$' + sr + '&" months on this plan"', BRAND.GOLD);
+  kpiCard_(sheet, columnToLetter_(kc[3].col) + '13', kc[3].w, 'SAVED vs MINIMUMS', '=TEXT(' + EN + '!$H$' + sr + ',"$#,##0")', '=IF(' + EN + '!$G$' + sr + '>0,"minimums never finish — still "&TEXT(' + EN + '!$G$' + sr + ',"$#,##0")&" owed at 10 yrs","vs paying only the minimums")', BRAND.GOLD);
 
-  // this month (live from the registry)
-  var mr = kr + 5;
-  zlabel_(sheet, mr, 'THIS MONTH · WHAT IS DUE');
+  // 3 · this month — what is due (live from the registry)
+  zlabel_(sheet, 17, 'THIS MONTH · WHAT IS DUE');
   var tc = weightedCols_([10, 6, 5, 16], 1), th = ['Debt', 'Due', 'Min', 'Status'];
-  tc.forEach(function (cc, j) { gridText_(sheet, mr + 1, cc.col, cc.w, th[j], { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: j === 2 ? 'right' : 'left' }); });
-  var DB = "'" + TABS.DEBTS + "'";
+  tc.forEach(function (cc, j) { gridText_(sheet, 18, cc.col, cc.w, th[j], { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: j === 2 ? 'right' : 'left' }); });
   for (var i = 0; i < 6; i++) {
-    var R = DEBT.FIRST_ROW + i, row = mr + 2 + i;
+    var R = DEBT.FIRST_ROW + i, row = 19 + i;
+    if (i % 2 === 1) sheet.getRange(row, 2, 1, GRID.COLS - 2).setBackground(BRAND.PARCHMENT);
     gridText_(sheet, row, tc[0].col, tc[0].w, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$B$' + R + ')', size: 11, color: BRAND.FOREST });
     gridText_(sheet, row, tc[1].col, tc[1].w, null, { formula: '=IF(' + DB + '!$G$' + R + '="","","day "&' + DB + '!$G$' + R + ')', size: 10, color: BRAND.CAPTION });
     gridText_(sheet, row, tc[2].col, tc[2].w, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$F$' + R + ')', h: 'right', size: 10, format: '$#,##0' });
     gridText_(sheet, row, tc[3].col, tc[3].w, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$L$' + R + ')', size: 10, italic: true, color: BRAND.CANOPY });
   }
+
+  // 4 · the Temple (the visual payoff), now explained
+  zlabel_(sheet, 26, 'THE TEMPLE · WHAT YOU HAVE MADE PERMANENT');
+  gridText_(sheet, 27, 3, GRID.COLS - 4, 'Each column is one of your debts — its width is the debt\'s size. It fills from the bottom as you pay it down and the capital turns gold the month it is cleared; the stone base is your savings buffer. All columns gold = debt-free.', { size: 10, italic: true, color: BRAND.CAPTION, wrap: true });
+  var endRow;
   if (mode === 'mock') {
-    var ar = mr + 9;
+    var saved = generateMockContributions_().reduce(function (a, c) { return a + c[1]; }, 0);
+    endRow = paintTemple_(sheet, 29, mockTempleDebts_(0, 'snowball'), { H: 16, showStylobate: true, savedFrac: saved / STYLOBATE_GOAL_DEFAULT });
+  } else { endRow = paintTemple_(sheet, 29, [], { H: 16, showStylobate: true }); }
+
+  // 5 · AI insights (mock only)
+  if (mode === 'mock') {
+    var ar = endRow + 1;
     zlabel_(sheet, ar, 'AI INSIGHTS · ATTACH THE SHEET AND ASK');
     MOCK.ai_insights.forEach(function (ins, i) {
       gridText_(sheet, ar + 1 + i, 2, 5, ins[0], { bold: true, size: 9, color: BRAND.GOLD, bg: BRAND.CREAM, h: 'center' });
@@ -1805,7 +1820,7 @@ function buildDashboardBody_(sheet, mode) {
     });
     footer_(sheet, ar + 6, GRID.LAST);
   } else {
-    footer_(sheet, mr + 10, GRID.LAST);
+    footer_(sheet, endRow + 3, GRID.LAST);
   }
 }
 

@@ -579,7 +579,7 @@ const expectNamed = {
   cc_payments_log: 'Payments Log!A10:G5009',
   cc_active_strategy: 'The Plan!C10',
   cc_extra_monthly: 'The Plan!P10',
-  cc_time_machine: 'The Plan!C18',
+  cc_time_machine: 'The Plan!C30',
   cc_compare_month: 'Compare!C10',
   cc_stylobate_goal: 'Progress!C10'
 };
