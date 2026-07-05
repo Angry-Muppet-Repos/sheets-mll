@@ -15,313 +15,16 @@
 const fs = require('fs');
 const src = fs.readFileSync('apps_script/ColumnCo_Payoff_v1.gs', 'utf8');
 
-const COL = s => { let c = 0; for (const ch of s) c = c * 26 + ch.charCodeAt(0) - 64; return c; };
-const LETTER = n => { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
-function parseA1(ref) {
-  const m = ref.match(/^([A-Z]+)(\d+)(?::([A-Z]+)(\d+))?$/);
-  if (!m) throw new Error('bad A1: ' + ref);
-  const c1 = COL(m[1]), r1 = +m[2];
-  const c2 = m[3] ? COL(m[3]) : c1, r2 = m[4] ? +m[4] : r1;
-  return { row: Math.min(r1, r2), col: Math.min(c1, c2), numRows: Math.abs(r2 - r1) + 1, numCols: Math.abs(c2 - c1) + 1 };
-}
+const makeStubEnv = require('./lib/gas_stub.js');
 
 const captures = { mock: [], blank: [], func: [] };
-const mergeViolations = [];
 let CURRENT_MODE = 'mock';
-const record = rec => { if (CURRENT_MODE !== 'func') captures[CURRENT_MODE].push(rec); };
-// merge geometry — real Sheets throws "You must select all cells in a
-// merged range to merge or unmerge them" when a merge/breakApart partially
-// covers an existing merge (intersects without fully containing it).
-const rectsOverlap = (a, b) => !(a.r + a.nr - 1 < b.r || b.r + b.nr - 1 < a.r || a.c + a.nc - 1 < b.c || b.c + b.nc - 1 < a.c);
-const rectContains = (a, b) => b.r >= a.r && b.c >= a.c && b.r + b.nr - 1 <= a.r + a.nr - 1 && b.c + b.nc - 1 <= a.c + a.nc - 1;
-const rectEqual = (a, b) => a.r === b.r && a.c === b.c && a.nr === b.nr && a.nc === b.nc;
-
-class RangeStub {
-  constructor(sheet, row, col, numRows, numCols) {
-    Object.assign(this, { sheet, row, col, numRows, numCols });
-  }
-  assertInGrid() {
-    if (this.row + this.numRows - 1 > this.sheet.maxRows ||
-        this.col + this.numCols - 1 > this.sheet.maxCols) {
-      throw new Error('Service Spreadsheets failed (emulated): write at ' + this.sheet.name + '!' + this.getA1Notation() +
-        ' exceeds grid ' + this.sheet.maxRows + 'x' + this.sheet.maxCols + ' — missing ensureGrid_?');
-    }
-  }
-  getA1Notation() {
-    const a = LETTER(this.col) + this.row;
-    if (this.numRows === 1 && this.numCols === 1) return a;
-    return a + ':' + LETTER(this.col + this.numCols - 1) + (this.row + this.numRows - 1);
-  }
-  getRow() { return this.row; }
-  getColumn() { return this.col; }
-  getNumRows() { return this.numRows; }
-  getNumColumns() { return this.numCols; }
-  getSheet() { return this.sheet; }
-  offset(dr, dc, nr, nc) { return new RangeStub(this.sheet, this.row + dr, this.col + dc, nr == null ? this.numRows : nr, nc == null ? this.numCols : nc); }
-  store(r, c, v) { this.sheet.cells[(this.row + r) + ',' + (this.col + c)] = v; }
-  fetch(r, c) { const v = this.sheet.cells[(this.row + r) + ',' + (this.col + c)]; return v === undefined ? '' : v; }
-  setValue(v) {
-    this.assertInGrid();
-    this.store(0, 0, v);
-    record({ sheet: this.sheet.name, a1: this.getA1Notation(), kind: 'value', val: v });
-    return this;
-  }
-  setValues(vals) {
-    this.assertInGrid();
-    if (!Array.isArray(vals) || vals.length !== this.numRows || vals.some(r => !Array.isArray(r) || r.length !== this.numCols)) {
-      throw new Error('setValues dim mismatch at ' + this.sheet.name + '!' + this.getA1Notation() +
-        ' expected ' + this.numRows + 'x' + this.numCols + ' got ' + vals.length + 'x' + (vals[0] ? vals[0].length : '?'));
-    }
-    for (let r = 0; r < vals.length; r++) for (let c = 0; c < vals[r].length; c++) {
-      this.store(r, c, vals[r][c]);
-      record({ sheet: this.sheet.name, a1: LETTER(this.col + c) + (this.row + r), kind: 'value', val: vals[r][c] });
-    }
-    return this;
-  }
-  setFormulas(vals) {
-    this.assertInGrid();
-    if (!Array.isArray(vals) || vals.length !== this.numRows || vals.some(r => !Array.isArray(r) || r.length !== this.numCols)) {
-      throw new Error('setFormulas dim mismatch at ' + this.sheet.name + '!' + this.getA1Notation());
-    }
-    for (let r = 0; r < vals.length; r++) for (let c = 0; c < vals[r].length; c++) {
-      if (vals[r][c]) record({ sheet: this.sheet.name, a1: LETTER(this.col + c) + (this.row + r), kind: 'formula', val: vals[r][c] });
-    }
-    return this;
-  }
-  setFormula(f) {
-    this.assertInGrid();
-    record({ sheet: this.sheet.name, a1: this.getA1Notation(), kind: 'formula', val: f });
-    return this;
-  }
-  setFormulaR1C1(f) {
-    this.assertInGrid();
-    record({ sheet: this.sheet.name, a1: this.getA1Notation(), kind: 'formulaR1C1', val: f });
-    return this;
-  }
-  getValues() {
-    const out = [];
-    for (let r = 0; r < this.numRows; r++) {
-      const row = [];
-      for (let c = 0; c < this.numCols; c++) row.push(this.fetch(r, c));
-      out.push(row);
-    }
-    return out;
-  }
-  getValue() { return this.fetch(0, 0); }
-  // Filter semantics: one filter per sheet, clear() does NOT remove it,
-  // and merges that cross its borders throw (the rebuild-over-stale lesson).
-  createFilter() {
-    this.assertInGrid();
-    if (this.sheet.filter) {
-      throw new Error("You can't create a filter in a sheet containing a filter (emulated): " + this.sheet.name);
-    }
-    const sheet = this.sheet;
-    sheet.filter = {
-      range: { row: this.row, col: this.col, numRows: this.numRows, numCols: this.numCols },
-      remove() { sheet.filter = null; },
-    };
-    return sheet.filter;
-  }
-  rect() { return { r: this.row, c: this.col, nr: this.numRows, nc: this.numCols }; }
-  merge() {
-    this.assertInGrid();
-    const f = this.sheet.filter;
-    if (f) {
-      const r = f.range;
-      const intersects = !(this.row + this.numRows - 1 < r.row || r.row + r.numRows - 1 < this.row ||
-                           this.col + this.numCols - 1 < r.col || r.col + r.numCols - 1 < this.col);
-      const contained = this.row >= r.row && this.col >= r.col &&
-        this.row + this.numRows - 1 <= r.row + r.numRows - 1 &&
-        this.col + this.numCols - 1 <= r.col + r.numCols - 1;
-      if (intersects && !contained) {
-        throw new Error("You can't merge cells that cross the borders of an existing filter (emulated): " +
-          this.sheet.name + '!' + this.getA1Notation());
-      }
-    }
-    const R = this.rect();
-    for (const M of this.sheet.merges) {
-      if (rectEqual(R, M)) return this;                       // idempotent re-merge
-      if (rectsOverlap(R, M) && !rectContains(R, M)) {
-        mergeViolations.push({ mode: CURRENT_MODE, sheet: this.sheet.name, a1: this.getA1Notation(), over: LETTER(M.c) + M.r });
-        throw new Error('You must select all cells in a merged range to merge or unmerge them (emulated): ' +
-          this.sheet.name + '!' + this.getA1Notation() + ' partially overlaps the merge at ' + LETTER(M.c) + M.r);
-      }
-    }
-    this.sheet.merges = this.sheet.merges.filter(M => !rectContains(R, M));
-    this.sheet.merges.push(R);
-    return this;
-  }
-  mergeAcross() { return this.merge(); }
-  breakApart() {
-    const R = this.rect();
-    for (const M of this.sheet.merges) {
-      if (rectsOverlap(R, M) && !rectContains(R, M)) {
-        mergeViolations.push({ mode: CURRENT_MODE, sheet: this.sheet.name, a1: this.getA1Notation(), op: 'breakApart', over: LETTER(M.c) + M.r });
-        throw new Error('breakApart crosses a merge border (emulated): ' + this.sheet.name + '!' + this.getA1Notation());
-      }
-    }
-    this.sheet.merges = this.sheet.merges.filter(M => !rectContains(R, M));
-    return this;
-  }
-}
-// Fluent no-ops: styling that doesn't need grid enforcement.
-['setBorder','setFontFamily','setFontSize','setFontWeight','setFontStyle',
- 'setFontColor','setFontColors','setHorizontalAlignment','setVerticalAlignment','setWrap',
- 'setWraps','clearDataValidations','sort','activate','setComment',
- 'setFontLine','setTextRotation','setHorizontalAlignments','setVerticalAlignments',
- 'setFontFamilies','setFontSizes','setFontWeights','setFontStyles','setShowHyphenation',
- 'clearFormat','clearNote','setBackgroundRGB','copyTo','setVerticalText'].forEach(m => { RangeStub.prototype[m] = function () { return this; }; });
-// Fluent, grid-enforced: writes that touch cells.
-['setBackground','setBackgrounds','setNumberFormat','setNumberFormats','setDataValidation',
- 'setDataValidations','insertCheckboxes','removeCheckboxes','setNote','setNotes'].forEach(m => {
-  RangeStub.prototype[m] = function () { this.assertInGrid(); return this; };
+const env = makeStubEnv({
+  onRecord: rec => { if (CURRENT_MODE !== 'func') captures[CURRENT_MODE].push(rec); },
+  getMode: () => CURRENT_MODE
 });
-RangeStub.prototype.clearContent = function () {
-  for (let r = 0; r < this.numRows; r++) for (let c = 0; c < this.numCols; c++) this.store(r, c, '');
-  return this;
-};
-RangeStub.prototype.clear = function () { return this.clearContent(); };
-
-class SheetStub {
-  constructor(ss, name) { this.ss = ss; this.name = name; this.maxRows = 1000; this.maxCols = 26; this.cells = {}; this.filter = null; this.hidden = false; this.merges = []; }
-  getName() { return this.name; }
-  insertRowsAfter(after, n) { this.maxRows += n; return this; }
-  insertColumnsAfter(after, n) { this.maxCols += n; return this; }
-  insertRowsBefore(before, n) { this.maxRows += n; return this; }
-  insertColumnsBefore(before, n) { this.maxCols += n; return this; }
-  deleteRows() { return this; } deleteColumns() { return this; }
-  getRange(...args) {
-    if (args.length === 1 && typeof args[0] === 'string') {
-      let ref = args[0];
-      if (ref.includes('!')) ref = ref.split('!')[1];
-      const p = parseA1(ref.replace(/\$/g, ''));
-      return new RangeStub(this, p.row, p.col, p.numRows, p.numCols);
-    }
-    const [r, c, nr = 1, nc = 1] = args;
-    return new RangeStub(this, r, c, nr, nc);
-  }
-  getMaxRows() { return this.maxRows; }
-  getMaxColumns() { return this.maxCols; }
-  clear() { this.cells = {}; return this; }
-  clearContents() { this.cells = {}; return this; }
-  clearConditionalFormatRules() { return this; }
-  getConditionalFormatRules() { return []; }
-  setConditionalFormatRules() { return this; }
-  getCharts() { return []; }
-  removeChart() {}
-  insertChart() {}
-  newChart() { return chartBuilder(); }
-  setHiddenGridlines() { return this; }
-  setRowHeight() { return this; } setRowHeights() { return this; }
-  setColumnWidth() { return this; } setColumnWidths() { return this; }
-  autoResizeColumn() { return this; }
-  hideColumns() {} hideRows() {} showRows() {} showColumns() {}
-  hideColumn() {} hideRow() {} showColumn() {} showRow() {}
-  setFrozenRows() {} setFrozenColumns() {}
-  getFilter() { return this.filter; }
-  getLastRow() { return 9; }
-  getLastColumn() { return 1; }
-  hideSheet() { this.hidden = true; } showSheet() { this.hidden = false; } activate() {}
-  setTabColor() { return this; }
-  setConditionalFormatRules() { return this; }
-  getRowHeight() { return 21; } getColumnWidth() { return 100; }
-}
-function chartBuilder() {
-  const b = {};
-  ['asPieChart','asColumnChart','asLineChart','asAreaChart','setOption','addRange',
-   'setPosition','setNumHeaders','setColors','setBackgroundColor'].forEach(m => b[m] = () => b);
-  b.build = () => ({});
-  return b;
-}
-class SSStub {
-  constructor() { this.sheets = {}; this.named = {}; this.order = []; }
-  getSheetByName(n) { return this.sheets[n] || null; }
-  insertSheet(n) { this.order.push(n); return (this.sheets[n] = new SheetStub(this, n)); }
-  getSheets() { return this.order.map(n => this.sheets[n]).filter(Boolean); }
-  deleteSheet(sh) { const n = typeof sh === 'string' ? sh : sh.getName(); delete this.sheets[n]; this.order = this.order.filter(x => x !== n); }
-  setActiveSheet() {} moveActiveSheet() {}
-  setNamedRange(name, range) { this.named[name] = range.sheet.name + '!' + range.getA1Notation(); }
-  removeNamedRange(name) { delete this.named[name]; }
-  getRangeByName(name) {
-    const ref = this.named[name];
-    if (!ref) return null;
-    return this.getRange(ref);
-  }
-  getRange(ref) {
-    const [sheetName, a1] = ref.replace(/^'/, '').split(/'?!/);
-    const sh = this.sheets[sheetName] || this.insertSheet(sheetName);
-    return sh.getRange(a1);
-  }
-  toast() {}
-  getSpreadsheetTimeZone() { return 'America/Detroit'; }
-  getId() { return 'STUB_SS_ID'; }
-  getName() { return 'The Payoff (stub)'; }
-}
-const validationBuilder = () => {
-  const b = {};
-  ['requireValueInList','requireValueInRange','setAllowInvalid','requireNumberBetween',
-   'requireCheckbox','setHelpText','requireNumberGreaterThan','requireNumberGreaterThanOrEqualTo',
-   'requireDate','requireFormulaSatisfied','requireTextIsEmail'].forEach(m => b[m] = () => b);
-  b.build = () => ({});
-  return b;
-};
-const cfBuilder = () => {
-  const b = {};
-  b.whenFormulaSatisfied = f => { record({ sheet: '(cf)', a1: '(cf)', kind: 'formula', val: f }); return b; };
-  ['whenTextEqualTo','whenTextContains','whenTextStartsWith','whenNumberGreaterThan',
-   'whenNumberGreaterThanOrEqualTo','whenNumberLessThan','whenNumberLessThanOrEqualTo',
-   'whenNumberEqualTo','whenNumberBetween','whenCellNotEmpty','whenCellEmpty',
-   'setBackground','setFontColor','setBold','setItalic','setRanges','setGradientMaxpoint',
-   'setGradientMinpoint','setGradientMidpointWithValue','setGradientMaxpointWithValue',
-   'setGradientMinpointWithValue','setUnderline'].forEach(m => b[m] = () => b);
-  b.build = () => ({});
-  return b;
-};
+const { SpreadsheetApp, PropertiesService, Utilities, Logger, HtmlService, SSStub, mergeViolations } = env;
 let ss;
-const SpreadsheetApp = {
-  getActive: () => ss,
-  getActiveSpreadsheet: () => ss,
-  getUi: () => ({
-    createMenu: () => menuBuilder(),
-    alert: () => 'ok', prompt: () => ({ getSelectedButton: () => 'ok', getResponseText: () => '' }),
-    showSidebar: () => {}, showModalDialog: () => {}, showModelessDialog: () => {},
-    ButtonSet: { YES_NO: 1, OK_CANCEL: 2, OK: 3 }, Button: { YES: 'YES', NO: 'NO', OK: 'OK', CANCEL: 'CANCEL' }
-  }),
-  newDataValidation: validationBuilder,
-  newConditionalFormatRule: cfBuilder,
-  BorderStyle: { SOLID: 1, SOLID_MEDIUM: 2, SOLID_THICK: 3, DASHED: 4, DOTTED: 5, DOUBLE: 6 },
-  WrapStrategy: { WRAP: 1, OVERFLOW: 2, CLIP: 3 },
-  flush: () => {},
-};
-function menuBuilder() { const m = {}; ['addItem','addSeparator','addSubMenu','addToUi'].forEach(k => m[k] = () => m); return m; }
-const _props = {};
-const PropertiesService = {
-  getDocumentProperties: () => ({
-    getProperty: k => (k in _props ? _props[k] : null),
-    setProperty: (k, v) => { _props[k] = v; }, deleteProperty: k => { delete _props[k]; },
-    getProperties: () => ({ ..._props })
-  }),
-  getScriptProperties: () => PropertiesService.getDocumentProperties(),
-  getUserProperties: () => PropertiesService.getDocumentProperties()
-};
-const Utilities = {
-  formatDate: (d, tz, fmt) => {
-    if (!(d instanceof Date)) return String(d);
-    const p = n => String(n).padStart(2, '0');
-    return (fmt || 'yyyy-MM-dd')
-      .replace(/yyyy/g, d.getFullYear())
-      .replace(/MM/g, p(d.getMonth() + 1))
-      .replace(/dd/g, p(d.getDate()));
-  },
-  sleep: () => {},
-  getUuid: () => 'uuid'
-};
-const Logger = { log: () => {} };
-const HtmlService = {
-  createHtmlOutput: () => ({ setTitle: () => ({ setWidth: () => ({}) }), setWidth: () => ({}) }),
-  createHtmlOutputFromFile: () => ({ setTitle: () => ({ setWidth: () => ({}) }) }),
-  createTemplateFromFile: () => ({ evaluate: () => ({ setTitle: () => ({}) }) })
-};
 
 // ───────────────────────── run both builds ─────────────────────────
 const EXPORTS = [
@@ -340,7 +43,7 @@ const api = factory(SpreadsheetApp, PropertiesService, Utilities, Logger, HtmlSe
 const namedByMode = {};
 for (const mode of ['mock', 'blank']) {
   CURRENT_MODE = mode;
-  ss = new SSStub();
+  ss = env.newSS();
   api.buildWorkbook(mode);
   namedByMode[mode] = { ...ss.named };
 }
@@ -650,7 +353,7 @@ for (const [n2, ok, got] of eChecks) { if (!ok) { eFail++; console.log('  FAIL g
 section('e. mock integrity', eFail, eChecks.length);
 
 // ───────────── f. functional — Bank CSV import core ─────────────
-ss = new SSStub(); // keyOf_ reads the timezone off the active spreadsheet
+ss = env.newSS(); // keyOf_ reads the timezone off the active spreadsheet
 const fChecks = [];
 fChecks.push(['parseCsvLine handles quoted commas', JSON.stringify(api.parseCsvLine_('06/12/2026,"CHASE, CARD",-196.00')) === JSON.stringify(['06/12/2026', 'CHASE, CARD', '-196.00']), '']);
 const sn = api.sniffColumns_(['Posting Date', 'Description', 'Amount']);
@@ -678,7 +381,7 @@ section('f. functional (Bank CSV import core)', fFail, fChecks.length);
 
 // ───────────── g. rebuild resilience — building OVER a stale workbook ─────────────
 CURRENT_MODE = 'func';
-ss = new SSStub();
+ss = env.newSS();
 api.buildWorkbook('mock');
 const stalePay = ss.sheets['Payments Log'];
 stalePay.filter = { range: { row: 9, col: 1, numRows: 5001, numCols: 7 }, remove() { stalePay.filter = null; } };
