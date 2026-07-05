@@ -427,8 +427,8 @@ function titleRow_(sheet, lastColLetter, name, desc) {
     value: desc, merge: lastColLetter + (r + 1), font: FONT.BODY, size: 13,
     color: BRAND.BODY, h: 'left', v: 'top', wrap: true
   });
-  sheet.setRowHeight(r, 38);
-  sheet.setRowHeight(r + 1, 22);
+  sheet.setRowHeight(r, 36);
+  sheet.setRowHeight(r + 1, 20);
   return r + 3; // next free content row (one spacer row)
 }
 
@@ -1288,8 +1288,8 @@ function weightedCols_(weights, gap) {
 // builders AND onEdit / replayTemple_ / runTheRace (a drifted literal here
 // once pointed the replay at the KPI zone). Band = the short-row region.
 var ANCHOR = {
-  DASH_BAND_TOP: 31, DASH_TEMPLE_H: 14,
-  PLAN_BAND_TOP: 33, PLAN_TEMPLE_H: 14,
+  DASH_BAND_TOP: 31, DASH_TEMPLE_H: 12,
+  PLAN_BAND_TOP: 33, PLAN_TEMPLE_H: 12,
   PROG_BAND_TOP: 18, PROG_TEMPLE_H: 10,
   CMP_BAND_TOP: 22, CMP_TEMPLE_H: 12
 };
@@ -1610,13 +1610,20 @@ function zlabel_(sheet, row, text) {
    all 2-cell → no gaps → 1-cell pillars → first N + the rest dropped. */
 function paintTemple2_(sheet, opts) {
   opts = opts || {};
+  // repaint mode (animations + onEdit scrubs): rewrite ONLY backgrounds and
+  // text values into the merges built at build time. No merge, no border,
+  // no row-height, no styling calls — in the live UI, re-merging a range
+  // holding the user's selection remaps it (the viewport snaps to it), and
+  // per-frame row-height writes force re-layouts. Frames must never touch
+  // geometry; this flag is what keeps the race scroll-stable.
+  var RP = !!opts.repaint;
   var H = opts.H || 14, debts = (opts.debts || []).slice();
   var winL = (opts.win && opts.win[0]) || ZONES.MON_FIRST;
   var winR = (opts.win && opts.win[1]) || ZONES.MON_LAST;
   var panelW = winR - winL + 1;
   var inL = winL + 1, inR = winR - 1, inW = inR - inL + 1;   // interior
   var r = opts.bandTop;
-  var setH = function (row, px) { sheet.setRowHeight(row, px); };
+  var setH = function (row, px) { if (!RP) sheet.setRowHeight(row, px); };
 
   // band skeleton rows
   var rows = { pad: r };
@@ -1630,11 +1637,15 @@ function paintTemple2_(sheet, opts) {
   rows.plinth = next;
   var bandEnd = rows.plinth;
 
-  // the panel: field + gold hairline + forest plinth
-  sheet.getRange(r, winL, bandEnd - r + 1, panelW).setBackground(PANEL.FIELD);
-  sheet.getRange(r, winL, bandEnd - r + 1, panelW)
-    .setBorder(true, true, true, true, false, false, PANEL.EDGE, SpreadsheetApp.BorderStyle.SOLID);
-  setH(rows.pad, 8);
+  // the panel: field + gold hairline + forest plinth. On repaint, reset the
+  // field ABOVE the plinth only (the plinth keeps its forest bg) and skip
+  // the border — geometry and frame are already built.
+  sheet.getRange(r, winL, (RP ? rows.plinth - r : bandEnd - r + 1), panelW).setBackground(PANEL.FIELD);
+  if (!RP) {
+    sheet.getRange(r, winL, bandEnd - r + 1, panelW)
+      .setBorder(true, true, true, true, false, false, PANEL.EDGE, SpreadsheetApp.BorderStyle.SOLID);
+  }
+  setH(rows.pad, 6);
 
   // pillar widths — quantized tiers, then the degradation ladder
   var n = debts.length, widths = [], gap = 1;
@@ -1658,10 +1669,14 @@ function paintTemple2_(sheet, opts) {
   if (!n) {
     // empty state — the panel invites the first debt
     var mid = rows.body + Math.floor(H / 2) - 1;
-    safeMerge_(sheet.getRange(mid, inL, 1, inW));
-    sheet.getRange(mid, inL).setValue('your temple rises here')
-      .setFontFamily(FONT.DISPLAY).setFontStyle('italic').setFontSize(11)
-      .setFontColor(BRAND.CAPTION).setHorizontalAlignment('center').setVerticalAlignment('middle');
+    if (!RP) {
+      safeMerge_(sheet.getRange(mid, inL, 1, inW));
+      sheet.getRange(mid, inL).setValue('your temple rises here')
+        .setFontFamily(FONT.DISPLAY).setFontStyle('italic').setFontSize(11)
+        .setFontColor(BRAND.CAPTION).setHorizontalAlignment('center').setVerticalAlignment('middle');
+    } else {
+      sheet.getRange(mid, inL).setValue('your temple rises here');
+    }
   } else {
     // wall strip — remaining debt as ghost masonry (tints, no labels)
     if (opts.wall) {
@@ -1676,7 +1691,7 @@ function paintTemple2_(sheet, opts) {
           c0 += seg; remCols -= seg;
         });
       }
-      setH(rows.wall, 12); setH(rows.wallGap, 6);
+      setH(rows.wall, 12); setH(rows.wallGap, 4);
     }
     // pediment (stepped, centered) + entablature (1-cell overhang)
     var p1w = Math.max(2, Math.round(TW * 0.34)), p2w = Math.max(3, Math.round(TW * 0.64));
@@ -1700,18 +1715,23 @@ function paintTemple2_(sheet, opts) {
       sheet.getRange(rows.body, c, H, w).setBackgrounds(grid);
       sheet.getRange(rows.base, c, 1, w).setBackground(beam);
       if (w >= 2) {
-        safeMerge_(sheet.getRange(rows.pct, c, 1, w));
+        if (!RP) {
+          safeMerge_(sheet.getRange(rows.pct, c, 1, w));
+          sheet.getRange(rows.pct, c).setFontFamily(FONT.BODY).setFontSize(8).setFontWeight('bold')
+            .setHorizontalAlignment('center').setVerticalAlignment('middle');
+        }
         sheet.getRange(rows.pct, c).setValue(paid ? '✦' : Math.round(pct * 100) + '%')
-          .setFontFamily(FONT.BODY).setFontSize(8).setFontWeight('bold')
-          .setFontColor(paid ? '#7a5a1e' : BRAND.FOREST).setHorizontalAlignment('center').setVerticalAlignment('middle');
+          .setFontColor(paid ? '#7a5a1e' : BRAND.FOREST);
       }
       c += w + gap;
     });
     // legend: names in pillar order (no per-pillar name fitting to clip)
-    safeMerge_(sheet.getRange(rows.legend, inL, 1, inW));
-    sheet.getRange(rows.legend, inL).setValue(debts.map(function (d) { return d.short; }).join('  ·  '))
-      .setFontFamily(FONT.BODY).setFontSize(8).setFontColor(BRAND.CAPTION)
-      .setHorizontalAlignment('center').setVerticalAlignment('middle');
+    if (!RP) {
+      safeMerge_(sheet.getRange(rows.legend, inL, 1, inW));
+      sheet.getRange(rows.legend, inL).setValue(debts.map(function (d) { return d.short; }).join('  ·  '))
+        .setFontFamily(FONT.BODY).setFontSize(8).setFontColor(BRAND.CAPTION)
+        .setHorizontalAlignment('center').setVerticalAlignment('middle');
+    }
     // stylobate — three steps widening downward; the bottom tranche fills first
     if (opts.stylobate) {
       var sf = clamp01_(opts.savedFrac || 0);
@@ -1728,15 +1748,19 @@ function paintTemple2_(sheet, opts) {
   }
 
   // the plinth — forest band carrying the caption in gold small caps
-  safeMerge_(sheet.getRange(rows.plinth, winL, 1, panelW));
+  if (!RP) {
+    safeMerge_(sheet.getRange(rows.plinth, winL, 1, panelW));
+    sheet.getRange(rows.plinth, winL)
+      .setBackground(PANEL.PLINTH).setFontFamily(FONT.BODY).setFontSize(8).setFontWeight('bold')
+      .setHorizontalAlignment('center').setVerticalAlignment('middle');
+  }
   sheet.getRange(rows.plinth, winL).setValue(opts.caption || '')
-    .setBackground(PANEL.PLINTH).setFontFamily(FONT.BODY).setFontSize(8).setFontWeight('bold')
-    .setFontColor(done ? GOLD_ACHIEVE : PANEL.PLINTH_TEXT).setHorizontalAlignment('center').setVerticalAlignment('middle');
+    .setFontColor(done ? GOLD_ACHIEVE : PANEL.PLINTH_TEXT);
 
   // band row heights (the short-row band; the text zone may only merge across it)
   setH(rows.ped1, 10); setH(rows.ped2, 10); setH(rows.ent, 10); setH(rows.cap, 8);
   for (var b = rows.body; b < rows.body + H; b++) setH(b, 12);
-  setH(rows.base, 8); setH(rows.pct, 14); setH(rows.legend, 13); setH(rows.plinth, 18);
+  setH(rows.base, 8); setH(rows.pct, 13); setH(rows.legend, 12); setH(rows.plinth, 16);
   return bandEnd + 1;
 }
 
@@ -1796,6 +1820,9 @@ function buildPlanBody_(sheet, mode) {
   stat(10, 3, '=TEXT(' + EN + '!$C$' + sr + ',"$#,##0")', 'interest, total');
   stat(14, 12, '=TEXT(' + EN + '!$H$' + sr + ',"$#,##0")', 'saved vs minimums');
   sheet.setRowHeight(14, 26); sheet.setRowHeight(15, 16); sheet.setRowHeight(16, 6);
+  [8, 12, 17, 20, 30].forEach(function (r) { sheet.setRowHeight(r, 10); });
+  sheet.setRowHeight(22, 18); sheet.setRowHeight(29, 16);
+  for (var tr3 = 23; tr3 <= 28; tr3++) sheet.setRowHeight(tr3, 19);
 
   // the plan, in one plain line
   zoneSummary_(sheet, 18, planSummaryF_());
@@ -1839,11 +1866,11 @@ function buildPlanBody_(sheet, mode) {
   // left of the panel: the balance timeline, then the disclaimer
   bandMerge_(sheet, ANCHOR.PLAN_BAND_TOP + 1, ANCHOR.PLAN_BAND_TOP + 12)
     .setFormula(sparkCol_("'_Engine'!$AE$" + ENG.TIMELINE_FIRST + ':$AE$' + ENG.TIMELINE_LAST, BRAND.CANOPY));
-  bandMerge_(sheet, ANCHOR.PLAN_BAND_TOP + 14, ANCHOR.PLAN_BAND_TOP + 22)
+  bandMerge_(sheet, ANCHOR.PLAN_BAND_TOP + 14, ANCHOR.PLAN_BAND_TOP + 20)
     .setValue('Your in-plan balance falling to zero, month by month (above). Projections are estimates at monthly compounding, not financial advice and not a servicing statement — your lender\'s figures are the truth; re-type your statement balance monthly on the Debts tab.')
     .setFontFamily(FONT.BODY).setFontSize(9).setFontStyle('italic').setFontColor(BRAND.CAPTION)
     .setHorizontalAlignment('left').setVerticalAlignment('top').setWrap(true);
-  footer_(sheet, ANCHOR.PLAN_BAND_TOP + 24, ZONES.LAST);
+  footer_(sheet, ANCHOR.PLAN_BAND_TOP + 22, ZONES.LAST);
 }
 
 function buildCompareBody_(sheet, mode) {
@@ -1877,6 +1904,8 @@ function buildCompareBody_(sheet, mode) {
     paintTemple2_(sheet, { bandTop: ANCHOR.CMP_BAND_TOP, H: ANCHOR.CMP_TEMPLE_H, win: win,
       debts: (mode === 'mock') ? mockTempleDebts_(23, strat) : [], caption: capMock });
   };
+  [8, 11, 16, 21].forEach(function (r) { sheet.setRowHeight(r, 10); });
+  sheet.setRowHeight(15, 8);
   var snowCap = (mode === 'mock') ? 'SNOWBALL · MONTH 23 OF THE RACE' : 'SNOWBALL LANE';
   var avalCap = (mode === 'mock') ? 'AVALANCHE · MONTH 23 OF THE RACE' : 'AVALANCHE LANE';
   lane('Snowball', 'smallest balance first — momentum: the first win lands sooner', snowT, [2, 31], 'snowball', snowCap);
@@ -1909,7 +1938,9 @@ function buildProgressBody_(sheet, mode) {
   kpiCard_(sheet, 'B13', 3, '🔥  BEAT THE MINIMUM', sv, 'months you paid more than required', null);
   kpiCard_(sheet, 'F13', 3, '🛡️  NO NEW DEBT', sv, 'no balance has risen since you started', null);
   kpiCard_(sheet, 'J13', 3, '✓  WEEKLY CHECK-IN', wk, 'the habit that predicts finishing', null);
-  sheet.setRowHeight(13, 16); sheet.setRowHeight(14, 26); sheet.setRowHeight(15, 26);
+  sheet.setRowHeight(13, 14); sheet.setRowHeight(14, 24); sheet.setRowHeight(15, 24);
+  [8, 11, 16, 40, 42].forEach(function (r) { sheet.setRowHeight(r, 10); });
+  sheet.setRowHeight(43, 18);
 
   // the stylobate monument band — the ONLY tab with the 3-step base
   zoneLabel_(sheet, 17, 'THE STYLOBATE · YOUR BUFFER, THE TEMPLE\'S BASE');
@@ -1946,6 +1977,7 @@ function buildProgressBody_(sheet, mode) {
 // ── zone helpers (banded L-layout tabs) ───────────────────────────────
 function zoneLabel_(sheet, row, text) {
   gridText_(sheet, row, 2, ZONES.COLS - 2, text, { size: 9, bold: true, color: BRAND.GOLD });
+  sheet.setRowHeight(row, 16);
 }
 // full-width plain-English summary band (cream), 2 rows tall
 function zoneSummary_(sheet, row, formula) {
@@ -1985,7 +2017,11 @@ function buildDashboardBody_(sheet, mode) {
   kpiCard_(sheet, 'H13', 5, 'DEBT-FREE DATE', '=' + EN + '!$P$' + sr, '=' + EN + '!$B$' + sr + '&" months on this plan"', null);
   kpiCard_(sheet, 'B17', 5, 'PAID OFF TO DATE', '=TEXT(' + EN + '!$N$' + sr + ',"$#,##0")', 'torn from the wall, made permanent', null);
   kpiCard_(sheet, 'H17', 5, 'SAVED vs MINIMUMS', '=TEXT(' + EN + '!$H$' + sr + ',"$#,##0")', '=IF(' + EN + '!$G$' + sr + '>0,"minimums never finish — still "&TEXT(' + EN + '!$G$' + sr + ',"$#,##0")&" owed at 10 yrs","vs paying only the minimums")', null);
-  [13, 17].forEach(function (r) { sheet.setRowHeight(r, 16); sheet.setRowHeight(r + 1, 30); sheet.setRowHeight(r + 2, 26); });
+  [13, 17].forEach(function (r) { sheet.setRowHeight(r, 14); sheet.setRowHeight(r + 1, 24); sheet.setRowHeight(r + 2, 20); });
+  [8, 11, 20, 29, ANCHOR.DASH_BAND_TOP + 23].forEach(function (r) { sheet.setRowHeight(r, 10); });
+  sheet.setRowHeight(16, 6);
+  sheet.setRowHeight(22, 18);
+  for (var tr2 = 23; tr2 <= 28; tr2++) sheet.setRowHeight(tr2, 19);
 
   // 3 · this month — what is due, on REAL columns (B Debt · C Due · D Min ·
   // E..L Status). Status merges E..L per row — the one sanctioned row merge.
@@ -2023,18 +2059,19 @@ function buildDashboardBody_(sheet, mode) {
   bandMerge_(sheet, ANCHOR.DASH_BAND_TOP + 1, ANCHOR.DASH_BAND_TOP + 13)
     .setFormula(sparkCol_("'_Engine'!$AE$" + ENG.TIMELINE_FIRST + ':$AE$' + ENG.TIMELINE_LAST, BRAND.CANOPY));
   // … and the explainer (a second full-band merge)
-  bandMerge_(sheet, ANCHOR.DASH_BAND_TOP + 15, ANCHOR.DASH_BAND_TOP + 24)
+  bandMerge_(sheet, ANCHOR.DASH_BAND_TOP + 15, ANCHOR.DASH_BAND_TOP + 22)
     .setValue('Balance falling to zero on your plan (above).  In the temple, each column is one debt — its width is the debt\'s size. It fills as you pay; the capital goes gold the month it is cleared. The strip above the pediment is the wall of debt still to tear down.  💳 menu → Watch the build replays your climb.')
     .setFontFamily(FONT.BODY).setFontSize(9).setFontStyle('italic').setFontColor(BRAND.CAPTION)
     .setHorizontalAlignment('left').setVerticalAlignment('top').setWrap(true);
 
   // 5 · AI insights (mock only)
-  var after = ANCHOR.DASH_BAND_TOP + 26;
+  var after = ANCHOR.DASH_BAND_TOP + 24;
   if (mode === 'mock') {
     zoneLabel_(sheet, after, 'AI INSIGHTS · ATTACH THE SHEET AND ASK');
     MOCK.ai_insights.forEach(function (ins, i) {
       gridText_(sheet, after + 1 + i, 2, 1, ins[0], { bold: true, size: 9, color: BRAND.GOLD, bg: BRAND.CREAM, h: 'center' });
       gridText_(sheet, after + 1 + i, 3, ZONES.COLS - 3, ins[1], { size: 10, color: BRAND.BODY });
+      sheet.setRowHeight(after + 1 + i, 19);
     });
     footer_(sheet, after + 5, ZONES.LAST);
   } else {
@@ -2368,8 +2405,11 @@ function liveTempleInfo_(ss, stratOverride) {
 }
 function repaintTempleAt_(sheet, info, m, opts) {
   var data = info.debts.map(function (d) { return { start: d.start, balAt: d.arr ? d.arr[Math.min(m, d.arr.length - 1)] : 0, color: d.color, short: d.short }; });
+  // repaint: true — animation/scrub frames rewrite colors + captions only;
+  // merges, borders, and row heights are never touched after the build
+  // (touching them mid-animation yanks the user's scroll position).
   paintTemple2_(sheet, { bandTop: opts.bandTop, H: opts.H, debts: data, win: opts.win,
-    wall: opts.wall, stylobate: opts.stylobate, savedFrac: opts.savedFrac, caption: opts.caption });
+    wall: opts.wall, stylobate: opts.stylobate, savedFrac: opts.savedFrac, caption: opts.caption, repaint: true });
 }
 function shortName_(name) {
   var SHORT = { 'Rooms+ Store Card': 'Store', 'Medical bill': 'Medical', 'Visa ····4417': 'Visa', 'Auto loan': 'Auto', 'Student loan': 'Student' };
