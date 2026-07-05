@@ -159,6 +159,18 @@ function makeResolver(ctx, mode) {
       if (mBlock[1] === 'D') return (snowB ? ctx.months : ctx.avalMonths) + (/&" mo"/.test(f) ? ' mo' : '');
       return M(snowB ? ctx.planInt : ctx.avalInt) + (/interest/.test(f) ? ' interest' : '');
     }
+    // — payoff-order rank cells (must precede the Debts branch: they guard
+    // on 'Debts'!$B$ first but display the engine rank) —
+    if (f.indexOf('INDEX') !== -1 && f.indexOf('$B$14:$Z$14') !== -1) {
+      const slot = f.match(/,1,(\d+)\)/);
+      if (slot) return String(ctx.rankOfSlot(Number(slot[1]) - 1));
+    }
+    // — verdict months diff (Compare) —
+    if (/\$F\$151/.test(f) && /\$F\$21/.test(f)) return (ctx.avalKill.m - ctx.snowKill.m) + ' months';
+    // — Progress stylobate status —
+    if (f.indexOf('keep laying it') !== -1)
+      return ctx.savedStone >= 1000 ? '✦ The Stylobate is laid — your temple stands on solid stone.'
+        : 'The temple stands on the stone you set aside. ' + M(ctx.savedStone) + ' of $1,000 is laid — keep laying it.';
     // — Debts registry refs — use the LAST ref (IF-chains guard on $B$ first)
     const allD = [...f.matchAll(/'Debts'!\$([A-Z])\$(\d+)/g)];
     const mD = allD.length ? allD[allD.length - 1] : null;
@@ -181,12 +193,6 @@ function makeResolver(ctx, mode) {
         }
       }
       return i >= ctx.debts.length ? '' : 'ƒ';
-    }
-    // — payoff-order rank cells —
-    const mR = f.match(/ROW_RANK|\$B\$14:\$Z\$14|,1,(\d+)\),"·"/);
-    if (mR && f.indexOf('INDEX') !== -1) {
-      const slot = f.match(/,1,(\d+)\)/);
-      if (slot) return String(ctx.rankOfSlot(Number(slot[1]) - 1));
     }
     if (/=IFERROR\(MIN\(/.test(f)) return String(ctx.months);       // time machine default
     if (/DATE\(YEAR\(TODAY/.test(f)) return '';                      // config anchor

@@ -288,8 +288,8 @@ const expectNamed = {
   cc_keyword_rules: 'Debts!Q10:R34',
   cc_payments_log: 'Payments Log!A10:G5009',
   cc_active_strategy: 'The Plan!C10',
-  cc_extra_monthly: 'The Plan!P10',
-  cc_time_machine: 'The Plan!C30',
+  cc_extra_monthly: 'The Plan!D10',
+  cc_time_machine: 'The Plan!C32',
   cc_compare_month: 'Compare!C10',
   cc_stylobate_goal: 'Progress!C10'
 };
@@ -324,8 +324,8 @@ audits.push(['Payments Est. interest = MIN(amount, bal×APR/12) by lookup', has(
 audits.push(['Payments Est. principal = amount − interest', has(formulas, 'Payments Log!E10', '$C10-$D10'), formulas['Payments Log!E10']]);
 audits.push(['Payments header: A9 = Date, G9 = Month', writes['Payments Log!A9'] === 'Date' && writes['Payments Log!G9'] === 'Month', writes['Payments Log!A9']]);
 // control cells
-audits.push(['The Plan strategy cell seeded Snowball; extra = 250 (mock)', writes['The Plan!C10:N10'] === STRATEGY_DEFAULT_TXT && writes['The Plan!P10:T10'] === 250, writes['The Plan!C10:N10']]);
-audits.push(['blank: The Plan extra = 0', writesBlank['The Plan!P10:T10'] === 0, writesBlank['The Plan!P10:T10']]);
+audits.push(['The Plan strategy cell seeded Snowball; extra = 250 (mock)', writes['The Plan!C10'] === STRATEGY_DEFAULT_TXT && writes['The Plan!D10'] === 250, writes['The Plan!C10']]);
+audits.push(['blank: The Plan extra = 0', writesBlank['The Plan!D10'] === 0, writesBlank['The Plan!D10']]);
 // mock registry
 audits.push(['mock Debts row 10 = Rooms+ Store Card (Card)', writes['Debts!B10'] === 'Rooms+ Store Card' && writes['Debts!C10'] === 'Card', writes['Debts!B10']]);
 audits.push(['mock mortgage In plan? = No (tracked)', writes['Debts!H15'] === 'No', writes['Debts!H15']]);
