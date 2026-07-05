@@ -119,8 +119,8 @@ function makeResolver(ctx, mode) {
   return function resolve(f, sheetName) {
     if (/SPARKLINE\s*\(/i.test(f)) return { spark: true };
     if (blank) {
+      if (/Your plan:/.test(f)) return 'Your plan appears here the moment you list your first debt on the Debts tab.';
       if (/'_Engine'/.test(f) || /cc_engine_anchor/.test(f)) return '—';
-      if (/Your plan:/.test(f)) return 'Your plan:  Snowball (smallest balance first).    Add your first debt on the Debts tab and your plan appears here.';
       if (/'Debts'/.test(f)) return '';
       return 'ƒ';
     }
@@ -299,6 +299,8 @@ function renderSheet(sheet, resolve, fontsCss) {
       const k = r + ',' + c;
       if (covered.has(k)) continue;
       const mg = mergeTop[k];
+      let mergeH = rowH(r);
+      if (mg) { mergeH = 0; for (let rr = 0; rr < mg.nr; rr++) mergeH += rowH(r + rr); }
       const st = sheet.styles[k] || {};
       let text = '';
       const formula = sheet.formulaCells[k];
@@ -330,7 +332,7 @@ function renderSheet(sheet, resolve, fontsCss) {
       const isF = text === 'ƒ';
       html += '<td' + (mg ? ' colspan="' + mg.nc + '" rowspan="' + mg.nr + '"' : '') +
         (st.wrap ? ' class="wrap"' : '') + ' style="' + css + (isF ? 'color:#BBB;' : '') + '">' +
-        (sparkCell ? '<span class="spark"></span>' : esc(text)) + '</td>';
+        (sparkCell ? '<span class="spark" style="height:' + Math.max(8, mergeH - 8) + 'px"></span>' : esc(text)) + '</td>';
     }
     html += '</tr>';
   }

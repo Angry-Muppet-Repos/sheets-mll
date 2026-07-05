@@ -21,7 +21,8 @@ const captures = { mock: [], blank: [], func: [] };
 let CURRENT_MODE = 'mock';
 const env = makeStubEnv({
   onRecord: rec => { if (CURRENT_MODE !== 'func') captures[CURRENT_MODE].push(rec); },
-  getMode: () => CURRENT_MODE
+  getMode: () => CURRENT_MODE,
+  recordStyles: true            // layer j reads col widths / merges / fonts
 });
 const { SpreadsheetApp, PropertiesService, Utilities, Logger, HtmlService, SSStub, mergeViolations } = env;
 let ss;
@@ -41,11 +42,17 @@ const factory = new Function('SpreadsheetApp', 'PropertiesService', 'Utilities',
 const api = factory(SpreadsheetApp, PropertiesService, Utilities, Logger, HtmlService);
 
 const namedByMode = {};
+const geoByMode = {};   // per-mode visual geometry snapshots for layer j
 for (const mode of ['mock', 'blank']) {
   CURRENT_MODE = mode;
   ss = env.newSS();
   api.buildWorkbook(mode);
   namedByMode[mode] = { ...ss.named };
+  geoByMode[mode] = {};
+  Object.keys(ss.sheets).forEach(n => {
+    const sh = ss.sheets[n];
+    geoByMode[mode][n] = { merges: sh.merges.slice(), colW: { ...sh.colWidthMap }, styles: sh.styles };
+  });
 }
 console.log('a. both build modes executed under grid enforcement: OK');
 console.log('   captured writes — mock: ' + captures.mock.length + ', blank: ' + captures.blank.length);
@@ -425,22 +432,50 @@ for (const mode of ['mock', 'blank']) {
 for (const [ref, ex] of Object.entries(novel)) { hFail++; console.log('  NOVEL REFERENCE ' + ref + ' — review vs 02/03, then add to the inventory. From ' + ex); }
 section('h. cross-sheet reference inventory', hFail);
 
-// ───────────── j. text-fit audit — single-cell labels clip ─────────────
-// A literal label of 5+ chars written to ONE narrow canvas cell clips
-// ("STRATEGY"→"ST"). Labels must merge enough columns. Catches the v1
-// live-QA "slop" class statically (formula/merge clips are caught by eye).
+// ───────────── j. text-fit audit — PIXEL-aware clip detection ─────────────
+// A literal label wider than the pixels available to it clips ("STRATEGY"
+// in an 18px cell → "ST"; the v1 live-QA "slop" class). Now geometry-aware:
+// available px = the cell's recorded column width, or the summed widths of
+// its merge; wrapped cells are exempt (they grow down, not sideways). The
+// per-char factor is CONSERVATIVE (~0.5px per char·pt) so only egregious
+// clips fail — borderline fits are a preview-pipeline judgment call.
 const VIEW_TABS = new Set(['Dashboard', 'The Plan', 'Compare', 'Progress', 'The Hall', 'Start Here']);
+const PX_PER_CHAR_PT = 0.5;
 let jFail = 0;
+const jSeen = {};
 for (const mode of ['mock', 'blank']) {
   for (const rec of captures[mode]) {
     if (rec.kind !== 'value' || typeof rec.val !== 'string') continue;
-    if (rec.val.length < 5 || rec.val.charAt(0) === '=') continue;
-    if (!VIEW_TABS.has(rec.sheet) || rec.a1.indexOf(':') !== -1) continue;   // merged = has room
-    jFail++;
-    console.log('  CLIP-RISK [' + mode + '] ' + rec.sheet + '!' + rec.a1 + ' single cell holds "' + rec.val.slice(0, 28) + '" (' + rec.val.length + ' chars) — merge/widen it');
+    if (rec.val.length < 4 || rec.val.charAt(0) === '=') continue;
+    if (!VIEW_TABS.has(rec.sheet) || rec.a1.indexOf(':') !== -1) continue;
+    const g = geoByMode[mode] && geoByMode[mode][rec.sheet];
+    if (!g) continue;
+    const m = rec.a1.match(/^([A-Z]+)(\d+)$/);
+    if (!m) continue;
+    const c = env.COL(m[1]), r = Number(m[2]);
+    let nc = 1, anchor = true;
+    for (const M of g.merges) {
+      if (r >= M.r && r < M.r + M.nr && c >= M.c && c < M.c + M.nc) {
+        if (M.r === r && M.c === c) nc = M.nc; else anchor = false;
+        break;
+      }
+    }
+    if (!anchor) continue;                              // covered by a merge
+    const st = g.styles[r + ',' + c] || {};
+    if (st.wrap) continue;                              // wraps, doesn't clip
+    let width = 0;
+    for (let i = 0; i < nc; i++) width += (g.colW[c + i] != null ? g.colW[c + i] : 100);
+    const est = rec.val.length * (st.size || 10) * PX_PER_CHAR_PT;
+    if (est > width) {
+      const key = rec.sheet + '!' + rec.a1;
+      if (jSeen[key]) continue;
+      jSeen[key] = true;
+      jFail++;
+      console.log('  CLIP-RISK [' + mode + '] ' + key + ' "' + rec.val.slice(0, 32) + '" needs ~' + Math.round(est) + 'px, has ' + width + 'px — merge/widen it');
+    }
   }
 }
-section('j. text-fit (single-cell label) audit', jFail);
+section('j. text-fit (pixel) audit', jFail);
 
 console.log('\nTOTAL: ' + (FAILS === 0 ? 'ALL GREEN' : FAILS + ' FAILURES'));
 process.exit(FAILS ? 1 : 0);

@@ -65,6 +65,28 @@ var STONE = {
 };
 var GOLD_ACHIEVE = '#C5A95A';   // a capital topping out, a finished pediment, motion now
 
+// ── The monument PANEL — the Hall treatment, generalized (fixed, never
+// themed). The temple sits inside a framed deep-parchment field with a gold
+// hairline edge and a forest plinth band carrying its caption. Deep
+// parchment (NOT Hall forest) because the two darkest ramp colors would
+// vanish against forest. Stone shifts one step darker ON the panel so
+// ground / stone / structure stay three legible steps.
+var PANEL = {
+  FIELD: '#EFE8DA',        // the panel field (below tab bg #FAF8F2)
+  EDGE: '#C5A95A',         // gold hairline frame
+  PLINTH: '#16301F',       // forest caption band at the panel bottom
+  PLINTH_TEXT: '#C9B07A'   // gold small-caps caption on the plinth
+};
+var STONE_ON_PANEL = {
+  EMPTY: '#E0D6BE',        // unfilled column cell on the panel field
+  BEAM: '#C9BC9C',         // entablature / pediment / base on the panel
+  SAND: '#E8DFC9'          // unlaid stylobate on the panel
+};
+// The Wall strip (Dashboard): remaining debt as one banded row — ramp
+// colors pulled 45% toward the panel field so the wall reads as ghost
+// masonry, clearly quieter than the temple below it.
+var WALL_TINTS = ['#BCCAA7', '#A8BA96', '#8EAE95', '#849B88', '#7B8A7B'];
+
 // returns the fixed debt-ramp color for a 0-based slot (cycled past five)
 function debtColor_(slotIdx) { return DEBT_RAMP[slotIdx % DEBT_RAMP.length]; }
 
@@ -502,9 +524,11 @@ function addMonths_(d, n) { return new Date(d.getFullYear(), d.getMonth() + n, d
  * Forest header · row 3 Canopy band · row 4 Gold rule (3px) · row 5
  * spacer. LOCKED — applyTheme() never repaints chrome.
  */
-function chrome_(sheet, tabName, lastColLetter, subLabel) {
+function chrome_(sheet, tabName, lastColLetter, subLabel, splitColOpt) {
   var lastCol = columnLetterToNumber_(lastColLetter);
-  var splitCol = Math.max(2, lastCol - 3);
+  // breadcrumb needs ~300px — on mixed-width (zone) tabs the caller passes
+  // the split column; on uniform canvases the last 4 columns suffice.
+  var splitCol = splitColOpt || Math.max(2, lastCol - 3);
   var name = sheet.getName();
 
   var left = safeMerge_(sheet.getRange(1, 1, 2, splitCol - 1));
@@ -1186,40 +1210,69 @@ function writeEngineBlock_(sheet, blockIdx) {
  * reads; the gamified surfaces are painted in section 12.)
  */
 
-// The visual tabs use a narrow-cell CANVAS so the monument can be painted
-// as a colonnade of small squares; content blocks merge across the cells.
-// Per-tab canvas grid, mutated at the start of each view build. Temple tabs
-// use a FINE, wide grid so the colonnade is slender + nothing clips; card/
-// text tabs a coarser wide grid. Both total ~960px so nothing is cramped.
-var GRID = { COLS: 52, LAST: 'AZ', CELL_W: 18, TEMPLE_H: 18 };
-var TEMPLE_GRID = { cols: 52, cellW: 18 };   // ~936px — fine grid for the temple
-var CARD_GRID = { cols: 30, cellW: 32 };     // ~960px — cards / text
+// ── The banded L-layout (the Sheets-native translation) ───────────────
+// Rows are shared across a sheet and columns are shared down it, so pixel
+// art and text tables fight when they share a grid — that was the root of
+// both the "merge soup" and the chunky temple. Resolution:
+//   · TEXT lives on ~11 REAL columns at sibling widths (B..L, ~608px) —
+//     real tables, near-zero merging (kpiCard_ triplets are the sanctioned
+//     exception).
+//   · The MONUMENT lives in its own narrow-column zone (N..AM, 26 × 12px)
+//     inside exactly ONE short-row band per tab (10–12px rows). Inside
+//     that band the text zone holds only FULL-BAND-HEIGHT merges (a
+//     sparkline panel, an italic caption) — never per-row text. A merge
+//     spanning the whole band is immune to short rows.
+var ZONES = {
+  COLS: 40, LAST: 'AN',
+  MARGIN_W: 12, GUTTER_W: 16, MON_CELL_W: 12,
+  TEXT_FIRST: 2, TEXT_LAST: 12,           // B..L (11 text columns)
+  GUTTER: 13,                              // M
+  MON_FIRST: 14, MON_LAST: 39              // N..AM (26 monument columns)
+};
+// default text-zone widths (B..L) — per-tab overrides passed to zonesSetup_
+var ZONE_TEXT_WIDTHS = [140, 72, 72, 68, 60, 52, 44, 32, 24, 22, 22];   // = 608
+
+function zonesSetup_(sheet, tabName, subLabel, endRow, textWidths) {
+  ensureGrid_(sheet, endRow, ZONES.COLS);
+  chrome_(sheet, tabName, ZONES.LAST, subLabel, ZONES.MON_FIRST);
+  sheet.setColumnWidth(1, ZONES.MARGIN_W);
+  var tw = textWidths || ZONE_TEXT_WIDTHS;
+  for (var i = 0; i < 11; i++) sheet.setColumnWidth(ZONES.TEXT_FIRST + i, tw[i]);
+  sheet.setColumnWidth(ZONES.GUTTER, ZONES.GUTTER_W);
+  for (var c = ZONES.MON_FIRST; c <= ZONES.MON_LAST; c++) sheet.setColumnWidth(c, ZONES.MON_CELL_W);
+  sheet.setColumnWidth(ZONES.COLS, ZONES.MARGIN_W);
+  // Parchment backdrop, NOT registered as themable — the fixed stone-and-
+  // gold monument sits on it and must never recolor with the palette (05).
+  sheet.getRange(CONTENT_START_ROW, 1, endRow - CONTENT_START_ROW + 1, ZONES.COLS).setBackground(BRAND.PARCHMENT);
+}
+
+// Fine full-width canvas — Compare only (its content is all monuments +
+// merges; it was never the merge-soup tab). Also still used by The Hall.
+var GRID = { COLS: 52, LAST: 'AZ', CELL_W: 18 };
+var COMPARE_GRID = { cols: 64, cellW: 15 };  // 960px — two lanes side by side
+var CARD_GRID = { cols: 30, cellW: 32 };     // 960px — the Hall's card canvas
 // Progress contributions ledger lives at FIXED rows so the SAVED line and
 // the Log-a-contribution menu action always target it (the temple above is
 // a fixed height — debts are columns, not rows — so it never reaches here).
 var PROG_LEDGER_TOP = 44, PROG_LEDGER_ROWS = 24;
 
-function useGrid_(cols, cellW) { GRID = { COLS: cols, LAST: columnToLetter_(cols), CELL_W: cellW, TEMPLE_H: 18 }; return GRID; }
+function useGrid_(cols, cellW) { GRID = { COLS: cols, LAST: columnToLetter_(cols), CELL_W: cellW }; return GRID; }
 function canvasSetup_(sheet, tabName, subLabel, endRow, grid) {
-  grid = grid || TEMPLE_GRID;
+  grid = grid || CARD_GRID;
   useGrid_(grid.cols, grid.cellW);
   ensureGrid_(sheet, endRow, GRID.COLS);
   chrome_(sheet, tabName, GRID.LAST, subLabel);
   for (var c = 1; c <= GRID.COLS; c++) sheet.setColumnWidth(c, GRID.CELL_W);
-  // Parchment backdrop, NOT registered as themable — the fixed stone-and-
-  // gold monument sits on it and must never recolor with the palette (05).
   sheet.getRange(CONTENT_START_ROW, 1, endRow - CONTENT_START_ROW + 1, GRID.COLS).setBackground(BRAND.PARCHMENT);
 }
-// content area = cols 2 .. COLS-1 (one margin column each side)
+// content area = cols 2 .. COLS-1 (one margin column each side) — canvas tabs
 function contentCols_() { return { first: 2, last: GRID.COLS - 1, span: GRID.COLS - 2 }; }
-// n equal blocks across the content area, `gap` cells between
 function evenCols_(n, gap) {
   gap = (gap == null) ? 1 : gap;
   var ca = contentCols_(), w = Math.floor((ca.span - gap * (n - 1)) / n), out = [], c = ca.first;
   for (var i = 0; i < n; i++) { out.push({ col: c, w: w }); c += w + gap; }
   return out;
 }
-// blocks proportional to `weights`, spanning the content area
 function weightedCols_(weights, gap) {
   gap = gap || 0;
   var ca = contentCols_(), sum = weights.reduce(function (a, b) { return a + b; }, 0);
@@ -1230,10 +1283,22 @@ function weightedCols_(weights, gap) {
   }
   return out;
 }
-function buildPlan_(sheet, mode)      { canvasSetup_(sheet, TABS.PLAN, '', 84, TEMPLE_GRID); buildPlanBody_(sheet, mode); }
-function buildCompare_(sheet, mode)   { canvasSetup_(sheet, TABS.COMPARE, 'SAME MONEY · TWO ROADS', 78, TEMPLE_GRID); buildCompareBody_(sheet, mode); }
-function buildProgress_(sheet, mode)  { canvasSetup_(sheet, TABS.PROGRESS, 'THE STYLOBATE + YOUR STREAKS', 80, TEMPLE_GRID); buildProgressBody_(sheet, mode); }
-function buildDashboard_(sheet, mode) { canvasSetup_(sheet, TABS.DASHBOARD, 'YOUR TEMPLE TODAY', 96, TEMPLE_GRID); buildDashboardBody_(sheet, mode); }
+
+// ── Temple anchor rows — ONE source of truth per monument, consumed by the
+// builders AND onEdit / replayTemple_ / runTheRace (a drifted literal here
+// once pointed the replay at the KPI zone). Band = the short-row region.
+var ANCHOR = {
+  DASH_BAND_TOP: 31, DASH_TEMPLE_H: 14,
+  PLAN_BAND_TOP: 33, PLAN_TEMPLE_H: 14,
+  PROG_BAND_TOP: 17, PROG_TEMPLE_H: 10,
+  CMP_BAND_TOP: 22, CMP_TEMPLE_H: 12
+};
+
+var LEGACY_GRID = { cols: 52, cellW: 18 };   // TODO(migration): remove once Plan/Progress/Compare land on ZONES
+function buildPlan_(sheet, mode)      { canvasSetup_(sheet, TABS.PLAN, '', 84, LEGACY_GRID); buildPlanBody_(sheet, mode); }
+function buildCompare_(sheet, mode)   { canvasSetup_(sheet, TABS.COMPARE, 'SAME MONEY · TWO ROADS', 78, LEGACY_GRID); buildCompareBody_(sheet, mode); }
+function buildProgress_(sheet, mode)  { canvasSetup_(sheet, TABS.PROGRESS, 'THE STYLOBATE + YOUR STREAKS', 80, LEGACY_GRID); buildProgressBody_(sheet, mode); }
+function buildDashboard_(sheet, mode) { zonesSetup_(sheet, TABS.DASHBOARD, 'YOUR TEMPLE TODAY', 64, [118, 56, 50, 52, 52, 14, 84, 62, 52, 52, 52]); buildDashboardBody_(sheet, mode); }
 function buildHall_(sheet, mode)      { canvasSetup_(sheet, TABS.HALL, 'STEP INSIDE THE TEMPLE', 70, CARD_GRID); buildHallBody_(sheet, mode); }
 function buildStartHere_(sheet, mode) { canvasSetup_(sheet, TABS.START, 'SETUP', 60, CARD_GRID); buildStartBody_(sheet, mode); }
 
@@ -1513,6 +1578,157 @@ function zlabel_(sheet, row, text) {
   gridText_(sheet, row, 2, GRID.COLS - 2, text, { size: 9, bold: true, color: BRAND.GOLD });
 }
 
+/* The Temple, grammar v2 — iconic, framed, fine-grained (the Sheets-native
+   render of the mockup's colonnade). Painted inside a bordered PANEL (the
+   Hall treatment on deep parchment): 12px square cells, slender pillars
+   whose width ∝ balance but QUANTIZED to 2/3/4 cells, no cell borders (flat
+   fills at 12px granularity ARE the texture), gold reserved for capitals /
+   completion. All colors are section-00 constants — never themed.
+
+   paintTemple2_(sheet, opts):
+     bandTop      first row of the short-row band (from ANCHOR)
+     H            column-body rows (14 dash/plan · 12 compare · 10 progress)
+     debts        [{start, balAt, color, short}] — in-plan debts only
+     win          [firstCol,lastCol] panel columns (default the ZONES zone)
+     wall         paint the 1-row remaining-debt tint strip (Dashboard only)
+     stylobate    paint the 3-step base (Progress only) + savedFrac 0..1
+     caption      plinth text (caller composes; painter golds it when done)
+   Returns the row AFTER the band. Sets every band row's height itself.
+
+   Degradation ladder past ~8 debts (interior = 24 cells): tiered widths →
+   all 2-cell → no gaps → 1-cell pillars → first N + the rest dropped. */
+function paintTemple2_(sheet, opts) {
+  opts = opts || {};
+  var H = opts.H || 14, debts = (opts.debts || []).slice();
+  var winL = (opts.win && opts.win[0]) || ZONES.MON_FIRST;
+  var winR = (opts.win && opts.win[1]) || ZONES.MON_LAST;
+  var panelW = winR - winL + 1;
+  var inL = winL + 1, inR = winR - 1, inW = inR - inL + 1;   // interior
+  var r = opts.bandTop;
+  var setH = function (row, px) { sheet.setRowHeight(row, px); };
+
+  // band skeleton rows
+  var rows = { pad: r };
+  var next = r + 1;
+  if (opts.wall) { rows.wall = next; next += 1; rows.wallGap = next; next += 1; }
+  rows.ped1 = next; rows.ped2 = next + 1; rows.ent = next + 2; rows.cap = next + 3;
+  rows.body = next + 4; rows.base = rows.body + H; rows.pct = rows.base + 1;
+  rows.legend = rows.pct + 1;
+  next = rows.legend + 1;
+  if (opts.stylobate) { rows.sty = next; next += 3; }
+  rows.plinth = next;
+  var bandEnd = rows.plinth;
+
+  // the panel: field + gold hairline + forest plinth
+  sheet.getRange(r, winL, bandEnd - r + 1, panelW).setBackground(PANEL.FIELD);
+  sheet.getRange(r, winL, bandEnd - r + 1, panelW)
+    .setBorder(true, true, true, true, false, false, PANEL.EDGE, SpreadsheetApp.BorderStyle.SOLID);
+  setH(rows.pad, 8);
+
+  // pillar widths — quantized tiers, then the degradation ladder
+  var n = debts.length, widths = [], gap = 1;
+  if (n) {
+    var maxStart = Math.max.apply(null, debts.map(function (d) { return Math.max(1, d.start); }));
+    widths = debts.map(function (d) {
+      var f = Math.max(0, d.start) / maxStart;
+      return f < 0.3 ? 2 : (f < 0.7 ? 3 : 4);
+    });
+    var tw = function () { return widths.reduce(function (a, b) { return a + b; }, 0) + gap * (n - 1); };
+    if (tw() > inW) { widths = widths.map(function () { return 2; }); }
+    if (tw() > inW) gap = 0;
+    if (tw() > inW) { widths = widths.map(function () { return 1; }); }
+    while (tw() > inW && widths.length > 1) { widths.pop(); debts = debts.slice(0, widths.length); n = widths.length; }
+  }
+  var TW = n ? widths.reduce(function (a, b) { return a + b; }, 0) + gap * (n - 1) : 0;
+  var left = inL + Math.max(0, Math.floor((inW - TW) / 2));
+  var done = n > 0 && debts.every(function (d) { return d.balAt <= 0.005; });
+  var beam = done ? GOLD_ACHIEVE : STONE_ON_PANEL.BEAM;
+
+  if (!n) {
+    // empty state — the panel invites the first debt
+    var mid = rows.body + Math.floor(H / 2) - 1;
+    safeMerge_(sheet.getRange(mid, inL, 1, inW));
+    sheet.getRange(mid, inL).setValue('your temple rises here')
+      .setFontFamily(FONT.DISPLAY).setFontStyle('italic').setFontSize(11)
+      .setFontColor(BRAND.CAPTION).setHorizontalAlignment('center').setVerticalAlignment('middle');
+  } else {
+    // wall strip — remaining debt as ghost masonry (tints, no labels)
+    if (opts.wall) {
+      var owed = debts.reduce(function (a, d) { return a + Math.max(0, d.balAt); }, 0);
+      if (owed > 0.005) {
+        var c0 = inL, remCols = inW;
+        debts.forEach(function (d, i) {
+          if (d.balAt <= 0.005 || remCols <= 0) return;
+          var seg = Math.max(1, Math.round(inW * Math.max(0, d.balAt) / owed));
+          seg = Math.min(seg, remCols);
+          sheet.getRange(rows.wall, c0, 1, seg).setBackground(WALL_TINTS[i % WALL_TINTS.length]);
+          c0 += seg; remCols -= seg;
+        });
+      }
+      setH(rows.wall, 12); setH(rows.wallGap, 6);
+    }
+    // pediment (stepped, centered) + entablature (1-cell overhang)
+    var p1w = Math.max(2, Math.round(TW * 0.34)), p2w = Math.max(3, Math.round(TW * 0.64));
+    sheet.getRange(rows.ped1, left + Math.floor((TW - p1w) / 2), 1, p1w).setBackground(beam);
+    sheet.getRange(rows.ped2, left + Math.floor((TW - p2w) / 2), 1, p2w).setBackground(beam);
+    var entL = Math.max(inL, left - 1), entR = Math.min(inR, left + TW);
+    sheet.getRange(rows.ent, entL, 1, entR - entL + 1).setBackground(beam);
+
+    // pillars
+    var c = left;
+    debts.forEach(function (d, i) {
+      var w = widths[i], pct = clamp01_((d.start - d.balAt) / Math.max(1, d.start));
+      var fill = Math.max(0, Math.min(H, Math.round(pct * H))), paid = d.balAt <= 0.005;
+      if (paid || done) sheet.getRange(rows.cap, c, 1, w).setBackground(GOLD_ACHIEVE);
+      var grid = [];
+      for (var rr = 0; rr < H; rr++) {
+        var rowArr = [], on = rr >= (H - fill);
+        for (var k = 0; k < w; k++) rowArr.push(on ? d.color : STONE_ON_PANEL.EMPTY);
+        grid.push(rowArr);
+      }
+      sheet.getRange(rows.body, c, H, w).setBackgrounds(grid);
+      sheet.getRange(rows.base, c, 1, w).setBackground(beam);
+      if (w >= 2) {
+        safeMerge_(sheet.getRange(rows.pct, c, 1, w));
+        sheet.getRange(rows.pct, c).setValue(paid ? '✦' : Math.round(pct * 100) + '%')
+          .setFontFamily(FONT.BODY).setFontSize(8).setFontWeight('bold')
+          .setFontColor(paid ? '#7a5a1e' : BRAND.FOREST).setHorizontalAlignment('center').setVerticalAlignment('middle');
+      }
+      c += w + gap;
+    });
+    // legend: names in pillar order (no per-pillar name fitting to clip)
+    safeMerge_(sheet.getRange(rows.legend, inL, 1, inW));
+    sheet.getRange(rows.legend, inL).setValue(debts.map(function (d) { return d.short; }).join('  ·  '))
+      .setFontFamily(FONT.BODY).setFontSize(8).setFontColor(BRAND.CAPTION)
+      .setHorizontalAlignment('center').setVerticalAlignment('middle');
+    // stylobate — three steps widening downward; the bottom tranche fills first
+    if (opts.stylobate) {
+      var sf = clamp01_(opts.savedFrac || 0);
+      for (var s = 0; s < 3; s++) {              // s: 0 top … 2 bottom
+        var row = rows.sty + s, stepW = Math.min(inW, TW + 2 + s * 4);
+        var stepLeft = Math.max(inL, Math.min(inR - stepW + 1, left + Math.floor((TW - stepW) / 2)));
+        var ft = clamp01_(sf * 3 - (2 - s));
+        sheet.getRange(row, stepLeft, 1, stepW).setBackground(ft > 0 ? STONE_ON_PANEL.BEAM : STONE_ON_PANEL.SAND);
+        var goldW = Math.round(stepW * ft);
+        if (goldW > 0) sheet.getRange(row, stepLeft, 1, Math.min(stepW, goldW)).setBackground(GOLD_ACHIEVE);
+        setH(row, 10);
+      }
+    }
+  }
+
+  // the plinth — forest band carrying the caption in gold small caps
+  safeMerge_(sheet.getRange(rows.plinth, winL, 1, panelW));
+  sheet.getRange(rows.plinth, winL).setValue(opts.caption || '')
+    .setBackground(PANEL.PLINTH).setFontFamily(FONT.BODY).setFontSize(8).setFontWeight('bold')
+    .setFontColor(done ? GOLD_ACHIEVE : PANEL.PLINTH_TEXT).setHorizontalAlignment('center').setVerticalAlignment('middle');
+
+  // band row heights (the short-row band; the text zone may only merge across it)
+  setH(rows.ped1, 10); setH(rows.ped2, 10); setH(rows.ent, 10); setH(rows.cap, 8);
+  for (var b = rows.body; b < rows.body + H; b++) setH(b, 12);
+  setH(rows.base, 8); setH(rows.pct, 14); setH(rows.legend, 13); setH(rows.plinth, 18);
+  return bandEnd + 1;
+}
+
 // The Temple — Grammar A. Slender columns, width ∝ starting balance, each
 // filling bottom-up by % of ITS debt paid, with stone-block (mortar)
 // texture. Stepped pediment + continuous entablature on top; gold capitals
@@ -1770,57 +1986,102 @@ function buildProgressBody_(sheet, mode) {
   footer_(sheet, PROG_LEDGER_TOP + PROG_LEDGER_ROWS + 3, GRID.LAST);
 }
 
+// ── zone helpers (banded L-layout tabs) ───────────────────────────────
+function zoneLabel_(sheet, row, text) {
+  gridText_(sheet, row, 2, ZONES.COLS - 2, text, { size: 9, bold: true, color: BRAND.GOLD });
+}
+// full-width plain-English summary band (cream), 2 rows tall
+function zoneSummary_(sheet, row, formula) {
+  var rng = sheet.getRange(row, 2, 2, ZONES.COLS - 2);
+  rng.setBackground(BRAND.CREAM);
+  safeMerge_(sheet.getRange(row, 3, 2, ZONES.COLS - 4));
+  sheet.getRange(row, 3).setFormula(formula)
+    .setFontFamily(FONT.BODY).setFontSize(11).setFontColor(BRAND.FOREST)
+    .setHorizontalAlignment('left').setVerticalAlignment('middle').setWrap(true);
+  sheet.setRowHeight(row, 17); sheet.setRowHeight(row + 1, 17);
+}
+// a full-band-height merge in the text zone of a monument band (the ONLY
+// content allowed beside the monument — immune to the short rows)
+function bandMerge_(sheet, rowTop, rowBottom) {
+  safeMerge_(sheet.getRange(rowTop, ZONES.TEXT_FIRST, rowBottom - rowTop + 1, ZONES.TEXT_LAST - ZONES.TEXT_FIRST + 1));
+  return sheet.getRange(rowTop, ZONES.TEXT_FIRST);
+}
+// the shared plain-English plan summary formula
+function planSummaryF_() {
+  var sr = ENG.ROW_SCALARS, EN = "'_Engine'";
+  return '=IF(COUNTA(cc_debts_list)=0,"Your plan appears here the moment you list your first debt on the Debts tab.",' +
+    '"Your plan:  "&IF(LEFT(cc_active_strategy,4)="Aval","Avalanche (highest APR first)",IF(LEFT(cc_active_strategy,2)="My","your own ranking","Snowball (smallest balance first)"))&' +
+    '".    Put your "&TEXT(cc_extra_monthly,"$#,##0")&"/mo extra on "&IFERROR(INDEX(cc_debts_list,MATCH(1,' + EN + '!$B$' + ENG.ROW_RANK_ACTIVE + ':$Z$' + ENG.ROW_RANK_ACTIVE + ',0)),"your first debt")&' +
+    '" until it is paid, then roll it to the next.    Debt-free "&' + EN + '!$P$' + sr + '&"  ("&' + EN + '!$B$' + sr + '&" months from now).")';
+}
+
 function buildDashboardBody_(sheet, mode) {
-  titleRow_(sheet, GRID.LAST, 'Dashboard', 'Where you stand today — the numbers first, then your debts becoming a temple.');
+  titleRow_(sheet, ZONES.LAST, 'Dashboard', 'Where you stand today — the numbers first, then your debts becoming a temple.');
   var sr = ENG.ROW_SCALARS, EN = "'_Engine'", DB = "'" + TABS.DEBTS + "'";
 
   // 1 · the plan, in one plain line
-  var summaryF = '="Your plan:  "&IF(LEFT(cc_active_strategy,4)="Aval","Avalanche (highest APR first)",IF(LEFT(cc_active_strategy,2)="My","your own ranking","Snowball (smallest balance first)"))&".    Put your "&TEXT(cc_extra_monthly,"$#,##0")&"/mo extra on "&IFERROR(INDEX(cc_debts_list,MATCH(1,' + EN + '!$B$' + ENG.ROW_RANK_ACTIVE + ':$Z$' + ENG.ROW_RANK_ACTIVE + ',0)),"your first debt")&" until it is paid, then roll it to the next.    Debt-free "&' + EN + '!$P$' + sr + '&"  ("&' + EN + '!$B$' + sr + '&" months from now)."';
-  sheet.getRange(9, 2, 2, GRID.COLS - 2).setBackground(BRAND.CREAM);
-  gridText_(sheet, 9, 3, GRID.COLS - 4, null, { formula: summaryF, size: 12, color: BRAND.FOREST, wrap: true });
-  sheet.setRowHeight(9, 17); sheet.setRowHeight(10, 17);
+  zoneSummary_(sheet, 9, planSummaryF_());
 
-  // 2 · the numbers (KPI row) — what someone needs at a glance
-  zlabel_(sheet, 12, 'WHERE YOU STAND');
-  var kc = evenCols_(4, 1);
-  kpiCard_(sheet, columnToLetter_(kc[0].col) + '13', kc[0].w, 'TOTAL DEBT NOW', '=TEXT(' + EN + '!$M$' + sr + ',"$#,##0")', '=" of "&TEXT(' + EN + '!$O$' + sr + ',"$#,##0")&" at the start"', BRAND.GOLD);
-  kpiCard_(sheet, columnToLetter_(kc[1].col) + '13', kc[1].w, 'PAID OFF TO DATE', '=TEXT(' + EN + '!$N$' + sr + ',"$#,##0")', 'torn from the wall, made permanent', BRAND.GOLD);
-  kpiCard_(sheet, columnToLetter_(kc[2].col) + '13', kc[2].w, 'DEBT-FREE DATE', '=' + EN + '!$P$' + sr, '=' + EN + '!$B$' + sr + '&" months on this plan"', BRAND.GOLD);
-  kpiCard_(sheet, columnToLetter_(kc[3].col) + '13', kc[3].w, 'SAVED vs MINIMUMS', '=TEXT(' + EN + '!$H$' + sr + ',"$#,##0")', '=IF(' + EN + '!$G$' + sr + '>0,"minimums never finish — still "&TEXT(' + EN + '!$G$' + sr + ',"$#,##0")&" owed at 10 yrs","vs paying only the minimums")', BRAND.GOLD);
+  // 2 · the numbers — 2×2 KPI cards on the text zone (real columns)
+  zoneLabel_(sheet, 12, 'WHERE YOU STAND');
+  kpiCard_(sheet, 'B13', 5, 'TOTAL DEBT NOW', '=TEXT(' + EN + '!$M$' + sr + ',"$#,##0")', '=" of "&TEXT(' + EN + '!$O$' + sr + ',"$#,##0")&" at the start"', null);
+  kpiCard_(sheet, 'H13', 5, 'DEBT-FREE DATE', '=' + EN + '!$P$' + sr, '=' + EN + '!$B$' + sr + '&" months on this plan"', null);
+  kpiCard_(sheet, 'B17', 5, 'PAID OFF TO DATE', '=TEXT(' + EN + '!$N$' + sr + ',"$#,##0")', 'torn from the wall, made permanent', null);
+  kpiCard_(sheet, 'H17', 5, 'SAVED vs MINIMUMS', '=TEXT(' + EN + '!$H$' + sr + ',"$#,##0")', '=IF(' + EN + '!$G$' + sr + '>0,"minimums never finish — still "&TEXT(' + EN + '!$G$' + sr + ',"$#,##0")&" owed at 10 yrs","vs paying only the minimums")', null);
+  [13, 17].forEach(function (r) { sheet.setRowHeight(r, 16); sheet.setRowHeight(r + 1, 30); sheet.setRowHeight(r + 2, 26); });
 
-  // 3 · this month — what is due (live from the registry)
-  zlabel_(sheet, 17, 'THIS MONTH · WHAT IS DUE');
-  var tc = weightedCols_([10, 6, 5, 16], 1), th = ['Debt', 'Due', 'Min', 'Status'];
-  tc.forEach(function (cc, j) { gridText_(sheet, 18, cc.col, cc.w, th[j], { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: j === 2 ? 'right' : 'left' }); });
+  // 3 · this month — what is due, on REAL columns (B Debt · C Due · D Min ·
+  // E..L Status). Status merges E..L per row — the one sanctioned row merge.
+  zoneLabel_(sheet, 21, 'THIS MONTH · WHAT IS DUE');
+  gridText_(sheet, 22, 2, 1, 'Debt', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
+  gridText_(sheet, 22, 3, 1, 'Due', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
+  gridText_(sheet, 22, 4, 1, 'Min', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: 'right' });
+  gridText_(sheet, 22, 5, 8, 'Status', { bold: true, size: 9, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
   for (var i = 0; i < 6; i++) {
-    var R = DEBT.FIRST_ROW + i, row = 19 + i;
-    if (i % 2 === 1) sheet.getRange(row, 2, 1, GRID.COLS - 2).setBackground(BRAND.PARCHMENT);
-    gridText_(sheet, row, tc[0].col, tc[0].w, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$B$' + R + ')', size: 11, color: BRAND.FOREST });
-    gridText_(sheet, row, tc[1].col, tc[1].w, null, { formula: '=IF(' + DB + '!$G$' + R + '="","","day "&' + DB + '!$G$' + R + ')', size: 10, color: BRAND.CAPTION });
-    gridText_(sheet, row, tc[2].col, tc[2].w, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$F$' + R + ')', h: 'right', size: 10, format: '$#,##0' });
-    gridText_(sheet, row, tc[3].col, tc[3].w, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$L$' + R + ')', size: 10, italic: true, color: BRAND.CANOPY });
+    var R = DEBT.FIRST_ROW + i, row = 23 + i;
+    if (i % 2 === 1) {
+      var z = sheet.getRange(row, 2, 1, 11);
+      z.setBackground('#EEF2EC');
+      themable_(sheet.getName(), 'zebra', z.getA1Notation());
+    }
+    gridText_(sheet, row, 2, 1, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$B$' + R + ')', size: 10, color: BRAND.FOREST });
+    gridText_(sheet, row, 3, 1, null, { formula: '=IF(' + DB + '!$G$' + R + '="","","day "&' + DB + '!$G$' + R + ')', size: 10, color: BRAND.CAPTION });
+    gridText_(sheet, row, 4, 1, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$F$' + R + ')', h: 'right', size: 10, format: '$#,##0' });
+    gridText_(sheet, row, 5, 8, null, { formula: '=IF(' + DB + '!$B$' + R + '="","",' + DB + '!$L$' + R + ')', size: 10, italic: true, color: BRAND.CANOPY });
   }
 
-  // 4 · the Temple (the visual payoff), now explained
-  zlabel_(sheet, 26, 'THE TEMPLE · WHAT YOU HAVE MADE PERMANENT');
-  gridText_(sheet, 27, 3, GRID.COLS - 4, 'Each column is one of your debts — its width is the debt\'s size. It fills from the bottom as you pay it down and the capital turns gold the month it is cleared; the stone base is your savings buffer. All columns gold = debt-free.', { size: 10, italic: true, color: BRAND.CAPTION, wrap: true });
-  var endRow;
+  // 4 · the monument band — temple panel right, timeline + explainer left
+  zoneLabel_(sheet, 30, 'THE TEMPLE · WHAT YOU HAVE MADE PERMANENT');
+  var caption;
   if (mode === 'mock') {
-    var saved = generateMockContributions_().reduce(function (a, c) { return a + c[1]; }, 0);
-    endRow = paintTemple_(sheet, 29, mockTempleDebts_(0, 'snowball'), { H: 16, showStylobate: true, savedFrac: saved / STYLOBATE_GOAL_DEFAULT });
-  } else { endRow = paintTemple_(sheet, 29, [], { H: 16, showStylobate: true }); }
+    var ip = mockInPlanDebts_();
+    var startTot = MOCK.debts.filter(function (d) { return d[6]; }).reduce(function (a, d) { return a + d[2]; }, 0);
+    var nowTot = MOCK.debts.filter(function (d) { return d[6]; }).reduce(function (a, d) { return a + d[8]; }, 0);
+    caption = 'THE TEMPLE  ·  ' + Math.round((startTot - nowTot) / startTot * 100) + '% BUILT  ·  ' + money_(nowTot) + ' STILL STANDING';
+    paintTemple2_(sheet, { bandTop: ANCHOR.DASH_BAND_TOP, H: ANCHOR.DASH_TEMPLE_H, debts: mockTempleDebts_(0, 'snowball'), wall: true, caption: caption });
+  } else {
+    paintTemple2_(sheet, { bandTop: ANCHOR.DASH_BAND_TOP, H: ANCHOR.DASH_TEMPLE_H, debts: [], wall: false, caption: 'LIST YOUR DEBTS · THE TEMPLE RISES AS YOU PAY' });
+  }
+  // left of the panel: the balance timeline (one full-band merge) …
+  bandMerge_(sheet, ANCHOR.DASH_BAND_TOP + 1, ANCHOR.DASH_BAND_TOP + 13)
+    .setFormula(sparkCol_("'_Engine'!$AE$" + ENG.TIMELINE_FIRST + ':$AE$' + ENG.TIMELINE_LAST, BRAND.CANOPY));
+  // … and the explainer (a second full-band merge)
+  bandMerge_(sheet, ANCHOR.DASH_BAND_TOP + 15, ANCHOR.DASH_BAND_TOP + 24)
+    .setValue('Balance falling to zero on your plan (above).  In the temple, each column is one debt — its width is the debt\'s size. It fills as you pay; the capital goes gold the month it is cleared. The strip above the pediment is the wall of debt still to tear down.  💳 menu → Watch the build replays your climb.')
+    .setFontFamily(FONT.BODY).setFontSize(9).setFontStyle('italic').setFontColor(BRAND.CAPTION)
+    .setHorizontalAlignment('left').setVerticalAlignment('top').setWrap(true);
 
   // 5 · AI insights (mock only)
+  var after = ANCHOR.DASH_BAND_TOP + 26;
   if (mode === 'mock') {
-    var ar = endRow + 1;
-    zlabel_(sheet, ar, 'AI INSIGHTS · ATTACH THE SHEET AND ASK');
+    zoneLabel_(sheet, after, 'AI INSIGHTS · ATTACH THE SHEET AND ASK');
     MOCK.ai_insights.forEach(function (ins, i) {
-      gridText_(sheet, ar + 1 + i, 2, 5, ins[0], { bold: true, size: 9, color: BRAND.GOLD, bg: BRAND.CREAM, h: 'center' });
-      gridText_(sheet, ar + 1 + i, 8, GRID.COLS - 8, ins[1], { size: 10, color: BRAND.BODY, wrap: true });
+      gridText_(sheet, after + 1 + i, 2, 1, ins[0], { bold: true, size: 9, color: BRAND.GOLD, bg: BRAND.CREAM, h: 'center' });
+      gridText_(sheet, after + 1 + i, 3, ZONES.COLS - 3, ins[1], { size: 10, color: BRAND.BODY });
     });
-    footer_(sheet, ar + 6, GRID.LAST);
+    footer_(sheet, after + 5, ZONES.LAST);
   } else {
-    footer_(sheet, endRow + 3, GRID.LAST);
+    footer_(sheet, after, ZONES.LAST);
   }
 }
 
