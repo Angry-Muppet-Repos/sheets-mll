@@ -124,10 +124,24 @@ diverge, the workbook is ground truth.
   stone-and-gold set (section 00 constants, never palette-derived). Build
   decision logged: the baseline is its own iterative block (the 03 "no
   sixth block / closed-form" note was an optimization; an iterative block
-  is exact + auditable + matches the math layer). NOT yet live-QA'd by Dan
-  — the replay/Time-Machine repaint + onEdit re-anchor are live-only
-  (static + math verified, never live-executed). Letters (sealed notes) +
-  grace tokens are specified in 05 but deferred from v1 (noted in handback).
+  is exact + auditable + matches the math layer). **VISUAL REWORK
+  (2026-06-14, after live-QA rejections):** the mockup was being
+  translated literally into Sheets and read as merge-soup + chunky slabs.
+  Now the **banded L-layout**: text/tables/KPIs on ~11 REAL columns at
+  sibling widths; the monument confined to a narrow-column zone inside
+  ONE short-row band per tab, where the text zone may hold only
+  full-band-height merges (harness layer k enforces this forever).
+  Temple grammar v2: framed deep-parchment panel + gold hairline +
+  forest plinth caption, 12px square cells, quantized pillar tiers 2/3/4,
+  no cell borders. **tools/render_preview.js + tools/lib/gas_stub.js**:
+  the stub records visual state and renders per-tab HTML → headless-
+  Chromium PNGs, so layout is iterated against previews BEFORE Dan
+  rebuilds (this ended the blind-iteration loop; use it for every future
+  product's visual work). Harness layers a–k + math, all green. NOT yet
+  live-QA'd by Dan — replay/Time-Machine/race repaint + onEdit re-anchor
+  are live-only (static + math + preview verified, never live-executed).
+  Letters minted in The Hall (sealed/unsealed at build); grace tokens
+  still deferred from v1.
 - **The Ledger v1** (`apps_script/ColumnCo_Ledger_v1.gs`) — merged via
   PR #2, statically verified, paused before Dan's live QA. NOT yet
   listed — it has never been live-QA'd.

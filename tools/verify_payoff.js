@@ -51,7 +51,7 @@ for (const mode of ['mock', 'blank']) {
   geoByMode[mode] = {};
   Object.keys(ss.sheets).forEach(n => {
     const sh = ss.sheets[n];
-    geoByMode[mode][n] = { merges: sh.merges.slice(), colW: { ...sh.colWidthMap }, styles: sh.styles };
+    geoByMode[mode][n] = { merges: sh.merges.slice(), colW: { ...sh.colWidthMap }, rowH: { ...sh.rowHeightMap }, styles: sh.styles };
   });
 }
 console.log('a. both build modes executed under grid enforcement: OK');
@@ -476,6 +476,43 @@ for (const mode of ['mock', 'blank']) {
   }
 }
 section('j. text-fit (pixel) audit', jFail);
+
+
+// ───────────── k. monument-band purity (the layout crux) ─────────────
+// Rows are shared across a sheet, so a monument band's short rows would
+// crush any per-row text beside it. The rule: inside a short-row band, the
+// TEXT zone (cols B..L) may hold only FULL-BAND-HEIGHT merges (a sparkline
+// panel, a caption) — never per-row text. This layer enforces it forever.
+const ZONE_TABS = ['Dashboard', 'The Plan', 'Progress'];
+let kFail = 0;
+const kSeen = {};
+for (const mode of ['mock', 'blank']) {
+  for (const tab of ZONE_TABS) {
+    const g = geoByMode[mode] && geoByMode[mode][tab];
+    if (!g) continue;
+    const shortRow = r => (g.rowH[r] != null && g.rowH[r] <= 14);
+    for (const rec of captures[mode]) {
+      if (rec.sheet !== tab || (rec.kind !== 'value' && rec.kind !== 'formula')) continue;
+      if (rec.val === '' || rec.val == null) continue;
+      const m = rec.a1.match(/^([A-Z]+)(\d+)$/);
+      if (!m) continue;
+      const c = env.COL(m[1]), r = Number(m[2]);
+      if (c < 2 || c > 12 || !shortRow(r)) continue;
+      let ok = false;
+      for (const M of g.merges) {
+        if (r >= M.r && r < M.r + M.nr && c >= M.c && c < M.c + M.nc) { ok = M.nr >= 6; break; }
+      }
+      if (!ok) {
+        const key = tab + '!' + rec.a1;
+        if (kSeen[key]) continue;
+        kSeen[key] = true;
+        kFail++;
+        console.log('  BAND-PURITY [' + mode + '] ' + key + ' — per-row content in a short-row monument band; use a full-band merge');
+      }
+    }
+  }
+}
+section('k. monument-band purity', kFail);
 
 console.log('\nTOTAL: ' + (FAILS === 0 ? 'ALL GREEN' : FAILS + ' FAILURES'));
 process.exit(FAILS ? 1 : 0);
