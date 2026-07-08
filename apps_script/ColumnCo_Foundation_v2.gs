@@ -210,14 +210,14 @@ var TABS = {
   BUDGET: 'Monthly Budget', HEALTH: 'Health Score', GOALS: 'Goals',
   TX: 'Transactions', IMPORT: 'Bank Import Guide', NETWORTH: 'Net Worth',
   ACCOUNTS: 'Accounts', CATEGORIES: 'Categories', ENGINE: '_Engine',
-  CONFIG: '_Config', SCHEMA: '_Schema'
+  STAGE: '_ImportStage', CONFIG: '_Config', SCHEMA: '_Schema'
 };
 var TAB_ORDER = [
   TABS.START, TABS.TRENDS, TABS.DASHBOARD, TABS.BUDGET, TABS.HEALTH,
   TABS.GOALS, TABS.TX, TABS.IMPORT, TABS.NETWORTH, TABS.ACCOUNTS,
-  TABS.CATEGORIES, TABS.ENGINE, TABS.CONFIG, TABS.SCHEMA
+  TABS.CATEGORIES, TABS.ENGINE, TABS.STAGE, TABS.CONFIG, TABS.SCHEMA
 ];
-var SYSTEM_TABS = [TABS.ENGINE, TABS.CONFIG, TABS.SCHEMA];
+var SYSTEM_TABS = [TABS.ENGINE, TABS.STAGE, TABS.CONFIG, TABS.SCHEMA];
 
 // ── Layout constants ──────────────────────────────────────────────────
 var GRID_COLS = 12;            // A..L content grid for presentation tabs
@@ -659,6 +659,7 @@ function buildWorkbook(mode) {
   buildAccounts_(sheets[TABS.ACCOUNTS], mode);
   buildTransactions_(sheets[TABS.TX], mode);
   buildEngine_(sheets[TABS.ENGINE], mode);
+  buildImportStage_(sheets[TABS.STAGE], mode);   // helper grid feeds Bank Import
 
   // 3. Presentation + action tabs.
   buildStartHere_(sheets[TABS.START]);
@@ -1738,19 +1739,50 @@ var BUDGET_PICKER_CELL = 'C14';  // active profile id
 var BUDGET_TARGETS_FIRST_ROW = 17;  // C17..C36 targets, B17..B36 categories
 var BUDGET_SAVINGS_ROW = 28;     // Savings is category index 11 -> row 28
 
-// Bank Import cell contract
-var IMPORT_ACCOUNT_CELL = 'C10';
-var IMPORT_PASTE_ANCHOR = 'A12';            // top-left of the unmerged paste grid
+// ── Bank Import v2 cell contract (07_bank_import_v2.md) ──────────────
+// Two-zone 26-col grid: text cols A..L (widths as before) · M gutter ·
+// N..Y = twelve month cells for the coverage strips · Z margin. Every
+// block below is anchored here — onEdit, the step pills, and the import
+// flows all derive from IMP2, never from literals.
+var IMP2 = {
+  LAST_COL: 26, LAST_LETTER: 'Z',
+  MON_FIRST: 14, MON_COUNT: 12,            // N..Y, oldest → newest
+  PILL_ROW: 9,
+  STATUS_ROW: 11,                           // 11-12: inbox status lines
+  FILES_LABEL: 14, FILES_HEADER: 15, FILES_FIRST: 16, FILES_COUNT: 20,     // ..35
+  REVIEW_LABEL: 37, REVIEW_HEADER: 38, REVIEW_FIRST: 39, REVIEW_COUNT: 15, // ..53
+  COV_LABEL: 55, COV_MONTHS_ROW: 56, COV_FIRST: 57, COV_COUNT: 12,         // ..68
+  REC_LABEL: 70, REC_HEADER: 71, REC_FIRST: 72, REC_COUNT: 12, REC_MONTHS: 6, // inputs B..G
+  RECIPE_LABEL: 85, RECIPE_HEADER: 86, RECIPE_FIRST: 87, RECIPE_COUNT: 10, // ..96
+  PASTE_LABEL: 98, PASTE_ACCOUNT_ROW: 99,
+  CAPTION_ROW: 199, FOOTER_ROW: 201, GRID_ROWS: 205
+};
+// legacy paste-path anchors (fallback flow keeps working, relocated)
+var IMPORT_ACCOUNT_CELL = 'C99';
+var IMPORT_PASTE_FIRST_ROW = 101;
+var IMPORT_PASTE_ANCHOR = 'A101';           // top-left of the unmerged paste grid
 var IMPORT_PASTE_ROW_COUNT = 50;            // 50 rows × 8 cols = paste capacity
 var IMPORT_PASTE_COL_COUNT = 8;
-var IMPORT_PASTE_LAST_ROW = 12 + IMPORT_PASTE_ROW_COUNT - 1;   // 61
-var REVIEW_INCOME_HEADER_ROW = 64;
-var REVIEW_INCOME_FIRST_ROW  = 65;
-var REVIEW_INCOME_ROW_COUNT  = 20;
-var UNCAT_SECTION_ROW = 87;       // section label
-var UNCAT_HEADER_ROW  = 88;
-var UNCAT_FIRST_ROW   = 89;
-var UNCAT_ROW_COUNT   = 20;
+var IMPORT_PASTE_LAST_ROW = IMPORT_PASTE_FIRST_ROW + IMPORT_PASTE_ROW_COUNT - 1;   // 150
+var REVIEW_INCOME_SECTION_ROW = 152;
+var REVIEW_INCOME_HEADER_ROW = 153;
+var REVIEW_INCOME_FIRST_ROW  = 154;
+var REVIEW_INCOME_ROW_COUNT  = 20;          // ..173
+var UNCAT_SECTION_ROW = 176;      // section label
+var UNCAT_HEADER_ROW  = 177;
+var UNCAT_FIRST_ROW   = 178;
+var UNCAT_ROW_COUNT   = 20;                 // ..197
+
+// _ImportStage layout (hidden): staged rows + per-file meta + the live
+// SUMIFS helper grid the coverage/reconcile surfaces read.
+var STAGE = {
+  ROWS_HEADER: 1, ROWS_FIRST: 2, ROWS_CAP: 4000,
+  // staged row cols: A date · B desc · C amount(signed) · D account ·
+  // E category · F source file · G status (NEW/DUP/REVIEW/PENDING) · H pair id
+  META_COL: 10, META_FIRST: 2, META_CAP: 20,   // J.. file meta: name·recipe·account·rows·span·new·dup·review·fileId
+  HELP_FIRST: 4200,                             // helper grid top row
+  HELP_MONTHS: 13                               // prior + 12 months per account
+};
 
 // ── Monthly Budget ────────────────────────────────────────────────────
 // Columns: B Category · C Preset% (locked) · D Override% (yellow editable)
@@ -1994,122 +2026,620 @@ function buildGoals_(sheet, mode) {
 }
 
 // ── Bank Import Guide ─────────────────────────────────────────────────
-function buildBankImport_(sheet, mode) {
-  chrome_(sheet, TABS.IMPORT, 'L');
-  var r = titleRow_(sheet, 'L', 'Bank Import Guide', 'Paste a CSV. We figure out the rest. After import, the cursor jumps to whichever step still needs you.');
+// ═══════════════════════════════════════════════════════════════════════
+// Bank Import v2 — the de-friction core (07_bank_import_v2.md).
+// Drop a folder of exports → one scan → one append. Coverage map answers
+// "did everything get in"; reconciliation proves it against statements;
+// dedupe is account-scoped (v1 silently dropped the same charge appearing
+// on two different cards). The legacy paste zone survives as a fallback.
+// ═══════════════════════════════════════════════════════════════════════
 
-  // 5-step row, 12 cols total: 3+2+2+2+3. Steps 1-3 are static; steps 4-5
-  // show a live pending count that flips to ✓ when the queue is empty.
-  var dRev = REVIEW_INCOME_FIRST_ROW;                                   // 65
-  var dRevEnd = REVIEW_INCOME_FIRST_ROW + REVIEW_INCOME_ROW_COUNT - 1;  // 84
-  var dUnc = UNCAT_FIRST_ROW;                                           // 89
-  var dUncEnd = UNCAT_FIRST_ROW + UNCAT_ROW_COUNT - 1;                  // 108
-  var reviewCountFormula =
-    '=IF(COUNTA(A' + dRev + ':A' + dRevEnd + ')=0,"4",' +
-    'IF(COUNTA(A' + dRev + ':A' + dRevEnd + ')=COUNTA(D' + dRev + ':D' + dRevEnd + '),"✓",' +
-    'COUNTA(A' + dRev + ':A' + dRevEnd + ')-COUNTA(D' + dRev + ':D' + dRevEnd + ')))';
-  var uncatCountFormula =
-    '=IF(COUNTA(A' + dUnc + ':A' + dUncEnd + ')=0,"5",' +
-    'IF(COUNTA(A' + dUnc + ':A' + dUncEnd + ')=COUNTA(E' + dUnc + ':E' + dUncEnd + '),"✓",' +
-    'COUNTA(A' + dUnc + ':A' + dUncEnd + ')-COUNTA(E' + dUnc + ':E' + dUncEnd + ')))';
+// ── Recipe library — best-effort header signatures for common US banks.
+// detect.h = sorted lowercased header names joined '|'; detect.f = filename
+// regex fallback. map values are HEADER NAMES (robust to column order);
+// amount either {amt} or {debit, credit}. flip = export reports charges as
+// positives (card convention) so v2 negates. Signatures marked (unverified)
+// are best-effort from common exports — the teach-me table (Bank Import
+// tab) safely covers anything that misses, so a wrong signature degrades
+// to generic sniffing, never to bad data.
+var IMPORT_RECIPES = [
+  { id: 'chase-card',    f: /chase/i,      h: 'amount|category|memo|post date|transaction date|type', map: { date: 'Transaction Date', desc: 'Description', amt: 'Amount' }, flip: false },
+  { id: 'chase-acct',    f: /chase/i,      h: 'amount|balance|check or slip #|description|details|posting date|type', map: { date: 'Posting Date', desc: 'Description', amt: 'Amount' }, flip: false },
+  { id: 'amex-card',     f: /amex|american.?express/i, h: 'amount|date|description', map: { date: 'Date', desc: 'Description', amt: 'Amount' }, flip: true },
+  { id: 'discover-card', f: /discover/i,   h: 'amount|category|description|post date|trans. date', map: { date: 'Trans. Date', desc: 'Description', amt: 'Amount' }, flip: true },
+  { id: 'boa-acct',      f: /bank.?of.?america|boa/i, h: 'amount|date|description|running bal.', map: { date: 'Date', desc: 'Description', amt: 'Amount' }, flip: false },
+  { id: 'capone-card',   f: /capital.?one/i, h: 'card no.|category|credit|debit|description|posted date|transaction date', map: { date: 'Transaction Date', desc: 'Description', debit: 'Debit', credit: 'Credit' }, flip: false },
+  { id: 'wells-acct',    f: /wells/i,      h: '', map: null, flip: false, positional: ['date', 'amt', null, null, 'desc'] },   // headerless 5-col export
+  { id: 'citi-card',     f: /citi/i,       h: 'credit|debit|description|member name|status|date', map: { date: 'Date', desc: 'Description', debit: 'Debit', credit: 'Credit' }, flip: false },
+  { id: 'usaa-acct',     f: /usaa/i,       h: 'amount|balance|category|date|description|original description|status', map: { date: 'Date', desc: 'Description', amt: 'Amount' }, flip: false },
+  { id: 'ally-acct',     f: /ally/i,       h: ' amount| description|date|time|type', map: { date: 'Date', desc: ' Description', amt: ' Amount' }, flip: false },
+  { id: 'apple-card',    f: /apple/i,      h: 'amount (usd)|category|clearing date|description|merchant|purchased by|transaction date|type', map: { date: 'Transaction Date', desc: 'Merchant', amt: 'Amount (USD)' }, flip: true },
+  { id: 'sofi-acct',     f: /sofi/i,       h: 'amount|current balance|date|description|status|type', map: { date: 'Date', desc: 'Description', amt: 'Amount' }, flip: false },
+  { id: 'chime-acct',    f: /chime/i,      h: 'amount|date|description|settlement date|type', map: { date: 'Date', desc: 'Description', amt: 'Amount' }, flip: false },
+  { id: 'pnc-acct',      f: /pnc/i,        h: 'amount|category|date|description|transaction type', map: { date: 'Date', desc: 'Description', amt: 'Amount' }, flip: false },
+  { id: 'usbank-acct',   f: /us.?bank/i,   h: 'amount|date|memo|name|transaction', map: { date: 'Date', desc: 'Name', amt: 'Amount' }, flip: false },
+  { id: 'truist-acct',   f: /truist/i,     h: 'amount|check number|date|description|transaction type', map: { date: 'Date', desc: 'Description', amt: 'Amount' }, flip: false },
+  { id: 'fidelity',      f: /fidelity/i,   h: 'amount|balance|date|description|type', map: { date: 'Date', desc: 'Description', amt: 'Amount' }, flip: false },
+  { id: 'schwab',        f: /schwab/i,     h: 'balance|date|deposit|description|type|withdrawal', map: { date: 'Date', desc: 'Description', debit: 'Withdrawal', credit: 'Deposit' }, flip: false },
+  { id: 'venmo',         f: /venmo/i,      h: 'amount (fee)|amount (total)|datetime|from|funding source|id|note|status|to|type', map: { date: 'Datetime', desc: 'Note', amt: 'Amount (total)' }, flip: false },
+  { id: 'paypal',        f: /paypal/i,     h: 'amount|currency|date|name|status|time|time zone|type', map: { date: 'Date', desc: 'Name', amt: 'Amount' }, flip: false }
+];
 
-  var steps = [
-    { digit: '1', label: 'Pick account (C10)',     digitCol: 1, labelStart: 2, labelEnd: 3 },
-    { digit: '2', label: 'Paste CSV below',        digitCol: 4, labelStart: 5, labelEnd: 5 },
-    { digit: '3', label: 'Run Import',             digitCol: 6, labelStart: 7, labelEnd: 7 },
-    { digit: reviewCountFormula, label: 'Review Income ↓', digitCol: 8, labelStart: 9, labelEnd: 9 },
-    { digit: uncatCountFormula,  label: 'Save merchant rules ↓', digitCol: 10, labelStart: 11, labelEnd: 12 }
-  ];
-  for (var s = 0; s < steps.length; s++) {
-    var st = steps[s];
-    var digitA1 = sheet.getRange(r, st.digitCol).getA1Notation();
-    var digitOpts = {
-      font: FONT.DISPLAY, size: 16, bold: true, color: BRAND.PARCHMENT,
-      bg: BRAND.FOREST, h: 'center', v: 'middle'
-    };
-    if (String(st.digit).charAt(0) === '=') digitOpts.formula = st.digit;
-    else digitOpts.value = st.digit;
-    setCell_(sheet, digitA1, digitOpts);
-    themable_(sheet.getName(), 'primary', digitA1);
+function headerSig_(headers) {
+  return headers.map(function (h) { return String(h).toLowerCase().trim(); })
+    .filter(Boolean).sort().join('|');
+}
 
-    var labelStartA1 = sheet.getRange(r, st.labelStart).getA1Notation();
-    var labelEndA1 = sheet.getRange(r, st.labelEnd).getA1Notation();
-    setCell_(sheet, labelStartA1, {
-      value: st.label,
-      merge: st.labelEnd > st.labelStart ? labelEndA1 : null,
-      font: FONT.BODY, size: 11, color: BRAND.BODY, wrap: true, v: 'middle'
-    });
+// find the recipe for a parsed file: exact signature → filename → buyer
+// teach-me rows → null (generic sniffing takes over).
+function detectRecipe_(headers, filename, sheet) {
+  var sig = headerSig_(headers);
+  for (var i = 0; i < IMPORT_RECIPES.length; i++) {
+    if (IMPORT_RECIPES[i].h && IMPORT_RECIPES[i].h === sig) return IMPORT_RECIPES[i];
   }
-  sheet.setRowHeight(r, 40);
+  // buyer recipes (teach-me table): [bank, headerContains, dateH, descH, amtH, debitH, creditH, flip?]
+  if (sheet) {
+    var rows = sheet.getRange(IMP2.RECIPE_FIRST, 1, IMP2.RECIPE_COUNT, 8).getValues();
+    for (var b = 0; b < rows.length; b++) {
+      var rr = rows[b];
+      if (!rr[0] || !rr[1]) continue;
+      if (sig.indexOf(String(rr[1]).toLowerCase().trim()) === -1) continue;
+      var map = { date: rr[2], desc: rr[3] };
+      if (rr[5] || rr[6]) { map.debit = rr[5]; map.credit = rr[6]; } else { map.amt = rr[4]; }
+      return { id: 'buyer:' + rr[0], map: map, flip: String(rr[7]).toLowerCase() === 'yes' };
+    }
+  }
+  for (var j = 0; j < IMPORT_RECIPES.length; j++) {
+    if (IMPORT_RECIPES[j].f && IMPORT_RECIPES[j].f.test(filename) && IMPORT_RECIPES[j].h) return IMPORT_RECIPES[j];
+  }
+  return null;
+}
 
-  // account name input — dropdown sourced from the Accounts list so the
-  // buyer doesn't retype it. Named range may not exist yet (setNamedRanges_
-  // runs after this build); fall back to the literal A10:A41 range.
-  setCell_(sheet, 'A' + (r + 2), { value: 'Account name', font: FONT.BODY, size: 11, bold: true, color: BRAND.BODY });
-  var acctCell = sheet.getRange(IMPORT_ACCOUNT_CELL);
-  if (mode === 'mock') acctCell.setValue('Chase Joint Checking');  // demo prefill — blank ships empty
-  acctCell.setBackground(BRAND.YELLOW)
-    .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
-  sheet.getRange(IMPORT_ACCOUNT_CELL + ':E10').merge();
+// normalize one parsed CSV (array-of-arrays incl. header) into
+// [{date, desc, amount}] using a recipe, or generic sniffing when null.
+function normalizeCsv_(rows, recipe) {
+  if (!rows.length) return { rows: [], flip: false };
+  var out = [], flip = recipe ? !!recipe.flip : false;
+  var header = rows[0].map(String);
+  var start = 1, idx;
+  if (recipe && recipe.positional) {
+    idx = { date: recipe.positional.indexOf('date'), desc: recipe.positional.indexOf('desc'), amount: recipe.positional.indexOf('amt'), debit: -1, credit: -1 };
+    start = 0;   // headerless export
+  } else if (recipe && recipe.map) {
+    var find = function (name) {
+      if (name == null || name === '') return -1;
+      for (var i = 0; i < header.length; i++) if (header[i].toLowerCase().trim() === String(name).toLowerCase().trim()) return i;
+      return -1;
+    };
+    idx = { date: find(recipe.map.date), desc: find(recipe.map.desc), amount: find(recipe.map.amt), debit: find(recipe.map.debit), credit: find(recipe.map.credit) };
+  } else {
+    idx = sniffColumns_(header);
+  }
+  if (idx.date < 0 || (idx.amount < 0 && idx.debit < 0)) return { rows: null, flip: flip };   // undetectable
+  for (var r = start; r < rows.length; r++) {
+    var f = rows[r];
+    if (!f || f.length < 2) continue;
+    var amount = parseAmount_(f, { amount: idx.amount, debit: idx.debit, credit: idx.credit });
+    if (amount === null) continue;
+    if (flip) amount = -amount;
+    var date = parseDate_(f[idx.date]);
+    if (!(date instanceof Date)) continue;                      // strict for the bulk path
+    var desc = String(idx.desc >= 0 ? f[idx.desc] : '').trim();
+    out.push({ date: date, desc: desc, amount: amount });
+  }
+  return { rows: out, flip: flip };
+}
+
+// account-scoped exact key — THE dedupe-bug fix. Both import paths use it.
+function txKey_(account, date, desc, amount) {
+  var tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
+  var ds = (date instanceof Date) ? Utilities.formatDate(date, tz, 'yyyy-MM-dd') : String(date || '').trim();
+  return String(account || '').trim() + '|' + ds + '|' +
+    String(desc || '').toUpperCase().replace(/\s+/g, ' ').trim() + '|' + Number(amount).toFixed(2);
+}
+
+// near-duplicate: same account + amount, dates within 2 days, similar desc.
+function nearDupe_(a, b) {
+  if (a.account !== b.account) return false;
+  if (Number(a.amount).toFixed(2) !== Number(b.amount).toFixed(2)) return false;
+  var da = a.date instanceof Date ? a.date.getTime() : 0, db = b.date instanceof Date ? b.date.getTime() : 0;
+  if (Math.abs(da - db) > 2 * 86400000) return false;
+  var ta = String(a.desc).toUpperCase().split(/\s+/).filter(Boolean);
+  var tb = String(b.desc).toUpperCase().split(/\s+/).filter(Boolean);
+  if (!ta.length || !tb.length) return true;
+  var hit = 0;
+  for (var i = 0; i < ta.length; i++) if (tb.indexOf(ta[i]) !== -1) hit++;
+  return hit / Math.max(ta.length, tb.length) >= 0.5;
+}
+
+// existing-ledger keys + row objects (for dedupe + near-dupe checks)
+function readLedgerForDedupe_(tx) {
+  var last = tx.getLastRow();
+  if (last <= 9) return { keys: {}, rows: [] };
+  var vals = tx.getRange(10, 1, last - 9, 5).getValues();   // A date B desc C amt D cat E account
+  var keys = {}, rows = [];
+  for (var i = 0; i < vals.length; i++) {
+    if (vals[i][0] === '' || vals[i][0] == null) continue;
+    var o = { date: vals[i][0], desc: vals[i][1], amount: vals[i][2], account: vals[i][4] };
+    rows.push(o);
+    keys[txKey_(o.account, o.date, o.desc, o.amount)] = true;
+  }
+  return { keys: keys, rows: rows };
+}
+
+// ── Inbox plumbing ────────────────────────────────────────────────────
+var INBOX_FOLDER_NAME = 'Column & Co. — Bank Inbox';
+var INBOX_DONE_NAME = 'Imported ✓';
+
+function ensureInboxFolder_() {
+  var dp = PropertiesService.getDocumentProperties();
+  var id = dp.getProperty('cc_inbox_folder_id');
+  if (id) {
+    try { return DriveApp.getFolderById(id); } catch (e) { /* re-create below */ }
+  }
+  var it = DriveApp.getFoldersByName(INBOX_FOLDER_NAME);
+  var folder = it.hasNext() ? it.next() : DriveApp.createFolder(INBOX_FOLDER_NAME);
+  dp.setProperty('cc_inbox_folder_id', folder.getId());
+  return folder;
+}
+function inboxDoneFolder_(inbox) {
+  var it = inbox.getFoldersByName(INBOX_DONE_NAME);
+  return it.hasNext() ? it.next() : inbox.createFolder(INBOX_DONE_NAME);
+}
+function whereIsMyInbox() {
+  var folder = ensureInboxFolder_();
+  SpreadsheetApp.getActive().toast('Your Bank Inbox folder in Drive: "' + folder.getName() + '" — drop every bank export there, then 💳 → Scan Bank Inbox. ' + folder.getUrl(), CC.BRAND, 12);
+}
+
+// filename → account guess: exact account-name token or its last-4 digits
+function guessAccount_(filename, accounts) {
+  var lower = String(filename).toLowerCase();
+  for (var i = 0; i < accounts.length; i++) {
+    var name = String(accounts[i]).toLowerCase();
+    if (!name) continue;
+    if (lower.indexOf(name.replace(/\s+/g, '')) !== -1 || lower.indexOf(name) !== -1) return accounts[i];
+    var first = name.split(/\s+/)[0];
+    if (first && first.length >= 4 && lower.indexOf(first) !== -1) return accounts[i];
+  }
+  return '';
+}
+
+// ── Scan — parse everything in the inbox onto _ImportStage ───────────
+function scanBankInbox() {
   var ss = SpreadsheetApp.getActive();
-  var acctRange = ss.getRangeByName('cc_accounts_list') ||
-    ss.getRange("'" + TABS.ACCOUNTS + "'!A10:A21");
-  var acctRule = SpreadsheetApp.newDataValidation()
-    .requireValueInRange(acctRange, true).setAllowInvalid(false).build();
-  sheet.getRange(IMPORT_ACCOUNT_CELL).setDataValidation(acctRule);
+  var imp = ss.getSheetByName(TABS.IMPORT), stage = ss.getSheetByName(TABS.STAGE), tx = ss.getSheetByName(TABS.TX);
+  if (!imp || !stage || !tx) return;
+  var folder = ensureInboxFolder_();
+  var dp = PropertiesService.getDocumentProperties();
+  var acctMap = {};
+  try { acctMap = JSON.parse(dp.getProperty('cc_inbox_account_map') || '{}'); } catch (e) {}
+  var acctRange = ss.getRangeByName('cc_accounts_list');
+  var accounts = (acctRange ? acctRange.getValues() : []).map(function (r) { return String(r[0] || '').trim(); }).filter(Boolean);
 
-  // paste zone caption (row 11) + unmerged grid (A12:H61)
-  setCell_(sheet, 'A11', { value: 'Paste your CSV anywhere below — the first non-empty row is treated as the header.  New account? Use 💳 → Add Account… first.',
-    merge: 'L11', font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION });
-  var zone = sheet.getRange(IMPORT_PASTE_ANCHOR + ':H' + IMPORT_PASTE_LAST_ROW);
-  zone.setBackground(BRAND.GREEN_ZONE).setFontFamily('Roboto Mono').setFontSize(10)
-    .setHorizontalAlignment('left').setVerticalAlignment('middle').setWrap(false)
-    .setBorder(true, true, true, true, true, true, BRAND.HAIRLINE, SpreadsheetApp.BorderStyle.SOLID);
+  // previous FILES-table account assignments survive a rescan
+  var prevFiles = imp.getRange(IMP2.FILES_FIRST, 1, IMP2.FILES_COUNT, 3).getValues();
+  prevFiles.forEach(function (r) { if (r[0] && r[2]) acctMap[String(r[0])] = String(r[2]); });
 
-  // Review Income block — 20 rows of pre-validated review capacity
-  var sec = REVIEW_INCOME_HEADER_ROW - 1;  // row 63 section label
-  sectionLabel_(sheet, 'A' + sec, 'L' + sec, 'REVIEW INCOME · CONFIRM POSITIVE-AMOUNT ROWS');
-  sheet.getRange(REVIEW_INCOME_HEADER_ROW, 1, 1, 5)
-    .setValues([['Date', 'Description', 'Amount', 'Income?', 'Notes']])
-    .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
-  var ynRule = SpreadsheetApp.newDataValidation().requireValueInList(['Yes', 'No'], true).build();
-  sheet.getRange(REVIEW_INCOME_FIRST_ROW, 4, REVIEW_INCOME_ROW_COUNT, 1).setDataValidation(ynRule);
+  // clear stage + preview surfaces
+  stage.getRange(STAGE.ROWS_FIRST, 1, STAGE.ROWS_CAP, 8).clearContent();
+  stage.getRange(STAGE.META_FIRST, STAGE.META_COL, STAGE.META_CAP, 9).clearContent();
+  imp.getRange(IMP2.FILES_FIRST, 1, IMP2.FILES_COUNT, 12).clearContent();
+  imp.getRange(IMP2.REVIEW_FIRST, 1, IMP2.REVIEW_COUNT, 12).clearContent();
 
-  // Uncategorized Merchants block — turn any Misc row into a rule with a
-  // single dropdown pick. Populated by importTransactions after each import.
-  sectionLabel_(sheet, 'A' + UNCAT_SECTION_ROW, 'L' + UNCAT_SECTION_ROW,
-    'UNCATEGORIZED MERCHANTS · PICK A CATEGORY TO ADD A RULE');
-  sheet.getRange(UNCAT_HEADER_ROW, 1, 1, 6)
-    .setValues([['Sample Description', 'Hits', 'Sample Amount', 'Keyword', 'Category', 'Status']])
-    .setFontWeight('bold').setFontFamily(FONT.BODY).setFontSize(10).setFontColor(BRAND.BODY);
-  // Sample Amount column (C): currency, locked.
-  sheet.getRange(UNCAT_FIRST_ROW, 3, UNCAT_ROW_COUNT, 1)
-    .setNumberFormat('$#,##0.00;[red]-$#,##0.00')
-    .setFontFamily('Roboto Mono').setFontSize(10).setHorizontalAlignment('right');
-  // Keyword column (D): yellow, editable.
-  sheet.getRange(UNCAT_FIRST_ROW, 4, UNCAT_ROW_COUNT, 1).setBackground(BRAND.YELLOW)
-    .setFontFamily('Roboto Mono').setFontSize(10);
-  // Category column (E): yellow + dropdown (pulls from cc_tx_categories so
-  // routing a Misc merchant straight into a custom slot works).
-  sheet.getRange(UNCAT_FIRST_ROW, 5, UNCAT_ROW_COUNT, 1).setBackground(BRAND.YELLOW);
-  var uncatRange = SpreadsheetApp.getActive().getRangeByName('cc_tx_categories') ||
-    SpreadsheetApp.getActive().getRange("'" + TABS.CATEGORIES + "'!A11:A37");
-  var uncatRule = SpreadsheetApp.newDataValidation()
-    .requireValueInRange(uncatRange, true).setAllowInvalid(false).build();
-  sheet.getRange(UNCAT_FIRST_ROW, 5, UNCAT_ROW_COUNT, 1).setDataValidation(uncatRule);
+  var ledger = readLedgerForDedupe_(tx);
+  var it = folder.getFiles();
+  var files = [];
+  while (it.hasNext()) files.push(it.next());
+  files = files.slice(0, IMP2.FILES_COUNT);
 
-  var captionRow = UNCAT_FIRST_ROW + UNCAT_ROW_COUNT + 1;
-  setCell_(sheet, 'A' + captionRow, { value: 'Sniffs headers from Chase, BoA, Wells Fargo, Cap One, Ally, Citi, USAA, Discover, Amex. Duplicates (same date + description + amount) are skipped on re-import. Picking a Category above saves a keyword rule and reapplies it to past Misc rows.',
-    merge: 'L' + captionRow, font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION, wrap: true });
+  var stagedAll = [], meta = [], review = [], seenBatch = {};
+  files.forEach(function (file, fi) {
+    var name = file.getName(), lower = name.toLowerCase();
+    if (/\.pdf$/.test(lower)) { meta.push([name, '—', '', 0, '', 0, 0, 0, 'PDF — convert first (see caption below)']); return; }
+    if (/\.(xlsx|xls)$/.test(lower)) { meta.push([name, '—', '', 0, '', 0, 0, 0, 'Open in Sheets → File → Download → CSV']); return; }
+    if (!/\.(csv|txt|tsv)$/.test(lower)) { meta.push([name, '—', '', 0, '', 0, 0, 0, 'skipped (not a CSV)']); return; }
+    var text = file.getBlob().getDataAsString();
+    var delim = (text.indexOf('\t') !== -1 && text.indexOf(',') === -1) ? '\t' : ',';
+    var rows = text.split(/\r?\n/).filter(function (l) { return l.trim() !== ''; })
+      .map(function (l) { return delim === ',' ? parseCsvLine_(l) : l.split('\t').map(function (s) { return s.trim(); }); });
+    var recipe = detectRecipe_(rows.length ? rows[0].map(String) : [], name, imp);
+    var norm = normalizeCsv_(rows, recipe);
+    if (norm.rows === null) { meta.push([name, 'unknown format', '', 0, '', 0, 0, 0, 'teach a recipe below, then rescan']); return; }
+    var account = acctMap[name] || guessAccount_(name, accounts);
+    // card-sign sanity: >90% positive rows on an amount column is suspicious
+    var pos = norm.rows.filter(function (r) { return r.amount > 0; }).length;
+    var signFlag = (!norm.flip && norm.rows.length >= 10 && pos / norm.rows.length > 0.9) ? ' · check signs?' : '';
+    var minD = null, maxD = null, nNew = 0, nDup = 0, nRev = 0;
+    norm.rows.forEach(function (r) {
+      if (!minD || r.date < minD) minD = r.date;
+      if (!maxD || r.date > maxD) maxD = r.date;
+      var st = 'PENDING';
+      if (account) {
+        var o = { date: r.date, desc: r.desc, amount: r.amount, account: account };
+        var key = txKey_(account, r.date, r.desc, r.amount);
+        if (ledger.keys[key] || seenBatch[key]) { st = 'DUP'; nDup++; }
+        else {
+          var near = ledger.rows.some(function (L) { return nearDupe_(o, L); });
+          if (near) { st = 'REVIEW'; nRev++; review.push({ row: o, src: name }); }
+          else { st = 'NEW'; nNew++; seenBatch[key] = true; }
+        }
+      }
+      stagedAll.push([r.date, r.desc, r.amount, account, '', name, st, '']);
+    });
+    var tz = ss.getSpreadsheetTimeZone();
+    var span = minD ? (Utilities.formatDate(minD, tz, 'yyyy-MM-dd') + ' → ' + Utilities.formatDate(maxD, tz, 'yyyy-MM-dd')) : '';
+    var status = account ? ('ready' + signFlag) : ('assign an account →' + signFlag);
+    meta.push([name, recipe ? recipe.id : 'generic', account, norm.rows.length, span, nNew, nDup, nRev, status]);
+  });
 
-  footer_(sheet, captionRow + 2, 'L');
-  setColWidths_(sheet, [170, 110, 130, 130, 110, 80, 80, 80, 110, 60, 60, 60]);
+  // write stage + preview
+  if (stagedAll.length) stage.getRange(STAGE.ROWS_FIRST, 1, Math.min(stagedAll.length, STAGE.ROWS_CAP), 8).setValues(stagedAll.slice(0, STAGE.ROWS_CAP));
+  if (meta.length) stage.getRange(STAGE.META_FIRST, STAGE.META_COL, meta.length, 9).setValues(meta);
+  meta.forEach(function (m, i) {
+    var row = IMP2.FILES_FIRST + i;
+    imp.getRange(row, 1).setValue(m[0]);
+    imp.getRange(row, 2).setValue(m[1]);
+    imp.getRange(row, 3).setValue(m[2]);
+    imp.getRange(row, 4).setValue(m[3]);
+    imp.getRange(row, 5).setValue(m[4]);
+    imp.getRange(row, 6).setValue(m[5]);
+    imp.getRange(row, 7).setValue(m[6]);
+    imp.getRange(row, 8).setValue(m[7]);
+    imp.getRange(row, 9).setValue(m[8]);
+  });
+  writeReviewBlock_(imp, review);
+  imp.getRange(IMP2.STATUS_ROW, 1).setValue('Inbox: "' + folder.getName() + '" · ' + files.length + ' file(s) scanned · ' +
+    stagedAll.length + ' rows staged. Assign any missing accounts in the table below, then 💳 → Append Staged Imports.');
+  dp.setProperty('cc_inbox_account_map', JSON.stringify(acctMap));
+  imp.activate();
+  ss.toast('Scanned ' + files.length + ' file(s) · ' + stagedAll.length + ' rows staged.', CC.BRAND, 6);
+}
 
-  // Pin chrome + step pills + account-name input so the buyer always sees
-  // the 5 steps (and the live pending counts on 4 & 5) while scrolling the
-  // paste / review / uncategorized grids below.
+function writeReviewBlock_(imp, review) {
+  imp.getRange(IMP2.REVIEW_FIRST, 1, IMP2.REVIEW_COUNT, 12).clearContent();
+  var tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
+  review.slice(0, IMP2.REVIEW_COUNT).forEach(function (rv, i) {
+    var row = IMP2.REVIEW_FIRST + i;
+    imp.getRange(row, 1).insertCheckboxes();
+    imp.getRange(row, 2).setValue(rv.row.date instanceof Date ? Utilities.formatDate(rv.row.date, tz, 'MMM dd, yyyy') : String(rv.row.date));
+    imp.getRange(row, 3).setValue(rv.row.desc);
+    imp.getRange(row, 4).setValue(rv.row.amount).setNumberFormat('$#,##0.00');
+    imp.getRange(row, 5).setValue(rv.row.account);
+    setCell_(imp, 'F' + row, { value: 'looks like an existing row (± 2 days) — tick KEEP if it is a real separate charge · from ' + rv.src, merge: 'L' + row, font: FONT.BODY, size: 9, italic: true, color: BRAND.CAPTION });
+  });
+}
+
+// ── Append — land NEW rows in the ledger, archive the files ──────────
+function appendStagedImports() {
+  var ss = SpreadsheetApp.getActive();
+  var imp = ss.getSheetByName(TABS.IMPORT), stage = ss.getSheetByName(TABS.STAGE), tx = ss.getSheetByName(TABS.TX);
+  if (!imp || !stage || !tx) return;
+  // fold the FILES-table account column back onto staged rows first
+  var filesTbl = imp.getRange(IMP2.FILES_FIRST, 1, IMP2.FILES_COUNT, 3).getValues();
+  var acctByFile = {};
+  filesTbl.forEach(function (r) { if (r[0]) acctByFile[String(r[0])] = String(r[2] || '').trim(); });
+
+  var staged = stage.getRange(STAGE.ROWS_FIRST, 1, STAGE.ROWS_CAP, 8).getValues()
+    .filter(function (r) { return r[0] !== '' && r[0] != null; });
+  if (!staged.length) { ss.toast('Nothing staged — run 💳 → Scan Bank Inbox first.', CC.BRAND, 5); return; }
+
+  var ledger = readLedgerForDedupe_(tx);
+  var rules = loadKeywordRules_(ss);
+  var out = [], review = [], seen = {}, dup = 0, unassigned = 0;
+  staged.forEach(function (r) {
+    var date = r[0], desc = r[1], amount = r[2], account = acctByFile[String(r[5])] || r[3];
+    if (!account) { unassigned++; return; }
+    var key = txKey_(account, date, desc, amount);
+    if (ledger.keys[key] || seen[key]) { dup++; return; }
+    var o = { date: date, desc: desc, amount: amount, account: account };
+    if (ledger.rows.some(function (L) { return nearDupe_(o, L); })) { review.push({ row: o, src: r[5] }); return; }
+    seen[key] = true;
+    var category = amount > 0 ? 'Income' : categorize_(desc, rules);
+    out.push([date, desc, amount, category, account, '']);
+  });
+
+  if (out.length) {
+    var firstEmpty = findFirstEmptyTxRow_(tx);
+    tx.getRange(firstEmpty, 1, out.length, 6).setValues(out);
+    // engine roll — same behavior as the legacy path
+    var maxDate = null;
+    out.forEach(function (r) { if (r[0] instanceof Date && (!maxDate || r[0] > maxDate)) maxDate = r[0]; });
+    if (maxDate) {
+      var lastCode = lastEngineMonthCode_(), maxCode = monthCodeOfDate_(maxDate);
+      if (lastCode && maxCode > lastCode) rollEngineForward_(maxDate);
+    }
+    renumberLedger();
+    sortTxByDateDesc_(tx);
+  }
+  writeReviewBlock_(imp, review);
+
+  // archive every fully-processed file (all rows assigned) to Imported ✓
+  var folder = ensureInboxFolder_(), done = inboxDoneFolder_(folder);
+  var moved = 0, itf = folder.getFiles(), pending = {};
+  staged.forEach(function (r) { if (!(acctByFile[String(r[5])] || r[3])) pending[String(r[5])] = true; });
+  var toMove = [];
+  while (itf.hasNext()) { var f = itf.next(); if (/\.(csv|txt|tsv)$/i.test(f.getName()) && !pending[f.getName()]) toMove.push(f); }
+  toMove.forEach(function (f) { try { f.moveTo(done); moved++; } catch (e) {} });
+
+  stage.getRange(STAGE.ROWS_FIRST, 1, STAGE.ROWS_CAP, 8).clearContent();
+  refreshCoverage();
+  var parts = ['Appended ' + out.length + ' row' + (out.length === 1 ? '' : 's')];
+  if (dup) parts.push(dup + ' duplicate' + (dup === 1 ? '' : 's') + ' skipped');
+  if (review.length) parts.push(review.length + ' need review (block below the files table)');
+  if (unassigned) parts.push(unassigned + ' rows skipped — no account assigned (rescan after assigning)');
+  if (moved) parts.push(moved + ' file(s) archived to "' + INBOX_DONE_NAME + '"');
+  imp.getRange(IMP2.STATUS_ROW, 1).setValue(parts.join(' · ') + '.');
+  ss.toast(parts.join(' · '), CC.BRAND, (dup || review.length || unassigned) ? 10 : 6);
+}
+
+// ── Resolve — act on the review checkboxes ────────────────────────────
+function resolveReviewedRows() {
+  var ss = SpreadsheetApp.getActive();
+  var imp = ss.getSheetByName(TABS.IMPORT), tx = ss.getSheetByName(TABS.TX);
+  if (!imp || !tx) return;
+  var block = imp.getRange(IMP2.REVIEW_FIRST, 1, IMP2.REVIEW_COUNT, 5).getValues();
+  var rules = loadKeywordRules_(ss), out = [];
+  for (var i = 0; i < block.length; i++) {
+    var r = block[i];
+    if (r[1] === '' || r[1] == null) continue;
+    if (r[0] === true) {                     // KEEP → append
+      var date = (r[1] instanceof Date) ? r[1] : parseDate_(r[1]);
+      var amount = Number(r[3]);
+      var category = amount > 0 ? 'Income' : categorize_(String(r[2]), rules);
+      out.push([date, String(r[2]), amount, category, String(r[4]), '']);
+    }
+  }
+  if (out.length) {
+    tx.getRange(findFirstEmptyTxRow_(tx), 1, out.length, 6).setValues(out);
+    renumberLedger();
+    sortTxByDateDesc_(tx);
+  }
+  imp.getRange(IMP2.REVIEW_FIRST, 1, IMP2.REVIEW_COUNT, 12).clearContent();
+  refreshCoverage();
+  ss.toast('Kept ' + out.length + ' reviewed row' + (out.length === 1 ? '' : 's') + '; the rest were skipped.', CC.BRAND, 5);
+}
+
+// ── Coverage — paint the per-account month strips ─────────────────────
+// Reads the live helper grid on _ImportStage (SUMIFS counts). stone =
+// months with rows · garnet = a gap between the account's first and last
+// months · gold = reconciled ✓. Fixed colors — never themed.
+var COV_FILL = '#D8D0BE', COV_GAP = '#B96A6B', COV_OK = '#C5A95A', COV_EMPTY = '#F3EFE4';
+// pure: one account's coverage strip colors from its month counts + the
+// trailing-6 reconcile booleans. gap = empty month INSIDE the imported span.
+function computeCoverageRow_(counts, recon) {
+  var bg = [], first = -1, last = -1;
+  for (var m = 0; m < IMP2.MON_COUNT; m++) {
+    if (Number(counts[m]) > 0) { if (first === -1) first = m; last = m; }
+  }
+  for (var m2 = 0; m2 < IMP2.MON_COUNT; m2++) {
+    var has = Number(counts[m2]) > 0;
+    var inSpan = first !== -1 && m2 >= first && m2 <= last;
+    var recIdx = m2 - (IMP2.MON_COUNT - IMP2.REC_MONTHS);
+    var ok = recIdx >= 0 && recon && recon[recIdx] === true;
+    bg.push(ok && has ? COV_OK : (has ? COV_FILL : (inSpan ? COV_GAP : COV_EMPTY)));
+  }
+  return bg;
+}
+function refreshCoverage() {
+  var ss = SpreadsheetApp.getActive();
+  var imp = ss.getSheetByName(TABS.IMPORT), stage = ss.getSheetByName(TABS.STAGE);
+  if (!imp || !stage) return;
+  SpreadsheetApp.flush();   // helper SUMIFS must see the just-appended rows
+  var counts = stage.getRange(STAGE.HELP_FIRST, 2, IMP2.COV_COUNT, IMP2.MON_COUNT).getValues();       // B.. counts
+  var recon = stage.getRange(STAGE.HELP_FIRST + 20, 2, IMP2.COV_COUNT, IMP2.REC_MONTHS).getValues();  // reconcile ✓ booleans (trailing 6)
+  for (var a = 0; a < IMP2.COV_COUNT; a++) {
+    var bg = computeCoverageRow_(counts[a], recon[a]);
+    imp.getRange(IMP2.COV_FIRST + a, IMP2.MON_FIRST, 1, IMP2.MON_COUNT).setBackgrounds([bg]);
+  }
+  ss.toast('Coverage refreshed.', CC.BRAND, 3);
+}
+
+// ── Sample inbox (QA) — three fixture files exercising the whole flow ──
+function createSampleInbox() {
+  var folder = ensureInboxFolder_();
+  var t = new Date(), y = t.getFullYear(), mo = t.getMonth();
+  var d = function (mAgo, day) {
+    var dt = new Date(y, mo - mAgo, day);
+    return (dt.getMonth() + 1) + '/' + dt.getDate() + '/' + dt.getFullYear();
+  };
+  // checking: 3 months, overlaps itself month-to-month in file 2
+  var chk1 = ['Posting Date,Description,Amount',
+    d(2, 3) + ',DIRECT DEPOSIT - ACME CO,2450.00',
+    d(2, 6) + ',WHOLE FOODS MARKET #347,-84.12',
+    d(2, 14) + ',SHELL OIL 575421,-41.77',
+    d(1, 3) + ',DIRECT DEPOSIT - ACME CO,2450.00',
+    d(1, 9) + ',NETFLIX.COM,-15.49'].join('\n');
+  var chk2 = ['Posting Date,Description,Amount',
+    d(1, 3) + ',DIRECT DEPOSIT - ACME CO,2450.00',      // exact dup vs file 1
+    d(1, 9) + ',NETFLIX.COM,-15.49',                     // exact dup vs file 1
+    d(1, 10) + ',NETFLIX COM,-15.49',                    // NEAR dup (±1 day, similar desc)
+    d(0, 3) + ',DIRECT DEPOSIT - ACME CO,2450.00',
+    d(0, 5) + ',TRADER JOES #55,-63.90'].join('\n');
+  // card: charges exported POSITIVE (sign-flip exercise; matches amex recipe)
+  var card = ['Date,Description,Amount',
+    d(1, 7) + ',STARBUCKS STORE 112,6.45',
+    d(1, 12) + ',AMAZON MKTPL,42.13',
+    d(0, 2) + ',SPOTIFY,11.99'].join('\n');
+  folder.createFile('Sample Checking Jan-Feb.csv', chk1);
+  folder.createFile('Sample Checking Feb-Mar.csv', chk2);
+  folder.createFile('Sample Amex Card.csv', card);
+  SpreadsheetApp.getActive().toast('3 sample files dropped in "' + INBOX_FOLDER_NAME + '" — run 💳 → Scan Bank Inbox. Assign them to any two accounts to try the flow.', CC.BRAND, 10);
+}
+
+// ── _ImportStage — hidden staging + the live SUMIFS helper grid ───────
+function buildImportStage_(sheet, mode) {
+  ensureGrid_(sheet, STAGE.HELP_FIRST + 40, 20);
+  sheet.getRange(1, 1, 1, 8).setValues([['date', 'desc', 'amount', 'account', 'category', 'source file', 'status', 'pair']])
+    .setFontWeight('bold').setFontSize(9);
+  sheet.getRange(1, STAGE.META_COL, 1, 9).setValues([['file', 'recipe', 'account', 'rows', 'span', 'new', 'dup', 'review', 'status']])
+    .setFontWeight('bold').setFontSize(9);
+
+  // Helper grid: rows HELP_FIRST.. one per account slot. Col A account ref;
+  // cols B..M = row counts per trailing-12 month (oldest→newest, live off
+  // TODAY()); cols O..T reserved; the reconcile boolean grid sits 20 rows
+  // below (one row per account, cols B..G = trailing 6 months ✓).
+  var TX = "'" + TABS.TX + "'", IMPT = "'" + TABS.IMPORT + "'", ACC = "'" + TABS.ACCOUNTS + "'";
+  sheet.getRange(STAGE.HELP_FIRST - 1, 1).setValue('coverage counts (live)').setFontSize(9).setFontWeight('bold');
+  sheet.getRange(STAGE.HELP_FIRST + 19, 1).setValue('reconcile match (live)').setFontSize(9).setFontWeight('bold');
+  for (var a = 0; a < IMP2.COV_COUNT; a++) {
+    var hr = STAGE.HELP_FIRST + a, accRef = ACC + '!$A$' + (10 + a);
+    sheet.getRange(hr, 1).setFormula('=IF(' + accRef + '="","",' + accRef + ')');
+    var cf = [];
+    for (var m = 0; m < IMP2.MON_COUNT; m++) {
+      var off = IMP2.MON_COUNT - 1 - m;   // oldest first
+      cf.push('=IF($A' + hr + '="","",COUNTIFS(' + TX + '!$E:$E,$A' + hr + ',' + TX + '!$G:$G,TEXT(EDATE(TODAY(),-' + off + '),"yyyy-mm")))');
+    }
+    sheet.getRange(hr, 2, 1, IMP2.MON_COUNT).setFormulas([cf]);
+    // reconcile: expected end = starting bal + all rows through month m;
+    // matches the typed ending balance on the Bank Import grid (±$0.01)
+    var rr = STAGE.HELP_FIRST + 20 + a, startRef = ACC + '!$D$' + (10 + a);
+    var rf = [];
+    for (var k = 0; k < IMP2.REC_MONTHS; k++) {
+      var offR = IMP2.REC_MONTHS - 1 - k;
+      var typed = IMPT + '!' + columnToLetter_(2 + k) + (IMP2.REC_FIRST + a);
+      var cum = 'SUMPRODUCT((' + TX + '!$E$10:$E$5009=$A' + hr + ')*(' + TX + '!$G$10:$G$5009<>"")*(' + TX + '!$G$10:$G$5009<=TEXT(EDATE(TODAY(),-' + offR + '),"yyyy-mm"))*(' + TX + '!$C$10:$C$5009))';
+      rf.push('=IF(OR($A' + hr + '="",' + typed + '=""),FALSE,ABS(' + startRef + '+' + cum + '-' + typed + ')<=0.01)');
+    }
+    sheet.getRange(rr, 1).setFormula('=IF($A' + hr + '="","",$A' + hr + ')');
+    sheet.getRange(rr, 2, 1, IMP2.REC_MONTHS).setFormulas([rf]);
+  }
+}
+
+// ── The Bank Import tab, v2 layout ────────────────────────────────────
+function buildBankImport_(sheet, mode) {
+  ensureGrid_(sheet, IMP2.GRID_ROWS, IMP2.LAST_COL);
+  chrome_(sheet, TABS.IMPORT, IMP2.LAST_LETTER, 'DROP · SCAN · APPEND · PROVE', 13);
+  titleRow_(sheet, IMP2.LAST_LETTER, 'Bank Import',
+    'Drop every bank export into one Drive folder — any bank, any order, overlapping months welcome. One scan, one append; the coverage map and statement check prove nothing is missing or doubled.');
+
+  // step pills (row 9): the new flow in five moves
+  var steps = [
+    ['1', 'Drop files in your Inbox', 1, 3], ['2', 'Scan', 4, 5],
+    ['3', 'Assign accounts', 6, 8], ['4', 'Append', 9, 10], ['5', 'Reconcile ↓', 11, 12]
+  ];
+  steps.forEach(function (s) {
+    setCell_(sheet, columnToLetter_(s[2]) + IMP2.PILL_ROW, { value: s[0], font: FONT.DISPLAY, size: 14, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: 'center', v: 'middle' });
+    themable_(sheet.getName(), 'primary', columnToLetter_(s[2]) + IMP2.PILL_ROW);
+    setCell_(sheet, columnToLetter_(s[2] + 1) + IMP2.PILL_ROW, { value: s[1], merge: columnToLetter_(s[3]) + IMP2.PILL_ROW, font: FONT.BODY, size: 10, bold: true, color: BRAND.FOREST, v: 'middle' });
+  });
+  sheet.setRowHeight(IMP2.PILL_ROW, 40);
+
+  // status lines
+  setCell_(sheet, 'A' + IMP2.STATUS_ROW, { value: (mode === 'mock' ? 'Try it: 💳 → Setup → Create Sample Inbox, then 💳 → Scan Bank Inbox.' : 'First run: 💳 → Scan Bank Inbox creates your Drive folder. Drop your bank exports there.'), merge: 'L' + IMP2.STATUS_ROW, font: FONT.BODY, size: 11, color: BRAND.BODY });
+  setCell_(sheet, 'A' + (IMP2.STATUS_ROW + 1), { value: 'Your files never leave your own Google account — the sheet reads your Drive folder directly.', merge: 'L' + (IMP2.STATUS_ROW + 1), font: FONT.BODY, size: 9, italic: true, color: BRAND.CAPTION });
+
+  // FILES table
+  sectionLabel_(sheet, 'A' + IMP2.FILES_LABEL, IMP2.LAST_LETTER + IMP2.FILES_LABEL, 'FILES · WHAT THE LAST SCAN FOUND');
+  var fh = ['File', 'Format', 'Account (assign!)', 'Rows', 'Date span', 'New', 'Dup', 'Review', 'Status'];
+  fh.forEach(function (h, i) {
+    var col = i + 1;
+    setCell_(sheet, columnToLetter_(col) + IMP2.FILES_HEADER, { value: h, merge: (col === 9 ? 'L' + IMP2.FILES_HEADER : null), font: FONT.BODY, size: 10, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: (col >= 4 && col <= 8) ? 'right' : 'left' });
+  });
+  themable_(sheet.getName(), 'primary', 'A' + IMP2.FILES_HEADER + ':L' + IMP2.FILES_HEADER);
+  var acctRule = SpreadsheetApp.newDataValidation().requireValueInRange(sheet.getRange("'" + TABS.ACCOUNTS + "'!A10:A21"), true).setAllowInvalid(false).build();
+  sheet.getRange(IMP2.FILES_FIRST, 3, IMP2.FILES_COUNT, 1).setDataValidation(acctRule).setBackground(BRAND.YELLOW);
+  sheet.getRange(IMP2.FILES_FIRST, 4, IMP2.FILES_COUNT, 5).setHorizontalAlignment('right');
+
+  // REVIEW block
+  sectionLabel_(sheet, 'A' + IMP2.REVIEW_LABEL, IMP2.LAST_LETTER + IMP2.REVIEW_LABEL, 'REVIEW · POSSIBLE DUPLICATES — TICK KEEP FOR REAL CHARGES, THEN 💳 → RESOLVE REVIEWED ROWS');
+  var rh = ['Keep?', 'Date', 'Description', 'Amount', 'Account'];
+  rh.forEach(function (h, i) {
+    setCell_(sheet, columnToLetter_(i + 1) + IMP2.REVIEW_HEADER, { value: h, font: FONT.BODY, size: 10, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST, h: i === 3 ? 'right' : 'left' });
+  });
+  themable_(sheet.getName(), 'primary', 'A' + IMP2.REVIEW_HEADER + ':L' + IMP2.REVIEW_HEADER);
+
+  // COVERAGE map
+  sectionLabel_(sheet, 'A' + IMP2.COV_LABEL, IMP2.LAST_LETTER + IMP2.COV_LABEL, 'COVERAGE · WHICH MONTHS ARE IN — DARK = IMPORTED · RED = GAP · GOLD = RECONCILED ✓');
+  for (var m = 0; m < IMP2.MON_COUNT; m++) {
+    var off = IMP2.MON_COUNT - 1 - m;
+    sheet.getRange(IMP2.COV_MONTHS_ROW, IMP2.MON_FIRST + m)
+      .setFormula('=TEXT(EDATE(TODAY(),-' + off + '),"MMM")')
+      .setFontSize(8).setFontColor(BRAND.CAPTION).setHorizontalAlignment('center');
+  }
+  var SG = "'" + TABS.STAGE + "'";
+  for (var a = 0; a < IMP2.COV_COUNT; a++) {
+    var row = IMP2.COV_FIRST + a, hr = STAGE.HELP_FIRST + a;
+    setCell_(sheet, 'A' + row, { formula: "=IF('" + TABS.ACCOUNTS + "'!$A$" + (10 + a) + '="","",\'' + TABS.ACCOUNTS + "'!$A$" + (10 + a) + ')', merge: 'C' + row, font: FONT.BODY, size: 10, color: BRAND.FOREST });
+    setCell_(sheet, 'D' + row, { formula: '=IF($A' + row + '="","",IF(SUM(' + SG + '!$B$' + hr + ':$M$' + hr + ')=0,"nothing imported yet",SUM(' + SG + '!$B$' + hr + ':$M$' + hr + ')&" rows in the last 12 months"))', merge: 'L' + row, font: FONT.BODY, size: 9, italic: true, color: BRAND.CAPTION });
+    sheet.setRowHeight(row, 18);
+  }
+
+  // RECONCILE grid
+  sectionLabel_(sheet, 'A' + IMP2.REC_LABEL, IMP2.LAST_LETTER + IMP2.REC_LABEL, 'PROVE IT · TYPE EACH STATEMENT\'S ENDING BALANCE — THE SHEET CHECKS THE MATH');
+  setCell_(sheet, 'A' + IMP2.REC_HEADER, { value: 'Account', font: FONT.BODY, size: 10, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
+  for (var k = 0; k < IMP2.REC_MONTHS; k++) {
+    var offR = IMP2.REC_MONTHS - 1 - k;
+    sheet.getRange(IMP2.REC_HEADER, 2 + k).setFormula('=TEXT(EDATE(TODAY(),-' + offR + '),"MMM YYYY")')
+      .setFontWeight('bold').setFontSize(10).setFontColor(BRAND.PARCHMENT).setBackground(BRAND.FOREST).setHorizontalAlignment('right');
+  }
+  setCell_(sheet, 'H' + IMP2.REC_HEADER, { value: 'Result', merge: 'L' + IMP2.REC_HEADER, font: FONT.BODY, size: 10, bold: true, color: BRAND.PARCHMENT, bg: BRAND.FOREST });
+  themable_(sheet.getName(), 'primary', 'A' + IMP2.REC_HEADER + ':L' + IMP2.REC_HEADER);
+  for (var a2 = 0; a2 < IMP2.REC_COUNT; a2++) {
+    var row2 = IMP2.REC_FIRST + a2, rr = STAGE.HELP_FIRST + 20 + a2;
+    setCell_(sheet, 'A' + row2, { formula: "=IF('" + TABS.ACCOUNTS + "'!$A$" + (10 + a2) + '="","",\'' + TABS.ACCOUNTS + "'!$A$" + (10 + a2) + ')', font: FONT.BODY, size: 10, color: BRAND.FOREST });
+    sheet.getRange(row2, 2, 1, IMP2.REC_MONTHS).setBackground(BRAND.YELLOW).setNumberFormat('$#,##0.00')
+      .setBorder(true, true, true, true, true, true, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID);
+    var parts = [];
+    for (var k2 = 0; k2 < IMP2.REC_MONTHS; k2++) {
+      var typed2 = columnToLetter_(2 + k2) + row2;
+      parts.push('IF(' + typed2 + '="","",IF(' + SG + '!' + columnToLetter_(2 + k2) + rr + '=TRUE," ✓","(✗ "&TEXT(EDATE(TODAY(),-' + (IMP2.REC_MONTHS - 1 - k2) + '),"MMM")&")"))');
+    }
+    setCell_(sheet, 'H' + row2, { formula: '=IF($A' + row2 + '="","",IF(COUNTA(B' + row2 + ':G' + row2 + ')=0,"type a balance to check",CONCATENATE(' + parts.join(',') + ')))', merge: 'L' + row2, font: FONT.BODY, size: 10, color: BRAND.BODY });
+    sheet.setRowHeight(row2, 20);
+  }
+  setCell_(sheet, 'A' + (IMP2.REC_FIRST + IMP2.REC_COUNT), { value: 'Starting Balance on the Accounts tab = the balance BEFORE your earliest imported month. ✓ means starting balance + every imported row = the statement, to the cent.', merge: 'L' + (IMP2.REC_FIRST + IMP2.REC_COUNT), font: FONT.BODY, size: 9, italic: true, color: BRAND.CAPTION, wrap: true });
+
+  // RECIPES teach-me table
+  sectionLabel_(sheet, 'A' + IMP2.RECIPE_LABEL, IMP2.LAST_LETTER + IMP2.RECIPE_LABEL, 'TEACH A FORMAT · ONLY IF A FILE SAYS "UNKNOWN FORMAT" — ONE ROW TEACHES IT FOREVER');
+  var ph = ['Bank name', 'Header contains…', 'Date col', 'Desc col', 'Amount col', 'Debit col', 'Credit col', 'Flip?'];
+  ph.forEach(function (h, i) {
+    setCell_(sheet, columnToLetter_(i + 1) + IMP2.RECIPE_HEADER, { value: h, font: FONT.BODY, size: 9, bold: true, color: BRAND.PARCHMENT, bg: BRAND.CANOPY });
+  });
+  sheet.getRange(IMP2.RECIPE_FIRST, 1, IMP2.RECIPE_COUNT, 8).setBackground(BRAND.YELLOW)
+    .setBorder(true, true, true, true, true, true, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID).setFontSize(10);
+  var flipRule = SpreadsheetApp.newDataValidation().requireValueInList(['Yes', 'No'], true).build();
+  sheet.getRange(IMP2.RECIPE_FIRST, 8, IMP2.RECIPE_COUNT, 1).setDataValidation(flipRule);
+
+  // legacy paste flow (fallback)
+  sectionLabel_(sheet, 'A' + IMP2.PASTE_LABEL, IMP2.LAST_LETTER + IMP2.PASTE_LABEL, 'FALLBACK · PASTE ONE EXPORT BY HAND (THE OLD WAY STILL WORKS)');
+  setCell_(sheet, 'A' + IMP2.PASTE_ACCOUNT_ROW, { value: 'Account for pasted rows →', font: FONT.BODY, size: 10, color: BRAND.BODY });
+  setCell_(sheet, IMPORT_ACCOUNT_CELL, { merge: 'E' + IMP2.PASTE_ACCOUNT_ROW, bg: BRAND.YELLOW })
+    .setBorder(true, true, true, true, false, false, BRAND.GOLD, SpreadsheetApp.BorderStyle.SOLID)
+    .setDataValidation(acctRule);
+  if (mode === 'mock') sheet.getRange(IMPORT_ACCOUNT_CELL).setValue('Chase Joint Checking');
+  var zone = sheet.getRange(IMPORT_PASTE_FIRST_ROW, 1, IMPORT_PASTE_ROW_COUNT, IMPORT_PASTE_COL_COUNT);
+  zone.setBackground(BRAND.GREEN_ZONE).setFontFamily('Roboto Mono').setFontSize(10).setWrap(false)
+    .setBorder(true, true, true, true, false, false, BRAND.HAIRLINE, SpreadsheetApp.BorderStyle.SOLID);
+
+  // Review Income (kept, relocated)
+  sectionLabel_(sheet, 'A' + REVIEW_INCOME_SECTION_ROW, IMP2.LAST_LETTER + REVIEW_INCOME_SECTION_ROW, 'REVIEW INCOME · CONFIRM POSITIVE-AMOUNT ROWS');
+  sheet.getRange(REVIEW_INCOME_HEADER_ROW, 1, 1, 5).setValues([['Date', 'Description', 'Amount', 'Income?', 'Notes']])
+    .setFontWeight('bold').setFontColor(BRAND.PARCHMENT).setBackground(BRAND.FOREST).setFontFamily(FONT.BODY).setFontSize(10);
+  themable_(sheet.getName(), 'primary', 'A' + REVIEW_INCOME_HEADER_ROW + ':E' + REVIEW_INCOME_HEADER_ROW);
+  var yesNo = SpreadsheetApp.newDataValidation().requireValueInList(['Yes', 'No'], true).build();
+  sheet.getRange(REVIEW_INCOME_FIRST_ROW, 4, REVIEW_INCOME_ROW_COUNT, 1).setDataValidation(yesNo);
+
+  // Uncategorized Merchants (kept, relocated; onEdit is anchored to UNCAT_*)
+  sectionLabel_(sheet, 'A' + UNCAT_SECTION_ROW, IMP2.LAST_LETTER + UNCAT_SECTION_ROW, 'UNCATEGORIZED MERCHANTS · PICK A CATEGORY TO ADD A RULE');
+  sheet.getRange(UNCAT_HEADER_ROW, 1, 1, 6).setValues([['Sample Description', 'Hits', 'Sample Amount', 'Keyword', 'Category', 'Status']])
+    .setFontWeight('bold').setFontColor(BRAND.PARCHMENT).setBackground(BRAND.FOREST).setFontFamily(FONT.BODY).setFontSize(10);
+  themable_(sheet.getName(), 'primary', 'A' + UNCAT_HEADER_ROW + ':F' + UNCAT_HEADER_ROW);
+  sheet.getRange(UNCAT_FIRST_ROW, 3, UNCAT_ROW_COUNT, 1).setNumberFormat('$#,##0.00;[red]-$#,##0.00').setFontFamily('Roboto Mono');
+  sheet.getRange(UNCAT_FIRST_ROW, 4, UNCAT_ROW_COUNT, 1).setBackground(BRAND.YELLOW).setFontFamily('Roboto Mono');
+  var catRange = sheet.getRange("'" + TABS.CATEGORIES + "'!A11:A37");
+  var catRule = SpreadsheetApp.newDataValidation().requireValueInRange(catRange, true).setAllowInvalid(false).build();
+  sheet.getRange(UNCAT_FIRST_ROW, 5, UNCAT_ROW_COUNT, 1).setBackground(BRAND.YELLOW).setDataValidation(catRule);
+
+  setCell_(sheet, 'A' + IMP2.CAPTION_ROW, {
+    value: 'PDF-only bank? Ask your AI to convert the statement to CSV with columns Date, Description, Amount (expenses negative) and tell it the statement\'s printed total — then drop the CSV in the Inbox; the reconcile row proves the conversion. Duplicates are matched per account, so the same charge on two cards is kept — as it should be.',
+    merge: IMP2.LAST_LETTER + IMP2.CAPTION_ROW, font: FONT.BODY, size: 10, italic: true, color: BRAND.CAPTION, wrap: true });
+  sheet.setRowHeight(IMP2.CAPTION_ROW, 44);
+  footer_(sheet, IMP2.FOOTER_ROW, IMP2.LAST_LETTER);
+
+  // widths: text zone + gutter + 12 month cells + margin
+  setColWidths_(sheet, [168, 96, 130, 120, 110, 56, 56, 62, 96, 60, 60, 60, 14, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 12]);
   SpreadsheetApp.flush();
-  try { sheet.setFrozenRows(10); } catch (e) {}
+  try { sheet.setFrozenRows(IMP2.PILL_ROW); } catch (e) {}
 }
 /**
  * Column & Co. — The Foundation v2.1
@@ -2140,7 +2670,13 @@ function buildMenu_() {
   var menu = ui.createMenu(CC.MENU_TITLE);
   menu.addItem('Add Account…', 'addAccount');
   menu.addSeparator();
-  menu.addItem('Import Bank Transactions', 'importTransactions');
+  menu.addItem('Scan Bank Inbox', 'scanBankInbox');
+  menu.addItem('Append Staged Imports', 'appendStagedImports');
+  menu.addItem('Resolve Reviewed Rows', 'resolveReviewedRows');
+  menu.addItem('Refresh Coverage', 'refreshCoverage');
+  menu.addItem('Where Is My Inbox?', 'whereIsMyInbox');
+  menu.addSeparator();
+  menu.addItem('Paste-Zone Import (fallback)', 'importTransactions');
   menu.addItem('Clear Paste Zone', 'clearPasteZone');
   menu.addItem('Recategorize Ledger from Rules', 'recategorizeAll');
   menu.addItem('Sort Transactions by Date', 'sortTransactions');
@@ -2154,7 +2690,8 @@ function buildMenu_() {
   menu.addSeparator();
   menu.addSubMenu(ui.createMenu('Setup')
     .addItem('Build workbook (mock data)', 'buildMockWorkbook')
-    .addItem('Build workbook (blank)', 'buildBlankWorkbook'));
+    .addItem('Build workbook (blank)', 'buildBlankWorkbook')
+    .addItem('Create Sample Inbox (import demo)', 'createSampleInbox'));
   menu.addToUi();
 }
 
@@ -2458,7 +2995,7 @@ function importTransactions() {
   if (!imp || !tx) return;
 
   var account = String(imp.getRange(IMPORT_ACCOUNT_CELL).getValue() || '').trim();
-  if (!account) { ss.toast('Type an account name in C10 first.', CC.BRAND, 4); return; }
+  if (!account) { ss.toast('Pick an account in ' + IMPORT_ACCOUNT_CELL + ' (next to the paste zone) first.', CC.BRAND, 4); return; }
 
   // Account-name validation against the Accounts list (cc_accounts_list)
   var acctNamed = ss.getRangeByName('cc_accounts_list');
@@ -2475,14 +3012,14 @@ function importTransactions() {
   // Read the paste zone. If A12 contains a multi-line string the buyer
   // pasted plain text — use the legacy CSV-text path. Otherwise read the
   // unmerged 50×8 grid that tabular paste lands into.
-  var firstCell = imp.getRange(12, 1).getValue();
+  var firstCell = imp.getRange(IMPORT_PASTE_FIRST_ROW, 1).getValue();
   var rowsAsArrays;
   if (typeof firstCell === 'string' && firstCell.indexOf('\n') !== -1) {
     // Legacy text paste: A12 contains the whole CSV as one string.
     var lines = String(firstCell).split(/\r?\n/).filter(function (l) { return l.trim() !== ''; });
     rowsAsArrays = lines.map(parseCsvLine_);
   } else {
-    var raw = imp.getRange(12, 1, IMPORT_PASTE_ROW_COUNT, IMPORT_PASTE_COL_COUNT).getValues();
+    var raw = imp.getRange(IMPORT_PASTE_FIRST_ROW, 1, IMPORT_PASTE_ROW_COUNT, IMPORT_PASTE_COL_COUNT).getValues();
     // Dump the raw cell types + values for the first 6 rows so we can see
     // exactly what Sheets handed us when a buyer reports silent drops.
     // (Apps Script → Executions → expand the latest run → Logger output.)
@@ -2511,14 +3048,13 @@ function importTransactions() {
 
   // Build existing-row dedup index from the live ledger.
   var tz = ss.getSpreadsheetTimeZone();
-  var dedupKey = function (d, desc, amt) {
-    var ds = (d instanceof Date) ? Utilities.formatDate(d, tz, 'yyyy-MM-dd') : String(d || '').trim();
-    return ds + '|' + String(desc || '').trim() + '|' + Number(amt).toFixed(2);
-  };
+  // v2: the key includes the ACCOUNT (txKey_) — v1 silently dropped the
+  // same charge appearing on two different cards.
+  var dedupKey = function (d, desc, amt) { return txKey_(account, d, desc, amt); };
   var seen = {};
   var existing = readExistingTx_(tx);
   for (var e = 0; e < existing.length; e++) {
-    seen[dedupKey(existing[e][0], existing[e][1], existing[e][2])] = true;
+    seen[txKey_(existing[e][4], existing[e][0], existing[e][1], existing[e][2])] = true;
   }
 
   // Drop-bucket counters: every data row lands in exactly one bucket so the
@@ -2669,7 +3205,9 @@ function readExistingTx_(tx) {
   for (var i = 0; i < finder.length; i++) { if (finder[i][0] === 'Date') { headerRow = i + 1; break; } }
   var lastRow = tx.getLastRow();
   if (lastRow <= headerRow) return [];
-  return tx.getRange(headerRow + 1, 1, lastRow - headerRow, 3).getValues()
+  // cols A..E so the dedupe key can be ACCOUNT-scoped (the same charge on
+  // two different cards is two real rows, not a duplicate)
+  return tx.getRange(headerRow + 1, 1, lastRow - headerRow, 5).getValues()
     .filter(function (r) { return r[0] !== '' && r[0] !== null; });
 }
 
@@ -2678,7 +3216,7 @@ function clearPasteZone() {
   var resp = ui.alert('Clear Paste Zone', 'Empty the paste zone?', ui.ButtonSet.YES_NO);
   if (resp !== ui.Button.YES) return;
   var imp = SpreadsheetApp.getActive().getSheetByName(TABS.IMPORT);
-  var zone = imp.getRange(12, 1, IMPORT_PASTE_ROW_COUNT, IMPORT_PASTE_COL_COUNT);
+  var zone = imp.getRange(IMPORT_PASTE_FIRST_ROW, 1, IMPORT_PASTE_ROW_COUNT, IMPORT_PASTE_COL_COUNT);
   zone.clearContent();
   zone.setBackground(BRAND.GREEN_ZONE);
 }
