@@ -292,8 +292,19 @@ function makeStubEnv(opts) {
     setFrozenRows(n) { if (RS) this.frozenRows = n || 0; }
     setFrozenColumns() {}
     getFilter() { return this.filter; }
-    getLastRow() { return 9; }
+    // real semantics: last row containing content (clearContent stores '')
+    getLastRow() {
+      let last = 0;
+      for (const k in this.cells) {
+        if (this.cells[k] === '' || this.cells[k] == null) continue;
+        const r = Number(k.slice(0, k.indexOf(',')));
+        if (r > last) last = r;
+      }
+      return last;
+    }
     getLastColumn() { return 1; }
+    setActiveRange() { return this; }
+    setActiveSelection() { return this; }
     hideSheet() { this.hidden = true; } showSheet() { this.hidden = false; } activate() {}
     setTabColor() { return this; }
     getRowHeight(r) { return (RS && this.rowHeightMap[r] != null) ? this.rowHeightMap[r] : 21; }
@@ -389,6 +400,52 @@ function makeStubEnv(opts) {
     getUuid: () => 'uuid'
   };
   const Logger = { log: () => {} };
+
+  // ── DriveApp stub — folder/file fixtures for the Bank-Inbox flow ──────
+  // Test setup: env.DriveApp.createFolder('…') then folder.createFile(name,
+  // csvText). getBlob().getDataAsString() returns the content; moveTo()
+  // reparents. Iterators follow the GAS hasNext/next shape.
+  let _driveSeq = 0;
+  const _driveIndex = {};   // id → folder
+  function driveIter(arr) { let i = 0; return { hasNext: () => i < arr.length, next: () => arr[i++] }; }
+  class DriveFileStub {
+    constructor(name, content, parent) { this.name = name; this.content = content == null ? '' : String(content); this.parent = parent; this.id = 'file_' + (++_driveSeq); }
+    getId() { return this.id; }
+    getName() { return this.name; }
+    setName(n) { this.name = n; return this; }
+    getBlob() { const c = this.content; return { getDataAsString: () => c, getBytes: () => Buffer.from(c) }; }
+    getSize() { return this.content.length; }
+    getMimeType() { return this.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'text/plain'; }
+    moveTo(folder) {
+      if (this.parent) this.parent.files = this.parent.files.filter(f => f !== this);
+      folder.files.push(this); this.parent = folder; return this;
+    }
+    setTrashed() { if (this.parent) this.parent.files = this.parent.files.filter(f => f !== this); return this; }
+  }
+  class DriveFolderStub {
+    constructor(name) { this.name = name; this.files = []; this.folders = []; this.id = 'fld_' + (++_driveSeq); _driveIndex[this.id] = this; }
+    getId() { return this.id; }
+    getName() { return this.name; }
+    getUrl() { return 'https://drive.google.com/drive/folders/' + this.id; }
+    createFile(name, content) { const f = new DriveFileStub(name, content, this); this.files.push(f); return f; }
+    createFolder(name) { const fo = new DriveFolderStub(name); this.folders.push(fo); return fo; }
+    getFiles() { return driveIter(this.files.slice()); }
+    getFolders() { return driveIter(this.folders.slice()); }
+    getFoldersByName(name) { return driveIter(this.folders.filter(f => f.name === name)); }
+    getFilesByName(name) { return driveIter(this.files.filter(f => f.name === name)); }
+  }
+  const _driveRoot = new DriveFolderStub('My Drive');
+  const DriveApp = {
+    getRootFolder: () => _driveRoot,
+    createFolder: name => _driveRoot.createFolder(name),
+    getFolderById: id => { const f = _driveIndex[id]; if (!f) throw new Error('DriveApp.getFolderById (emulated): not found ' + id); return f; },
+    getFoldersByName: name => {
+      const all = [];
+      (function walk(fo) { if (fo.name === name) all.push(fo); fo.folders.forEach(walk); })(_driveRoot);
+      return driveIter(all.filter(f => f !== _driveRoot || f.name === name));
+    }
+  };
+
   const HtmlService = {
     createHtmlOutput: () => ({ setTitle: () => ({ setWidth: () => ({}) }), setWidth: () => ({}) }),
     createHtmlOutputFromFile: () => ({ setTitle: () => ({ setWidth: () => ({}) }) }),
@@ -396,8 +453,8 @@ function makeStubEnv(opts) {
   };
 
   return {
-    SpreadsheetApp, PropertiesService, Utilities, Logger, HtmlService,
-    SSStub,
+    SpreadsheetApp, PropertiesService, Utilities, Logger, HtmlService, DriveApp,
+    SSStub, DriveFolderStub, DriveFileStub,
     newSS() { activeSS = new SSStub(); return activeSS; },
     setActive(s) { activeSS = s; },
     getActive: () => activeSS,

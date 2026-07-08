@@ -379,6 +379,16 @@ function columnLetterToNumber_(letter) {
   return col;
 }
 
+// Grow the grid to at least rows × cols BEFORE writing past the 1,000×26
+// default — out-of-grid writes surface as the opaque "Service Spreadsheets
+// failed while accessing document" error. (Backported from the siblings.)
+function ensureGrid_(sheet, rows, cols) {
+  var maxR = sheet.getMaxRows();
+  if (rows > maxR) sheet.insertRowsAfter(maxR, rows - maxR);
+  var maxC = sheet.getMaxColumns();
+  if (cols > maxC) sheet.insertColumnsAfter(maxC, cols - maxC);
+}
+
 /**
  * setCell_ — style a single cell or range in one call.
  * opts: { value, formula, font, size, bold, italic, color, bg, h, v,
@@ -744,6 +754,10 @@ function setNamedRanges_(ss) {
 
 // ── _Config — palette table, profile table, active selections ─────────
 function buildConfig_(sheet) {
+  // The profiles block reaches column AA (27) — past a fresh sheet's 26-col
+  // default. Without this, a from-scratch build dies with the opaque
+  // "Service Spreadsheets failed" error (caught by verify_foundation.js).
+  ensureGrid_(sheet, 60, 28);
   sheet.getRange('A1').setValue('palettes');
   var palHdr = ['id', 'name', 'primary', 'mid', 'accent', 'bg', 'zebra', 'dark', 'accentLight'];
   sheet.getRange(2, 1, 1, palHdr.length).setValues([palHdr]).setFontWeight('bold');
@@ -924,6 +938,8 @@ function buildTransactions_(sheet, mode) {
   // second createFilter() throws. Tear down any prior filter first.
   var existingFilter = sheet.getFilter();
   if (existingFilter) existingFilter.remove();
+  // 5,000-row log — grow past the fresh sheet's 1,000-row default first.
+  ensureGrid_(sheet, 5012, 8);
 
   chrome_(sheet, TABS.TX, 'G');
   var r = titleRow_(sheet, 'G', 'Transactions',
@@ -2087,7 +2103,7 @@ function buildBankImport_(sheet, mode) {
     merge: 'L' + captionRow, font: FONT.BODY, size: 11, italic: true, color: BRAND.CAPTION, wrap: true });
 
   footer_(sheet, captionRow + 2, 'L');
-  setColWidths_(sheet, [170, 50, 130, 130, 110, 80, 80, 80, 110, 60, 60, 60]);
+  setColWidths_(sheet, [170, 110, 130, 130, 110, 80, 80, 80, 110, 60, 60, 60]);
 
   // Pin chrome + step pills + account-name input so the buyer always sees
   // the 5 steps (and the live pending counts on 4 & 5) while scrolling the
