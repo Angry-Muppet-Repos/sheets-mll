@@ -96,7 +96,13 @@ diverge, the workbook is ground truth.
 ## Current product state (June 2026)
 
 - **The Foundation v2.1** — listed on Etsy. Do not touch its files in
-  other products' work.
+  other products' work. **Bank Import v2 SPEC exists, NOT built**
+  (`design_handoff_foundation_v2/07_bank_import_v2.md`, 2026-06-14):
+  the cross-product import de-friction core (drop-folder scan, coverage
+  map, bank recipes, statement reconciliation, account-scoped dedupe —
+  note: it documents a REAL latent dedupe bug in Foundation+Ledger, same
+  charge on two accounts silently dropped). Foundation builds first when
+  Dan green-lights; Payoff/Ledger inherit via its adapter contract.
 - **The Payoff v1** (in design — NOT yet built) — the next product, a
   debt-payoff system. Brief + specs in `design/design_handoff_the_payoff/`
   (01 brief · 02 tabs · 03 data model · 04 mock+QA · 05 gamification —
