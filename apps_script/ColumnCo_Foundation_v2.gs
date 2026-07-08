@@ -2050,9 +2050,9 @@ var IMPORT_RECIPES = [
   { id: 'boa-acct',      f: /bank.?of.?america|boa/i, h: 'amount|date|description|running bal.', map: { date: 'Date', desc: 'Description', amt: 'Amount' }, flip: false },
   { id: 'capone-card',   f: /capital.?one/i, h: 'card no.|category|credit|debit|description|posted date|transaction date', map: { date: 'Transaction Date', desc: 'Description', debit: 'Debit', credit: 'Credit' }, flip: false },
   { id: 'wells-acct',    f: /wells/i,      h: '', map: null, flip: false, positional: ['date', 'amt', null, null, 'desc'] },   // headerless 5-col export
-  { id: 'citi-card',     f: /citi/i,       h: 'credit|debit|description|member name|status|date', map: { date: 'Date', desc: 'Description', debit: 'Debit', credit: 'Credit' }, flip: false },
+  { id: 'citi-card',     f: /citi/i,       h: 'credit|date|debit|description|member name|status', map: { date: 'Date', desc: 'Description', debit: 'Debit', credit: 'Credit' }, flip: false },
   { id: 'usaa-acct',     f: /usaa/i,       h: 'amount|balance|category|date|description|original description|status', map: { date: 'Date', desc: 'Description', amt: 'Amount' }, flip: false },
-  { id: 'ally-acct',     f: /ally/i,       h: ' amount| description|date|time|type', map: { date: 'Date', desc: ' Description', amt: ' Amount' }, flip: false },
+  { id: 'ally-acct',     f: /ally/i,       h: 'amount|date|description|time|type', map: { date: 'Date', desc: 'Description', amt: 'Amount' }, flip: false },
   { id: 'apple-card',    f: /apple/i,      h: 'amount (usd)|category|clearing date|description|merchant|purchased by|transaction date|type', map: { date: 'Transaction Date', desc: 'Merchant', amt: 'Amount (USD)' }, flip: true },
   { id: 'sofi-acct',     f: /sofi/i,       h: 'amount|current balance|date|description|status|type', map: { date: 'Date', desc: 'Description', amt: 'Amount' }, flip: false },
   { id: 'chime-acct',    f: /chime/i,      h: 'amount|date|description|settlement date|type', map: { date: 'Date', desc: 'Description', amt: 'Amount' }, flip: false },
@@ -2144,8 +2144,8 @@ function nearDupe_(a, b) {
   if (Number(a.amount).toFixed(2) !== Number(b.amount).toFixed(2)) return false;
   var da = a.date instanceof Date ? a.date.getTime() : 0, db = b.date instanceof Date ? b.date.getTime() : 0;
   if (Math.abs(da - db) > 2 * 86400000) return false;
-  var ta = String(a.desc).toUpperCase().split(/\s+/).filter(Boolean);
-  var tb = String(b.desc).toUpperCase().split(/\s+/).filter(Boolean);
+  var ta = String(a.desc).toUpperCase().replace(/[^A-Z0-9]+/g, ' ').split(/\s+/).filter(Boolean);
+  var tb = String(b.desc).toUpperCase().replace(/[^A-Z0-9]+/g, ' ').split(/\s+/).filter(Boolean);
   if (!ta.length || !tb.length) return true;
   var hit = 0;
   for (var i = 0; i < ta.length; i++) if (tb.indexOf(ta[i]) !== -1) hit++;
@@ -2232,7 +2232,7 @@ function scanBankInbox() {
   while (it.hasNext()) files.push(it.next());
   files = files.slice(0, IMP2.FILES_COUNT);
 
-  var stagedAll = [], meta = [], review = [], seenBatch = {};
+  var stagedAll = [], meta = [], review = [], seenBatch = {}, batchRows = [];
   files.forEach(function (file, fi) {
     var name = file.getName(), lower = name.toLowerCase();
     if (/\.pdf$/.test(lower)) { meta.push([name, '—', '', 0, '', 0, 0, 0, 'PDF — convert first (see caption below)']); return; }
@@ -2259,9 +2259,12 @@ function scanBankInbox() {
         var key = txKey_(account, r.date, r.desc, r.amount);
         if (ledger.keys[key] || seenBatch[key]) { st = 'DUP'; nDup++; }
         else {
-          var near = ledger.rows.some(function (L) { return nearDupe_(o, L); });
+          // near-dupes are checked against the ledger AND the rows already
+          // accepted in this batch (overlapping exports arrive together)
+          var near = ledger.rows.some(function (L) { return nearDupe_(o, L); }) ||
+                     batchRows.some(function (B) { return nearDupe_(o, B); });
           if (near) { st = 'REVIEW'; nRev++; review.push({ row: o, src: name }); }
-          else { st = 'NEW'; nNew++; seenBatch[key] = true; }
+          else { st = 'NEW'; nNew++; seenBatch[key] = true; batchRows.push(o); }
         }
       }
       stagedAll.push([r.date, r.desc, r.amount, account, '', name, st, '']);
@@ -2325,15 +2328,17 @@ function appendStagedImports() {
 
   var ledger = readLedgerForDedupe_(tx);
   var rules = loadKeywordRules_(ss);
-  var out = [], review = [], seen = {}, dup = 0, unassigned = 0;
+  var out = [], review = [], seen = {}, dup = 0, unassigned = 0, batchRows = [];
   staged.forEach(function (r) {
     var date = r[0], desc = r[1], amount = r[2], account = acctByFile[String(r[5])] || r[3];
     if (!account) { unassigned++; return; }
     var key = txKey_(account, date, desc, amount);
     if (ledger.keys[key] || seen[key]) { dup++; return; }
     var o = { date: date, desc: desc, amount: amount, account: account };
-    if (ledger.rows.some(function (L) { return nearDupe_(o, L); })) { review.push({ row: o, src: r[5] }); return; }
+    if (ledger.rows.some(function (L) { return nearDupe_(o, L); }) ||
+        batchRows.some(function (B) { return nearDupe_(o, B); })) { review.push({ row: o, src: r[5] }); return; }
     seen[key] = true;
+    batchRows.push(o);
     var category = amount > 0 ? 'Income' : categorize_(desc, rules);
     out.push([date, desc, amount, category, account, '']);
   });
