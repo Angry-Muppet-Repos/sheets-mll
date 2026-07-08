@@ -29,16 +29,23 @@ const { execFileSync } = require('child_process');
 const makeStubEnv = require('./lib/gas_stub.js');
 
 const REPO = path.join(__dirname, '..');
-const SRC = fs.readFileSync(path.join(REPO, 'apps_script/ColumnCo_Payoff_v1.gs'), 'utf8');
-const MOCKUP = path.join(REPO, 'design/ui_kits/the_payoff/full_mockup.html');
 const CHROMIUM = '/opt/pw-browsers/chromium';
 
 const args = process.argv.slice(2);
+const argOf = p => { const a = args.find(x => x.startsWith(p)); return a ? a.slice(p.length) : null; };
+// --src lets any product render (generic ƒ resolver, no display map);
+// default stays the Payoff with its math-twin resolver + mockup shots.
+const SRC_PATH = argOf('--src=') || 'apps_script/ColumnCo_Payoff_v1.gs';
+const IS_PAYOFF = SRC_PATH.indexOf('Payoff') !== -1;
+const SRC = fs.readFileSync(path.join(REPO, SRC_PATH), 'utf8');
+const MOCKUP = path.join(REPO, 'design/ui_kits/the_payoff/full_mockup.html');
+
 const OUT = args.find(a => !a.startsWith('--')) || process.env.PREVIEW_OUT || '/tmp/payoff_previews';
-const MODES = (args.find(a => a.startsWith('--modes=')) || '--modes=mock').slice(8).split(',');
+const MODES = (argOf('--modes=') || 'mock').split(',');
 const SHOTS = !args.includes('--no-shots');
 
-const VIEW_TABS = ['Start Here', 'Dashboard', 'The Plan', 'Compare', 'Debts', 'Payments Log', 'Progress', 'The Hall', 'Bank Import'];
+const VIEW_TABS = argOf('--tabs=') ? argOf('--tabs=').split(';')
+  : ['Start Here', 'Dashboard', 'The Plan', 'Compare', 'Debts', 'Payments Log', 'Progress', 'The Hall', 'Bank Import'];
 const ROW_CAPS = { 'Payments Log': 40, 'Debts': 45 };
 const MOCKUP_TAB_IDS = { 'Start Here': 'start', 'Dashboard': 'dashboard', 'The Plan': 'plan', 'Compare': 'compare', 'Debts': 'debts', 'Payments Log': 'payments', 'Progress': 'progress', 'The Hall': 'hall', 'Bank Import': 'import' };
 
@@ -47,9 +54,9 @@ const env = makeStubEnv({ recordStyles: true });
 const EXPORTS = ['buildWorkbook', 'TABS', 'MOCK', 'DEBT', 'ENG', 'STRATEGY_DEFAULT', 'SCENARIO_EXTRAS',
   'PAYOFF_HORIZON_MONTHS', 'mockInPlanDebts_', 'rankDebts_', 'simulateSchedule_', 'simulateBaseline_',
   'generateMockDebts_', 'generateMockContributions_'];
-const factory = new Function('SpreadsheetApp', 'PropertiesService', 'Utilities', 'Logger', 'HtmlService',
+const factory = new Function('SpreadsheetApp', 'PropertiesService', 'Utilities', 'Logger', 'HtmlService', 'DriveApp',
   SRC + '\n;return {' + EXPORTS.map(n => n + ': (typeof ' + n + '!=="undefined")?' + n + ':undefined').join(',') + '};');
-const api = factory(env.SpreadsheetApp, env.PropertiesService, env.Utilities, env.Logger, env.HtmlService);
+const api = factory(env.SpreadsheetApp, env.PropertiesService, env.Utilities, env.Logger, env.HtmlService, env.DriveApp);
 
 // ───────────────────── display-value context (mock) ─────────────────────
 // Every figure comes from the same JS twin the verify math layer asserts,
@@ -373,12 +380,12 @@ function shotMockups(outDir) {
 // ───────────────────────── main ─────────────────────────────────────────
 fs.mkdirSync(OUT, { recursive: true });
 const fontsCss = ensureFonts(OUT);
-const ctx = buildContext();
+const ctx = IS_PAYOFF ? buildContext() : null;
 
 for (const mode of MODES) {
   const ss = env.newSS();
   api.buildWorkbook(mode);
-  const resolve = makeResolver(ctx, mode);
+  const resolve = IS_PAYOFF ? makeResolver(ctx, mode) : (f => /SPARKLINE\s*\(/i.test(f) ? { spark: true } : 'ƒ');
   const dir = path.join(OUT, mode);
   fs.mkdirSync(dir, { recursive: true });
   try { fs.symlinkSync(path.join(OUT, 'fonts'), path.join(dir, 'fonts')); } catch (e) {}
@@ -393,16 +400,18 @@ for (const mode of MODES) {
     console.log('  [' + mode + '] ' + tab + ' → ' + base + '.png (' + totalW + '×' + totalH + ')');
   }
 }
-shotMockups(OUT);
+if (IS_PAYOFF) shotMockups(OUT);
 
 // index of side-by-sides
-const idx = ['<!doctype html><meta charset="utf-8"><style>body{font-family:sans-serif;background:#222;color:#eee}h2{margin:24px 0 6px}div.row{display:flex;gap:12px;align-items:flex-start}div.row figure{margin:0}figcaption{font-size:12px;color:#aaa}img{max-width:640px;border:1px solid #444}</style><h1>The Payoff — render previews</h1>'];
-for (const tab of VIEW_TABS) {
+const idx = !IS_PAYOFF ? null : ['<!doctype html><meta charset="utf-8"><style>body{font-family:sans-serif;background:#222;color:#eee}h2{margin:24px 0 6px}div.row{display:flex;gap:12px;align-items:flex-start}div.row figure{margin:0}figcaption{font-size:12px;color:#aaa}img{max-width:640px;border:1px solid #444}</style><h1>The Payoff — render previews</h1>'];
+for (const tab of (idx ? VIEW_TABS : [])) {
   const base = tab.replace(/\s+/g, '_').toLowerCase();
   idx.push('<h2>' + tab + '</h2><div class="row">');
   idx.push('<figure><figcaption>mockup (target)</figcaption><img src="mockup/' + MOCKUP_TAB_IDS[tab] + '.png"></figure>');
   for (const mode of MODES) idx.push('<figure><figcaption>sheets render · ' + mode + '</figcaption><img src="' + mode + '/' + base + '.png"></figure>');
   idx.push('</div>');
 }
-fs.writeFileSync(path.join(OUT, 'index.html'), idx.join('\n'));
-console.log('index → ' + path.join(OUT, 'index.html'));
+if (idx) {
+  fs.writeFileSync(path.join(OUT, 'index.html'), idx.join('\n'));
+  console.log('index → ' + path.join(OUT, 'index.html'));
+}

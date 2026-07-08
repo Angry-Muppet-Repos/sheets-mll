@@ -1,9 +1,22 @@
-# 07 · Bank Import v2 — the de-friction core (SPEC · NOT YET BUILT)
+# 07 · Bank Import v2 — the de-friction core (BUILT 2026-06-14)
 
-> **Status: SPEC APPROVED for drafting by Dan 2026-06-14 ("direction B" of
-> the bank-upload-friction memo). Nothing here is built.** Building is a
-> separate go/no-go from Dan. Foundation builds first; Payoff/Ledger
-> inherit via the adapter contract (§8). Workbench is out of scope.
+> **Status: BUILT into the Foundation 2026-06-14** (Dan's go). Payoff/
+> Ledger inherit via the adapter contract (§8) in follow-up sessions;
+> Workbench is out of scope. Verified by `tools/verify_foundation.js`
+> (the Foundation's first harness) — 42 pure + 13 functional checks.
+>
+> **Build-time deviations from this spec (recorded, not re-decided):**
+> 1. Simple onEdit triggers run without Drive authorization, so Scan /
+>    Append / Resolve / Create-sample-inbox are 💳 MENU items; checkboxes
+>    survive only as keep/skip marks in the REVIEW block.
+> 2. Staging between Scan and Append lives on a hidden `_ImportStage`
+>    sheet (Document Properties are too small for multi-thousand-row
+>    scans). The live COUNTIFS/reconcile helper grid lives there too.
+> 3. Coverage strips are script-painted at scan/append/refresh; the
+>    reconcile grid is pure live formulas anchored on Accounts!D.
+> 4. Near-duplicate detection is BATCH-AWARE (checks the ledger AND rows
+>    accepted earlier in the same scan) — overlapping exports arrive
+>    together, so ledger-only checking would let both copies land.
 
 ## Why (the friction, decomposed)
 

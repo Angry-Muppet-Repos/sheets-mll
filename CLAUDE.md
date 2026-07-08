@@ -95,14 +95,24 @@ diverge, the workbook is ground truth.
 
 ## Current product state (June 2026)
 
-- **The Foundation v2.1** — listed on Etsy. Do not touch its files in
-  other products' work. **Bank Import v2 SPEC exists, NOT built**
-  (`design_handoff_foundation_v2/07_bank_import_v2.md`, 2026-06-14):
-  the cross-product import de-friction core (drop-folder scan, coverage
-  map, bank recipes, statement reconciliation, account-scoped dedupe —
-  note: it documents a REAL latent dedupe bug in Foundation+Ledger, same
-  charge on two accounts silently dropped). Foundation builds first when
-  Dan green-lights; Payoff/Ledger inherit via its adapter contract.
+- **The Foundation v2.1** — NOT yet live on Etsy (Dan corrected the
+  earlier "listed" claim 2026-06-14). Do not touch its files in other
+  products' work. **Bank Import v2 BUILT (2026-06-14, per
+  `design_handoff_foundation_v2/07_bank_import_v2.md` + its recorded
+  deviations):** drop-folder Drive inbox → Scan → assign accounts →
+  Append; 20-bank recipe library + teach-me table; per-account 12-month
+  coverage strips (gap/gold states); statement-ending-balance
+  reconciliation anchored on Accounts!D; account-scoped dedupe in BOTH
+  import paths (fixes the silent same-charge-two-cards drop — Ledger
+  still carries the bug until its backport) + batch-aware near-dupe
+  review. Hidden `_ImportStage` staging/helper sheet. Also fixed: two
+  fresh-build grid crashes (_Config col AA, Transactions 5009 rows) that
+  only ever worked on already-grown sheets; ensureGrid_ backported.
+  `tools/verify_foundation.js` = the Foundation's FIRST harness (grid +
+  merge enforcement, blank-leak, contracts, 42 pure + 13 functional
+  import checks incl. idempotent re-import). NOT yet live-QA'd: Drive
+  flows are stub-verified; QA = Setup ▸ Create Sample Inbox → Scan →
+  assign → Append → coverage/reconcile → rescan appends zero.
 - **The Payoff v1** (in design — NOT yet built) — the next product, a
   debt-payoff system. Brief + specs in `design/design_handoff_the_payoff/`
   (01 brief · 02 tabs · 03 data model · 04 mock+QA · 05 gamification —
